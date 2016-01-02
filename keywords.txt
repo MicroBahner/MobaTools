@@ -1,0 +1,69 @@
+#######################################
+# Syntax Coloring Map Servo
+#######################################
+
+#######################################
+# Datatypes (KEYWORD1)
+#######################################
+
+Servo8	KEYWORD1
+Servo2	KEYWORD1
+EggTimer	KEYWORD1    
+SoftLed	KEYWORD1   
+Stepper4	KEYWORD1 
+#######################################
+# Methods and Functions (KEYWORD2)
+#######################################
+
+#Methods for Class Servo2
+attach	KEYWORD2
+detach	KEYWORD2
+write	KEYWORD2
+read	KEYWORD2
+readMicroseconds	KEYWORD2
+read	KEYWORD2
+setSpeed	KEYWORD2
+moving	KEYWORD2
+setMinimumPulse	KEYWORD2
+setMaximumPulse	KEYWORD2
+
+#Methods for Class EggTimer
+setTime	KEYWORD2
+running	KEYWORD2
+
+#Methods for Class SoftLed 
+attach	KEYWORD2
+riseTime	KEYWORD2
+on	KEYWORD2
+off	KEYWORD2
+
+#Methods for Class Stepper4
+attach	KEYWORD2
+detach	KEYWORD2
+write	KEYWORD2
+setZero	KEYWORD2
+setSpeed	KEYWORD2
+doSteps	KEYWORD2
+rotate	KEYWORD2
+stop	KEYWORD2
+moving	KEYWORD2
+read	KEYWORD2
+attached	KEYWORD2
+
+#######################################
+# Constants (LITERAL1)
+#######################################
+MAX_STEPPER	LITERAL1
+SPI_1	LITERAL1
+SPI_2	LITERAL1
+SPI_3	LITERAL1
+SPI_4	LITERAL1
+HALFSTEP	LITERAL1
+FULLSTEP	LITERAL1
+MAX_SERVOS	LITERAL1
+MINPULSEWIDTH	LITERAL1
+MAXPULSEWIDTH	LITERAL1
+MAX_LEDS	LITERAL1
+
+
+
