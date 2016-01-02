@@ -1,9 +1,11 @@
 
 /*
-  MobaTools V0.6
+  MobaTools V0.7
    (C) 08-2015 fpm fpm@mnet-online.de
    
-  
+  History:
+  V0.7 Allow nested Interrupts with the servos. This allows more precise other
+        interrupts e.g. for NmraDCC Library.
 
   This library is free software; you can redistribute it and/or
   modify it under the terms of the GNU General Public
@@ -344,6 +346,8 @@ ISR ( TIMER1_COMPA_vect)
 #else // create overlapping servo pulses
 // Positions of servopulses within 20ms cycle are variable, max 2 pulses at the same time
 // 27.9.15 with variable overlap, depending on length of next pulse: 16 Servos
+// 2.1.16 Enable interrupts after timecritical path (e.g. starting/stopping servo pulses)
+//        so other timecritical tasks can interrupt (nested interrupts)
 static bool searchNextPulse() {
     while ( pulseIx < servoCount && servoData[pulseIx].soll < 0 ) {
         SET_TP2;
@@ -389,9 +393,10 @@ ISR ( TIMER1_COMPA_vect)
             // next starttime must behind actual timervalue and endtime of next pulse must
             // lay after endtime of runningpuls + safetymargin (it may be necessary to start
             // another pulse between these 2 ends)
+            word tmpTCNT1 = TCNT1 + MARGINTICS/2;
+            sei();
             CLR_TP3 ;
-            OCR1A = max ( ((long)activePulseOff + (long) MARGINTICS - (long) nextPulseLength), ( TCNT1 + MARGINTICS/2 ) );
-            SET_TP3; // Oszimessung Dauer der ISR-Routine
+            OCR1A = max ( ((long)activePulseOff + (long) MARGINTICS - (long) nextPulseLength), ( tmpTCNT1 ) );
         } else {
             // we are at the end, no need to start another pulse in this cycle
             if ( activePulseOff ) {
@@ -425,6 +430,8 @@ ISR ( TIMER1_COMPA_vect)
                 digitalWrite( servoData[nextPulseIx].pin, HIGH );
                 #endif
             }
+            sei(); // the following isn't time critical, so allow nested interrupts
+            SET_TP3;
             // the 'nextPulse' we have started now, is from now on the 'activePulse', the running activPulse is now the
             // pulse to stop next.
             stopPulseIx = activePulseIx; // because there was a 'nextPulse' there is also an 'activPulse' which is the next to stop
@@ -448,16 +455,17 @@ ISR ( TIMER1_COMPA_vect)
                     digitalWrite( servoData[pulseIx].pin, HIGH );
                     #endif
                 }
+                word tmpTCNT1 = TCNT1;
+                sei(); // the following isn't time critical, so allow nested interrupts
+                SET_TP3;
                 // look for second pulse
                 pulseIx++;
                 if ( searchNextPulse() ) {
-                CLR_TP1;
                     // there is a second pulse - this is the 'nextPulse'
                     nextPulseLength = servoData[pulseIx].ist;
                     nextPulseIx = pulseIx++;
                     // set Starttime for 2. pulse in sequence
-                    OCR1A = max ( ((long)activePulseOff + (long) MARGINTICS - (long) nextPulseLength), ( TCNT1 + MARGINTICS/2 ) );
-                SET_TP1;
+                    OCR1A = max ( ((long)activePulseOff + (long) MARGINTICS - (long) nextPulseLength), ( tmpTCNT1 + MARGINTICS/2 ) );
                 } else {
                     // no next pulse, there is only one pulse
                     OCR1A = activePulseOff;
@@ -484,7 +492,7 @@ ISR ( TIMER1_COMPA_vect)
                 IrqType = POFF;
             }
         }
-        CLR_TP1; // Oszimessung Dauer der ISR-Routine
+        CLR_TP1; CLR_TP3; // Oszimessung Dauer der ISR-Routine
        
     } //end of 'pulse ON'
 }
