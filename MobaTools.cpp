@@ -1,4 +1,3 @@
-
 /*
   MobaTools V0.7
    (C) 08-2015 fpm fpm@mnet-online.de
@@ -346,8 +345,6 @@ ISR ( TIMER1_COMPA_vect)
 #else // create overlapping servo pulses
 // Positions of servopulses within 20ms cycle are variable, max 2 pulses at the same time
 // 27.9.15 with variable overlap, depending on length of next pulse: 16 Servos
-// 2.1.16 Enable interrupts after timecritical path (e.g. starting/stopping servo pulses)
-//        so other timecritical tasks can interrupt (nested interrupts)
 static bool searchNextPulse() {
     while ( pulseIx < servoCount && servoData[pulseIx].soll < 0 ) {
         SET_TP2;
