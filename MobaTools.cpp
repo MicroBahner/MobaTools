@@ -6,6 +6,7 @@
   History:
   V0.7 Allow nested Interrupts with the servos. This allows more precise other
         interrupts e.g. for NmraDCC Library.
+       A4988 stepper driver IC is supported (needs only 2 ports: step and direction)
 
   This library is free software; you can redistribute it and/or
   modify it under the terms of the GNU General Public
@@ -27,7 +28,7 @@
 #include <Arduino.h>
 
 // Debug-Ports
-//#define debug
+#define debug
 #ifdef debug 
     #if defined(__AVR_ATmega1280__) || defined(__AVR_ATmega2560__)
         #define MODE_TP1 DDRF |= (1<<2) //pinA2
@@ -83,8 +84,8 @@
         #define SET_TP4 
         #define CLR_TP4 
     #endif 
-    static char dbgbuf[80];
-    #define DebugPrint( ... ) sprintf( dbgbuf, "DBG: " __VA_ARGS__ ); Serial.println( dbgbuf );
+    #define DB_PRINT( x, ... ) { sprintf_P( dbgbuf, PSTR( x ), __VA_ARGS__ ) ; Serial.println( dbgbuf ); }
+    char dbgbuf[80];
 #else
     #define MODE_TP1 
     #define SET_TP1 
@@ -99,7 +100,7 @@
     #define SET_TP4 
     #define CLR_TP4 
     
-    #define DebugPrint( ... ) ;
+    #define DB_PRINT ;
 #endif
 
 
@@ -178,6 +179,14 @@ ISR ( TIMER1_COMPB_vect)
     CLR_TP2;
     for ( i=0; i<stepperCount; i++ ) {
         // für maximal 4 Motore
+        if ( stepperData[i].output == A4988_PINS ) {
+            // reset step pulse - pulse is max one cycle lenght
+            #ifdef FAST_PORTWRT
+            *stepperData[i].portPins[0].Adr &= ~stepperData[i].portPins[0].Mask;
+            #else
+            digitalWrite( stepperData[i].pins[0], LOW );
+            #endif
+        }
         if ( stepperData[i].activ && stepperData[i].stepCnt > 0 ) {
             // only active motors
             stepperData[i].cycCnt+=cyclesLastIRQ;
@@ -239,6 +248,30 @@ ISR ( TIMER1_COMPB_vect)
                     }
                     stepperData[i].lastPattern = stepPattern[ stepperData[i].patternIx ];
                     break;
+                  case A4988_PINS : // output step-pulse and direction
+                    // direction first
+                    if ( stepperData[i].patternIxInc > 0 ) {
+                        // turn forward 
+                        #ifdef FAST_PORTWRT
+                        *stepperData[i].portPins[1].Adr |= stepperData[i].portPins[1].Mask;
+                        #else
+                        digitalWrite( stepperData[i].pins[1], HIGH );
+                        #endif
+                    } else {
+                        // turn backwards
+                        #ifdef FAST_PORTWRT
+                        *stepperData[i].portPins[1].Adr &= ~stepperData[i].portPins[1].Mask;
+                        #else
+                        digitalWrite( stepperData[i].pins[1], LOW );
+                        #endif
+                    }    
+                    // Set step pulse ( will be resettet in next IRQ )
+                    #ifdef FAST_PORTWRT
+                    *stepperData[i].portPins[0].Adr |= stepperData[i].portPins[0].Mask;
+                    #else
+                    digitalWrite( stepperData[i].pins[0], HIGH );
+                    #endif
+                    
                   default:
                     // should never be reached
                     break;
@@ -570,7 +603,7 @@ void Stepper4::initialize ( int steps360, uint8_t mode, uint8_t minStepTime ) {
         // create new instance
         stepperIx = stepperCount++ ;
         stepsRev = steps360;       // number of steps for full rotation in fullstep mode
-        if ( mode != FULLSTEP  ) mode = HALFSTEP;
+        if ( mode != FULLSTEP && mode != A4988 ) mode = HALFSTEP;
         // initialize data for interrupts
         stepperData[stepperIx].stepCnt = 0;         // don't move
         stepMode = mode;
@@ -597,6 +630,16 @@ long Stepper4::getSFZ() {
 }
 
 // public functions -------------------
+uint8_t Stepper4::attach( byte stepP, byte dirP ) {
+    // step motor driver A4988 is used
+    byte pins[2];
+    if ( stepMode != A4988 ) return 0;    // false mode
+    
+    
+    pins[0] = stepP;
+    pins[1] = dirP;
+    return Stepper4::attach( A4988_PINS, pins );
+}
 uint8_t Stepper4::attach( byte pin1, byte pin2, byte pin3, byte pin4 ) {
     byte pins[4];
     pins[0] = pin1;
@@ -606,11 +649,11 @@ uint8_t Stepper4::attach( byte pin1, byte pin2, byte pin3, byte pin4 ) {
     return Stepper4::attach( SINGLE_PINS, pins );
 }
 uint8_t Stepper4::attach(byte outArg) {
-    return Stepper4::attach( outArg, NULL );
+    return Stepper4::attach( outArg, (byte *)NULL );
 }
     
 uint8_t Stepper4::attach( byte outArg, byte pins[] ) {
-    // outArg must be one of PIN8_11 ... SPI_4 or SINGLE_PINS
+    // outArg must be one of PIN8_11 ... SPI_4 or SINGLE_PINS, A4988_PINS
     if ( stepMode == NOSTEP ) return 0; // Invalid object
     uint8_t attachOK = true;
     switch ( outArg ) {
@@ -662,7 +705,23 @@ uint8_t Stepper4::attach( byte outArg, byte pins[] ) {
             digitalWrite( pins[i], LOW );
         }
         break;
-      default:
+      case A4988_PINS:
+        // 2 single output pins (step and direction) - as yet there is no check if they are allowed!
+        for ( byte i = 0; i<2; i++ ) {
+            #ifdef FAST_PORTWRT
+            // compute portadress and bitnumber
+            stepperData[stepperIx].portPins[i].Adr = (byte *) pgm_read_word_near(&port_to_output_PGM[pgm_read_byte_near(&digital_pin_to_port_PGM[ pins[i]])]);
+            stepperData[stepperIx].portPins[i].Mask = pgm_read_byte_near(&digital_pin_to_bit_mask_PGM[pins[i]]);
+            #else // store pins directly
+            stepperData[stepperIx].pins[i] = pins[i];
+            #endif
+            stepMode = HALFSTEP;                      // There are no real stepmodes in A4988 - mode
+            stepperData[stepperIx].patternIxInc = 1;  // defines direction
+            pinMode( pins[i], OUTPUT );
+            digitalWrite( pins[i], LOW );
+        }
+        break;
+     default:
         // invalid Arg
         attachOK = false;
     }
@@ -711,7 +770,7 @@ void Stepper4::setZero() {
 
 void Stepper4::write(long angleArg ) {
     // set next position as angle, measured from last setZero() - point
-    //DebugPrint( "Pin: " ,pin);DebugPrint("Wert: ", angleArg);
+    DB_PRINT("Wert: ", angleArg);
     Stepper4::write( angleArg, 1 );
 }
 
@@ -722,7 +781,7 @@ void Stepper4::write( long angleArg, byte fact ) {
     bool negative;
     int angel2steps;
     negative =  ( angleArg < 0 ) ;
-    DebugPrint( "angleArg: ",angleArg ); //DebugPrint( " getSFZ: ", getSFZ() );
+    DB_PRINT( "angleArg: ",angleArg ); //DB_PRINT( " getSFZ: ", getSFZ() );
     //Serial.print( "Write: " ); Serial.println( angleArg );
     angel2steps =  ( (abs(angleArg) * (long)stepsRev*10) / ( 360L * fact) +5) /10 ;
     if ( negative ) angel2steps = -angel2steps;
@@ -760,7 +819,7 @@ void Stepper4::doSteps( long stepValue ) {
     if ( stepMode == NOSTEP ) return ; // Invalid object
     //Serial.print( "doSteps: " ); Serial.println( stepValue );
     stepsToMove = stepValue;
-     //DebugPrintln( " stepsToMove: ",stepsToMove );
+     DB_PRINT( " stepsToMove: %d ",stepsToMove );
     if ( stepValue > 0 ) stepperData[stepperIx].patternIxInc = abs( stepperData[stepperIx].patternIxInc );
     else stepperData[stepperIx].patternIxInc = -abs( stepperData[stepperIx].patternIxInc );
     uint8_t oldSREG = SREG;
@@ -866,7 +925,7 @@ uint8_t Servo8::attach( int pinArg, int pmin, int pmax, bool autoOff ) {
     // set pulselength for angle 0 and 180
     if ( pmin >= MINPULSEWIDTH && pmin <= MAXPULSEWIDTH) min16 = pmin/16;
     if ( pmax >= MINPULSEWIDTH && pmax <= MAXPULSEWIDTH ) max16 = pmax/16;
-	DebugPrint( "pin: %d, pmin:%d pmax%d autoOff=%d, min16=%d, max16=%d", pinArg, pmin, pmax, autoOff, min16, max16);
+	DB_PRINT( "pin: %d, pmin:%d pmax%d autoOff=%d, min16=%d, max16=%d", pinArg, pmin, pmax, autoOff, min16, max16);
     
     // intialize objectspecific global data
     lastPos = 3000 ;    // initalize to middle position
@@ -880,8 +939,8 @@ uint8_t Servo8::attach( int pinArg, int pmin, int pmax, bool autoOff ) {
     // compute portaddress and bitmask related to pin number
     servoData[servoIndex].portAdr = (byte *) pgm_read_word_near(&port_to_output_PGM[pgm_read_byte_near(&digital_pin_to_port_PGM[ pinArg])]);
     servoData[servoIndex].bitMask = pgm_read_byte_near(&digital_pin_to_bit_mask_PGM[pinArg]);
-    DebugPrint( "Idx: %d Portadr: 0x%x, Bitmsk: 0x%x", servoIndex, servoData[servoIndex].portAdr, servoData[servoIndex].bitMask );
-	DebugPrint( "Stack=0x%04x, &sIx=0x%04x", ((SPH&0x7)<<8)|SPL, &servoIndex );
+    DB_PRINT( "Idx: %d Portadr: 0x%x, Bitmsk: 0x%x", servoIndex, servoData[servoIndex].portAdr, servoData[servoIndex].bitMask );
+	DB_PRINT( "Stack=0x%04x, &sIx=0x%04x", ((SPH&0x7)<<8)|SPL, &servoIndex );
     #endif
     pin = pinArg;
     angle = NO_ANGLE;
@@ -913,10 +972,10 @@ void Servo8::write(int angleArg)
     // values between 0 and 180 are interpreted as degrees,
     // values between MINPULSEWIDTH and MAXPULSEWIDTH are interpreted as microseconds
     static int newpos;
-	DebugPrint( "Write: angleArg=%d, Soll=%d", angleArg, servoData[servoIndex].soll );
+	DB_PRINT( "Write: angleArg=%d, Soll=%d", angleArg, servoData[servoIndex].soll );
     if ( pin > 0 ) { // only if servo is attached
         //Serial.print( "Pin:" );Serial.print(pin);Serial.print("Wert:");Serial.println(angleArg);
-		DebugPrint( "Stack=0x%04x, &sIx=0x%04x", ((SPH&0x7)<<8)|SPL, &servoIndex );
+		DB_PRINT( "Stack=0x%04x, &sIx=0x%04x", ((SPH&0x7)<<8)|SPL, &servoIndex );
         if ( angleArg < 0) angleArg = 0;
         if ( angleArg <= 180) {
             // pulse width as degrees
@@ -943,7 +1002,7 @@ void Servo8::write(int angleArg)
             cli();
             servoData[servoIndex].soll= newpos ; // .ist - value is still -1 (invalid) -> will jump to .soll immediately
             SREG = oldSREG;
-			DebugPrint( "FirstWrite: Ix=%d,%d Soll=%d", servoIndex, this->servoIndex, servoData[servoIndex].soll );
+			DB_PRINT( "FirstWrite: Ix=%d,%d Soll=%d", servoIndex, this->servoIndex, servoData[servoIndex].soll );
             
         }
         else if ( newpos != servoData[servoIndex].soll ) {
@@ -953,7 +1012,7 @@ void Servo8::write(int angleArg)
             cli();
             servoData[servoIndex].soll= newpos ;
             SREG = oldSREG;
-			DebugPrint( "NextWrite: Ix= %d,%d Soll=%d, On=%d", servoIndex, this->servoIndex, servoData[servoIndex].soll, servoData[servoIndex].on );
+			DB_PRINT( "NextWrite: Ix= %d,%d Soll=%d, On=%d", servoIndex, this->servoIndex, servoData[servoIndex].soll, servoData[servoIndex].on );
         }
     }
 }
