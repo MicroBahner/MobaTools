@@ -28,7 +28,7 @@
 #include <Arduino.h>
 
 // Debug-Ports
-#define debug
+//#define debug
 #ifdef debug 
     #if defined(__AVR_ATmega1280__) || defined(__AVR_ATmega2560__)
         #define MODE_TP1 DDRF |= (1<<2) //pinA2
@@ -84,8 +84,8 @@
         #define SET_TP4 
         #define CLR_TP4 
     #endif 
-    #define DB_PRINT( x, ... ) { sprintf_P( dbgbuf, PSTR( x ), __VA_ARGS__ ) ; Serial.println( dbgbuf ); }
-    char dbgbuf[80];
+    #define DB_PRINT( x, ... ) { sprintf_P( dbgBuf, PSTR( x ), __VA_ARGS__ ) ; Serial.println( dbgBuf ); }
+    static char dbgBuf[80];
 #else
     #define MODE_TP1 
     #define SET_TP1 
@@ -383,7 +383,7 @@ ISR ( TIMER1_COMPA_vect)
 //        so other timecritical tasks can interrupt (nested interrupts)
 static bool searchNextPulse() {
     while ( pulseIx < servoCount && servoData[pulseIx].soll < 0 ) {
-        SET_TP2;
+        //SET_TP2;
         pulseIx++;
         CLR_TP2;
     }
@@ -634,7 +634,7 @@ uint8_t Stepper4::attach( byte stepP, byte dirP ) {
     // step motor driver A4988 is used
     byte pins[2];
     if ( stepMode != A4988 ) return 0;    // false mode
-    
+    DB_PRINT( "Attach4988, S=%d, D=%d", stepP, dirP );
     
     pins[0] = stepP;
     pins[1] = dirP;
@@ -736,7 +736,7 @@ uint8_t Stepper4::attach( byte outArg, byte pins[] ) {
             TIMSK1 |= _BV(OCIE1B) ; 
         #endif
     }
-
+    DB_PRINT( "attach: output=%d, attachOK=%d", stepperData[stepperIx].output, attachOK );
     //Serial.print( "Attach Stepper, Ix= "); Serial.println( stepperIx );
     return attachOK;
 }
@@ -770,7 +770,7 @@ void Stepper4::setZero() {
 
 void Stepper4::write(long angleArg ) {
     // set next position as angle, measured from last setZero() - point
-    DB_PRINT("Wert: ", angleArg);
+    DB_PRINT("write: %d", angleArg);
     Stepper4::write( angleArg, 1 );
 }
 
@@ -781,7 +781,7 @@ void Stepper4::write( long angleArg, byte fact ) {
     bool negative;
     int angel2steps;
     negative =  ( angleArg < 0 ) ;
-    DB_PRINT( "angleArg: ",angleArg ); //DB_PRINT( " getSFZ: ", getSFZ() );
+    DB_PRINT( "angleArg: %d",angleArg ); //DB_PRINT( " getSFZ: ", getSFZ() );
     //Serial.print( "Write: " ); Serial.println( angleArg );
     angel2steps =  ( (abs(angleArg) * (long)stepsRev*10) / ( 360L * fact) +5) /10 ;
     if ( negative ) angel2steps = -angel2steps;
