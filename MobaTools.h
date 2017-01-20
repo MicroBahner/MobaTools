@@ -24,13 +24,22 @@
   Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 */
 
+/* 02-11-16 Updating Stepper driver:
+   - stepper motor can be connected ba means of a4988 stepper motor driver IC
+     this uses only 2 pins: STEP and DIRECTION
+*/
 #include <inttypes.h>
 #include <Arduino.h>
+
+#ifndef __AVR_MEGA__
+#error "Only AVR AtMega processors are supported"
+#endif
 
 #define Servo2	Servo8		// Kompatibilität zu Version 01 und 02
 //defines used in user programs
 #define HALFSTEP    1
 #define FULLSTEP    2
+#define A4988       3   // using motordriver A4988
 #define NOSTEP      0   // invalid-flag
 
 #define NO_OUTPUT   0
@@ -41,6 +50,7 @@
 #define SPI_3        5
 #define SPI_4        6
 #define SINGLE_PINS  7
+#define A4988_PINS  8
 
 // for formatted printing to Serial( just like fprintf )
 // you need to define txtbuf with proper length to use this
@@ -93,12 +103,15 @@ typedef struct {    // portaddress and bitmask for direkt pin set/reset
 typedef struct {
   volatile long stepCnt;        // nmbr of steps to take
   volatile int8_t patternIx;    // Pattern-Index of actual Step (0-7)
-  int8_t patternIxInc;          // halfstep: +/-1, fullstep: +/-2, sign defines direction
+  int8_t patternIxInc;          // halfstep: +/-1, fullstep: +/-2, A4988 +3/-3/
+                                // sign defines direction
   uint16_t cycSteps;            // nbr of IRQ cycles per step ( speed of motor )
+  uint16_t rCycSteps;           // nbr of IRQ cycles per step during start/stop ramp
+  uint16_t rStepDec;            // count of steps until decrementing cycle ( during start ramp )
   volatile uint16_t cycCnt;     // counting cycles until cycStep
   volatile long stepsFromZero;  // distance from last reference point ( always as steps in HALFSTEP mode )
                                 // in FULLSTEP mode this is twice the real step number
-  byte output  :6 ;             // PORTB(pin8-11), PORTD (pin4-7), SPI0,SPI1,SPI2,SPI3
+  byte output  :6 ;             // PORTB(pin8-11), PORTD (pin4-7), SPI0,SPI1,SPI2,SPI3, SINGLE_PINS, A4988_PINS
   byte activ :1;  
   byte endless :1;              // turn endless
   #ifdef FAST_PORTWRT
@@ -126,7 +139,7 @@ typedef union { // used output channels as bit und byte
 typedef struct {
   int soll = -1;     // Position, die der Servo anfahren soll ( in Tics )
   volatile int ist;      // Position, die der Servo derzeit einnimt ( in Tics )
-  byte inc;     // Schrittweite je Zyklus um Ist an Soll anzugleichen
+  int inc;     // Schrittweite je Zyklus um Ist an Soll anzugleichen
   byte offcnt;  // counter to switch off pulses if length doesn't change
   #ifdef FAST_PORTWRT
   byte* portAdr; // port adress related to pin number
@@ -155,7 +168,9 @@ class Stepper4
     int stepsRev;                   // steps per full rotation
     int stepsToMove;                // from last point
     uint8_t stepMode;               // FULLSTEP or HALFSTEP
-    uint8_t minCycSteps;            // minimum time between 2 steps
+    uint8_t minCycSteps;            // minimum time between 2 steps without ramp
+                                    // ramp starts with this speed if wanted speed ist faster
+    uint8_t minrCycSteps;           // absolute minimum time between 2 steps even with ramp
     static outUsed_t outputsUsed;
     long getSFZ();                  // get step-distance from last reference point
     void initialize(int,uint8_t,uint8_t);
@@ -166,6 +181,7 @@ class Stepper4
     Stepper4(int steps, uint8_t mode, uint8_t minStepTime ); // min StepTim in ms
     
     uint8_t attach( byte,byte,byte,byte); //single pins definition for output
+    uint8_t attach( byte stepP, byte dirP); // Port for step and direction in A4988 mode
     uint8_t attach(byte outArg);    // stepMode defaults to halfstep
     uint8_t attach(byte outArg, byte*  ); 
                                     // returns 0 on failure
