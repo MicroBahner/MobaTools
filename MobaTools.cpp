@@ -4,9 +4,10 @@
    (C) 08-2015 fpm fpm@mnet-online.de
    
   History:
-  V0.7 Allow nested Interrupts with the servos. This allows more precise other
+  V0.7 01-2017
+		Allow nested Interrupts with the servos. This allows more precise other
         interrupts e.g. for NmraDCC Library.
-       A4988 stepper driver IC is supported (needs only 2 ports: step and direction)
+		A4988 stepper driver IC is supported (needs only 2 ports: step and direction)
 
   This library is free software; you can redistribute it and/or
   modify it under the terms of the GNU General Public

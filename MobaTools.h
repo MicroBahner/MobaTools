@@ -3,7 +3,7 @@
 /*
   MobaTools.h - a library for model railroaders
   Author: fpm, fpm@mnet-mail.de
-  Copyright (c) 2015 All right reserved.
+  Copyright (c) 2017 All right reserved.
 
   Library to drive the Stepper Motor 28BYJ-48
   connected to SPI (MOSI,CLK,SS) Interface via shift register
@@ -24,7 +24,7 @@
   Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 */
 
-/* 02-11-16 Updating Stepper driver:
+/* 02-11-16 / (V0.7) Updating Stepper driver:
    - stepper motor can be connected ba means of a4988 stepper motor driver IC
      this uses only 2 pins: STEP and DIRECTION
 */
