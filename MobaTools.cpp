@@ -29,7 +29,7 @@
 #include <Arduino.h>
 
 // Debug-Ports
-//#define debug
+#define debug
 #ifdef debug 
     #if defined(__AVR_ATmega1280__) || defined(__AVR_ATmega2560__)
         #define MODE_TP1 DDRF |= (1<<2) //pinA2
@@ -125,10 +125,6 @@ static byte nextPulseIx = 0;
 
 
 
-// variables for softLeds
-static ledData_t ledData[MAX_LEDS];
-static byte ledCount = 0;
-
 // Variables for stepper motors
 static stepperData_t stepperData[MAX_STEPPER];
 static uint8_t spiData[2]; // step pattern to be output on SPI
@@ -138,46 +134,118 @@ static uint8_t spiData[2]; // step pattern to be output on SPI
 static uint8_t spiByteCount = 0;
 static byte stepperCount = 0;
 static uint8_t cyclesLastIRQ = 1;  // cycles since last IRQ
+
+// variables for softLeds
+static ledData_t ledData[MAX_LEDS];
+static byte ledCount = 0;
+static uint16_t ledNextCyc = 0;     // next Cycle that is relevant for leds
+static uint16_t ledCycleCnt = 0;    // count IRQ cycles within PWM cycle
+static uint8_t  ledStepIx = 0;      // Stepcounter for Leds ( Index in Array isteps , 0: start of pwm-Cycle )
+static uint8_t  ledNextStep = 0;    // next step needed for softleds
 //==========================================================================
 
 // global functions / Interrupts
 
-// ---------- ICR Capture interrupt used for SoftLed Class --------------------
-// TOP of timer is defined by ICR1
-ISR ( TIMER1_CAPT_vect)
-{ // Timer1 ICR1 Interrupt, started every 20ms )
-  uint8_t tmp, i ;
-  int posTmp;
-    // --------- LED Ansteuerung mit Soft Ein und Soft Aus
-  for ( i=0; i<ledCount; i++ ) {
-    if ( ledData[i].on && ledData[i].bright < 255 ) {
-      tmp = ledData[i].bright;
-      ledData[i].bright+=ledData[i].brightStep;
-      if (  tmp > ledData[i].bright ) ledData[i].bright = 255; // War Überlauf
-      analogWrite( ledData[i].pin, ledData[i].bright );
-      //analogWrite( led1P, 255-ledData[i].bright );
-    }
-    
-    if ( !ledData[i].on && ledData[i].bright > 0 ) {
-      tmp = ledData[i].bright;
-      ledData[i].bright-=ledData[i].brightStep;
-      if (  tmp < ledData[i].bright ) ledData[i].bright = 0; // War Überlauf
-      analogWrite( ledData[i].pin, ledData[i].bright );
-  }
-  }
-}
 
-// ---------- OCR1B Compare Interrupt used for stepper motor ----------------
+// ---------- OCR1B Compare Interrupt used for stepper motor and Softleds ----------------
 ISR ( TIMER1_COMPB_vect)
 { // Timer1 Compare B, used for stepper motor, starts every CYCLETIME us
     // 26-09-15 An Interrupt is only created at timeslices, where data is to output
     uint8_t i , spiChanged, changedPins, bitNr;
     uint16_t tmp;
     uint16_t nextCycle = 20000  / CYCLETIME ;// min ist one cycle per Timeroverflow
+    
     SET_TP2; // Oszimessung Dauer der ISR-Routine
     spiChanged = false;
-    sei(); // allow nested interrupts, because this IRQ may take long
+    //sei(); // allow nested interrupts, because this IRQ may take long
+    ledCycleCnt += cyclesLastIRQ;
+    if ( ledCycleCnt >= ledNextCyc ) {
+        // this block is relevant for softleds
+        ledNextStep = LED_STEP_MAX; // there must be atleast one IRQ per PWM Cycle
+        if ( ledStepIx >= LED_STEP_MAX ) {
+            // start of a new PWM Cycle - switch all leds rising/falling state to on
+            ledCycleCnt = 0;
+            ledStepIx = 0;
+            for ( i=0; i<ledCount; i++ ) {
+                // loop over active Leds
+                //if ( ledData[i].state >= (ledStat_t) INCR ) {
+               if ( ledData[i].state >= INCR0 ) {
+                    // switch on led and adjust switchoff time
+                    if ( ledData[i].state < INCR ) {
+                        // first Step of incrementing/derementing
+                        ledData[i].stpCnt = 0;
+                        ledData[i].state = (int) ledData[i].state + 2;
+                    }
+                    SET_TP1;
+                   #ifdef FAST_PORTWRT
+                    *ledData[i].portPin.Adr |= ledData[i].portPin.Mask;
+                    #else
+                    digitalWrite( ledData[i].pin, HIGH );
+                    #endif
+                    if ( ledData[i].stpCnt-- < ledData[i].speed ) {
+                        // switch to next step
+                        ledData[i].stpCnt = 0;
+                        if ( ledData[i].state == INCR ) {
+                            // check if full led is reached
+                            if ( ledData[i].aStep >= LED_STEP_MAX ) {
+                                // led is full on
+                                ledData[i].state = ON;
+                            } else { // switch to next PWM step
+                                ledData[i].aStep += max( ledData[i].speed, 1 );
+                                if ( ledData[i].aStep > LED_STEP_MAX ) ledData[i].aStep = LED_STEP_MAX;
+                            }
+                        } else { // is decrementing
+                            // check if led is fully off
+                            if ( ledData[i].aStep <= 0 ) {
+                                // led is off
+                                SET_TP4;
+                                ledData[i].aStep = 0;
+                                ledData[i].state = OFF;
+                                #ifdef FAST_PORTWRT
+                                *ledData[i].portPin.Adr &= ~ledData[i].portPin.Mask;
+                                #else
+                                digitalWrite( ledData[i].pin, LOW );
+                                #endif
+                                CLR_TP4;
+                            } else { // switch to next PWM step
+                                ledData[i].aStep -= max( ledData[i].speed, 1);
+                                if ( ledData[i].aStep < 0 ) ledData[i].aStep = 0;
+                            }
+                        }
+                    }
+                    CLR_TP1;
+                    ledNextStep = min( ledData[i].aStep, ledNextStep);
+                }
+            } // end of led loop
+        } else { // is switchofftime within PWM cycle
+            for ( i=0; i<ledCount; i++ ) {
+                SET_TP3;
+                if ( ledData[i].state >= INCR ) {
+                    // led is within PWM cycle
+                    if ( ledData[i].aStep <= ledStepIx ) {
+                        CLR_TP3;
+                        #ifdef FAST_PORTWRT
+                        *ledData[i].portPin.Adr &= ~ledData[i].portPin.Mask;
+                        #else
+                        digitalWrite( ledData[i].pin, LOW );
+                        #endif
+                        SET_TP3;
+                    } else { // next nessesary step
+                       SET_TP1;
+                       ledNextStep = min( ledData[i].aStep, ledNextStep);
+                       CLR_TP1;
+                    }
+                }
+                CLR_TP3;
+            }
+        }
+        ledStepIx = min ( ledNextStep, LED_STEP_MAX );
+        ledNextCyc =  iSteps[ledStepIx];
+        CLR_TP1;
+     } // end of softleds 
+    nextCycle = min( nextCycle, ( ledNextCyc-ledCycleCnt ) );
     CLR_TP2;
+    // ---------------Stepper motors ---------------------------------------------
     for ( i=0; i<stepperCount; i++ ) {
         // für maximal 4 Motore
         if ( stepperData[i].output == A4988_PINS ) {
@@ -279,8 +347,9 @@ ISR ( TIMER1_COMPB_vect)
                 }
             }
             nextCycle = min ( nextCycle, stepperData[i].cycSteps-stepperData[i].cycCnt );
-        }
-    }
+        } // end of 'if stepper active'
+    } // end of stepper-loop
+    
     // shift out spiData, if SPI is active
     if ( spiInitialized && spiChanged ) {
         digitalWrite( SS, LOW );
@@ -386,7 +455,7 @@ static bool searchNextPulse() {
     while ( pulseIx < servoCount && servoData[pulseIx].soll < 0 ) {
         //SET_TP2;
         pulseIx++;
-        CLR_TP2;
+        //CLR_TP2;
     }
     if ( pulseIx >= servoCount ) {
         // there is no more pulse to start, we reached the end
@@ -1073,62 +1142,104 @@ uint8_t Servo8::attached()
 
 /////////////////////////////////////////////////////////////////////////////
 //Class SoftLed - for Led with soft on / soft off ---------------------------
+// Version with Software PWM
 
 SoftLed::SoftLed() {
+    ledData[ledIx].speed = 0;       // defines rising/falling timer
+    ledData[ledIx].aStep = 0 ;      // actual PWM step
+    ledData[ledIx].state = OFF ;    // initialize to off
+    ledData[ledIx].setpoint = OFF ; // initialize to off
 }
 
 uint8_t SoftLed::attach(uint8_t pinArg){
-  // Led-Ausgang mit Softstart. Parameter muss ein PWM-Port sein
-  if ( ledCount >= MAX_LEDS ) return false;
-  ledIndex = ledCount++;
+    // Led-Ausgang mit Softstart. 
+    if ( ledCount >= MAX_LEDS ) return false;
+    ledIx = ledCount++;
+    DB_PRINT( "Led attached, ledCount = %d", ledCount )
+    ledData[ledIx].speed = 1;       // defines rising/falling timer
+    ledData[ledIx].aStep = 0 ;      // actual PWM step
+    ledData[ledIx].state = OFF ;    // initialize to off
+    ledData[ledIx].setpoint = OFF ; // initialize to off
+    #ifdef FAST_PORTWRT
+    ledData[ledIx].portPin.Adr = (byte *) pgm_read_word_near(&port_to_output_PGM[pgm_read_byte_near(&digital_pin_to_port_PGM[pinArg])]);
+    ledData[ledIx].portPin.Mask = pgm_read_byte_near(&digital_pin_to_bit_mask_PGM[pinArg]);
+    #else
+    ledData[ledIx].pin=pinArg ;      // Pin-Nbr 
+    #endif
+    if ( !timerInitialized ) seizeTimer1();
+    // enable compareB- interrupt
+    #if defined(__AVR_ATmega8__)|| defined(__AVR_ATmega128__)
+        TIMSK |= ( _BV(OCIE1B) );    // enable compare interrupts
+    #else
+        TIMSK1 |= _BV(OCIE1B) ; 
+    #endif
   
-  ledData[ledIndex].brightStep = 20; // Stufe je 20ms bei auf/abblenden
-  ledData[ledIndex].bright = 0 ;     // initialize to off
-  ledData[ledIndex].pin=pinArg ;      // Pin-Nbr ( Muss PWM-fahig sein )
-  ledData[ledIndex].on=false ;      // True: Led ist an
-  ledData[ledIndex].aktiv=false ;      // Led ist aktiv
 
-  if ( !timerInitialized) seizeTimer1();
-    // enable ICR interrupts
-#if defined(__AVR_ATmega8__)|| defined(__AVR_ATmega128__)
-    TIMSK |= (_BV(TICIE1) ;    // enable compare interrupts
-#else
-    TIMSK1 |= _BV(ICIE1);                  
-#endif
-  
-
-  return true;
+    return true;
 }
 
 void SoftLed::on(){
-  ledData[ledIndex].on=true ;
+    ledData[ledIx].setpoint=ON ;
+     if ( ledData[ledIx].state == OFF || ledData[ledIx].state == DECR ) {
+        SET_TP4;
+        ledData[ledIx].state = INCR0;
+        ledData[ledIx].aStep = 0;
+        CLR_TP4;
+    }
 }
 
 void SoftLed::off(){
-  ledData[ledIndex].on=false ;
+    ledData[ledIx].setpoint=OFF ;
+    if ( ledData[ledIx].state == ON || ledData[ledIx].state == INCR ) {
+        SET_TP4;
+        ledData[ledIx].state = DECR0;
+        ledData[ledIx].aStep = LED_STEP_MAX;
+        CLR_TP4;
+    }
 }
 
-void SoftLed::riseTime( int startArg ) {
-  // length of startphase in ms (min 1ms, max 5000ms )
-  if ( startArg <= 0 ) startArg = 1;
-  if ( startArg > 5000 ) startArg = 5000;
-  ledData[ledIndex].brightStep = 255 / ( startArg / 20 );
+void SoftLed::write( uint8_t setpoint ){
+    if ( setpoint == ON ) on(); else off();
+    #ifdef debug
+    // im Debugmode hier die Led-Daten ausgeben
+    DB_PRINT( "LedData[%d]\n\speed=%d, aStep=%d, stpCnt=%d, state=%d, setpoint= %d",
+            ledIx, ledData[ledIx].speed, ledData[ledIx].aStep, ledData[ledIx].stpCnt, ledData[ledIx].state
+                    , ledData[ledIx].setpoint);
+    DB_PRINT( "ON=%d, NextCyc=%d, CycleCnt=%d, StepIx=%d, NextStep=%d", 
+             (ledStat_t) ON, ledNextCyc, ledCycleCnt, ledStepIx, ledNextStep);
+    #endif
+}
+
+void SoftLed::riseTime( int riseTime ) {
+    // length of startphase in ms (min 20ms, max 5000ms )
+    // the real risetime is only a rough approximate to this time
+    // toDo: a better approximation to 'riseTime'
+    if ( riseTime <= 20 ) riseTime = 20;
+    if ( riseTime > 5000 ) riseTime = 5000;
+    // with speed parameter = 1 risetime is LEDSTEPMAX * LED_PWMTIME
+    if ( riseTime > (LED_STEP_MAX * LED_PWMTIME) ) {
+        // internal speed parameter must be less zero
+        ledData[ledIx].speed = - ( riseTime / (LED_STEP_MAX * LED_PWMTIME) );
+    } else { 
+        // internal speed paramter is > zero
+        ledData[ledIx].speed = (LED_STEP_MAX * LED_PWMTIME) / riseTime ;
+    }
 }
 
 ////////////////////////////////////////////////////////////////////////////
 // Class EggTimer - Timerverwaltung für Zeitverzögerungen in der Loop-Schleife
 
 void EggTimer::setTime(  long wert ) {
-  timervalue = millis() + wert;
+    timervalue = millis() + wert;
 }
 
 bool EggTimer::running() {
-  return ( timervalue >= millis() );
+    return ( timervalue >= millis() );
 }
 
 EggTimer::EggTimer()
 {
-  timervalue = millis();
+    timervalue = millis();
 }
 
 

@@ -72,7 +72,7 @@
 #define CYCLETICS   CYCLETIME*TICS_PER_MICROSECOND
 
 // defines for soft-leds
-#define MAX_LEDS    4     // Soft On/Off of 4 LEDs
+#define MAX_LEDS    12     // Soft On/Off of 12 LEDs
 
 // defines for servos
     #define MINPULSEWIDTH   700     // don't make it shorter
@@ -95,8 +95,8 @@
 ///////////////////////////////////////////////////////////////////////////////////////////////
 // 
 typedef struct {    // portaddress and bitmask for direkt pin set/reset
-   byte* Adr;
-   byte Mask;
+   uint8_t* Adr;
+   uint8_t Mask;
 } portBits_t;
 
 // global stepper data ( used in ISR )
@@ -111,18 +111,18 @@ typedef struct {
   volatile uint16_t cycCnt;     // counting cycles until cycStep
   volatile long stepsFromZero;  // distance from last reference point ( always as steps in HALFSTEP mode )
                                 // in FULLSTEP mode this is twice the real step number
-  byte output  :6 ;             // PORTB(pin8-11), PORTD (pin4-7), SPI0,SPI1,SPI2,SPI3, SINGLE_PINS, A4988_PINS
-  byte activ :1;  
-  byte endless :1;              // turn endless
+  uint8_t output  :6 ;             // PORTB(pin8-11), PORTD (pin4-7), SPI0,SPI1,SPI2,SPI3, SINGLE_PINS, A4988_PINS
+  uint8_t activ :1;  
+  uint8_t endless :1;              // turn endless
   #ifdef FAST_PORTWRT
   portBits_t portPins[4];       // Outputpins as Portaddress and Bitmask for faster writing
   #else
-  byte pins[4];                 // Outputpins as Arduino numbers
+  uint8_t pins[4];                 // Outputpins as Arduino numbers
   #endif
-  byte lastPattern;             // only changed pins are updated ( is faster )
+  uint8_t lastPattern;             // only changed pins are updated ( is faster )
 } stepperData_t ;
 
-typedef union { // used output channels as bit und byte
+typedef union { // used output channels as bit und uint8_t
       struct {
         uint8_t pin8_11 :1;
         uint8_t pin4_7  :1;
@@ -140,23 +140,42 @@ typedef struct {
   int soll = -1;     // Position, die der Servo anfahren soll ( in Tics )
   volatile int ist;      // Position, die der Servo derzeit einnimt ( in Tics )
   int inc;     // Schrittweite je Zyklus um Ist an Soll anzugleichen
-  byte offcnt;  // counter to switch off pulses if length doesn't change
+  uint8_t offcnt;  // counter to switch off pulses if length doesn't change
   #ifdef FAST_PORTWRT
-  byte* portAdr; // port adress related to pin number
-  byte  bitMask; // bitmask related to pin number
+  uint8_t* portAdr; // port adress related to pin number
+  uint8_t  bitMask; // bitmask related to pin number
   #endif
-  byte pin  :6 ; // pin 
-  byte on   :1 ; // True: create pulse
-  byte noAutoff :1;  // don't switch pulses off automatically
+  uint8_t pin  :6 ; // pin 
+  uint8_t on   :1 ; // True: create pulse
+  uint8_t noAutoff :1;  // don't switch pulses off automatically
 } servoData_t ;
 
 // global Data to softleds ( used in ISR )
-typedef struct {    // globale Infos zu den SoftLeds
-  byte brightStep = 20; // Stufe je 20ms bei auf/abblenden
-  volatile byte bright; // Derzeitige Helligkeitsstufe
-  byte pin    :6 ;      // Pin-Nummer ( Muss PWM-fahig sein )
-  byte on     :1 ;      // True: Led ist an
-  byte aktiv  :1 ;      // Led ist aktiv
+// the PWM pulses are created together with stepper pulses
+// pwm-Steps for soft on/off in CYCLETIME units. The last value means pwm cycletime
+//14mss cycletime
+const uint8_t iSteps[] = { 2, 5 , 10, 15, 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70 };
+// 20ms cycletime
+//const uint8_t iSteps[] = { 2,4, 6, 9, 12, 15, 20, 25, 30, 35, 40, 45,50,55,65,80,100 };
+#define LED_STEP_MAX    (sizeof(iSteps) -1)
+#define LED_PWMTIME     (iSteps[LED_STEP_MAX] / 5)  // PWM refreshrate in ms
+                                        // toDo: dies gilt nur bei einer CYCLETIME von 200us (derzeit default)
+
+typedef enum  ledStat_t { OFF, ON, INCR0, DECR0, INCR, DECR };
+typedef struct {            // global led values ( used in IRQ )
+  int8_t speed = 0;         // > 0 : steps per cycle ( more steps = more speed )
+                            // < 0 : cycles per step ( more cycles = less speed )
+                            // 0: led is inactive (not attached)
+    uint8_t invert=false;   // false: ON ist HIGH, true: ON is LOW
+  volatile int8_t aStep;      // actual step (brightness)
+  volatile int8_t stpCnt;     // counter for PWM cycles on same step (for low speed)
+  volatile ledStat_t state;	
+  uint8_t	setpoint;
+  #ifdef FAST_PORTWRT
+  portBits_t portPin;       // Outputpin as portaddress and bitmask for faster writing
+  #else
+  uint8_t pin;                 // Outputpins as Arduino numbers
+  #endif
 } ledData_t;
 
 
@@ -180,15 +199,15 @@ class Stepper4
                                     // mode means HALFSTEP or FULLSTEP
     Stepper4(int steps, uint8_t mode, uint8_t minStepTime ); // min StepTim in ms
     
-    uint8_t attach( byte,byte,byte,byte); //single pins definition for output
-    uint8_t attach( byte stepP, byte dirP); // Port for step and direction in A4988 mode
-    uint8_t attach(byte outArg);    // stepMode defaults to halfstep
-    uint8_t attach(byte outArg, byte*  ); 
+    uint8_t attach( uint8_t,uint8_t,uint8_t,uint8_t); //single pins definition for output
+    uint8_t attach( uint8_t stepP, uint8_t dirP); // Port for step and direction in A4988 mode
+    uint8_t attach(uint8_t outArg);    // stepMode defaults to halfstep
+    uint8_t attach(uint8_t outArg, uint8_t*  ); 
                                     // returns 0 on failure
     void detach();                  // detach from output, motor will not move anymore
     void write(long angle);         // specify the angle in degrees, mybe pos or neg. angle is
                                     // measured from last 'setZero' point
-    void write(long angle, byte factor);        // factor specifies resolution of parameter angle
+    void write(long angle, uint8_t factor);        // factor specifies resolution of parameter angle
                                     // e.g. 10 means, 'angle' is angle in .1 degrees
 	void writeSteps( long stepPos );// Go to position stepPos steps from zeropoint
     void setZero();                 // actual position is set as 0 angle (zeropoint)
@@ -245,12 +264,13 @@ class SoftLed
   // 
   public:
     SoftLed();
-    uint8_t attach(uint8_t);     // Led-pin with soft on. Parameter must be a PWM-Port
+    uint8_t attach(uint8_t);     // Led-pin with soft on
     void riseTime( int );       // in millisec - falltime is the same
     void on();                   // 
     void off();                  // 
+	void write( uint8_t );			// is ON or OFF
   private:
-    uint8_t ledIndex;
+    uint8_t ledIx;
     uint8_t ledIsOn;
     uint8_t ledBrightStep;  // PWM-steps per Interrupt with On and Off
     
