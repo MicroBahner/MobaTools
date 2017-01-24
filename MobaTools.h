@@ -154,22 +154,38 @@ typedef struct {
 // the PWM pulses are created together with stepper pulses
 // pwm-Steps for soft on/off in CYCLETIME units. The last value means pwm cycletime
 //14mss cycletime
-const uint8_t iSteps[] = { 2, 5 , 10, 15, 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70 };
+//const uint8_t iSteps[] = { 2, 3 , 4, 6, 8, 11, 14, 17, 21, 25, 30, 36, 43, 55, 70 };
+//#define LED_STEP_INI    15
+const uint8_t iSteps[] = {0, 2, 3 , 4, 6, 8, 11, 14, 21, 28, 35, 40, 55, 60, 65, 70 };
+const uint8_t dSteps[] = {0,70,55 ,43,36,30, 25, 21, 17, 14, 11, 8, 6, 4, 3, 1 };
 // 20ms cycletime
 //const uint8_t iSteps[] = { 2,4, 6, 9, 12, 15, 20, 25, 30, 35, 40, 45,50,55,65,80,100 };
 #define LED_STEP_MAX    (sizeof(iSteps) -1)
+#define LED_CYCLE_MAX   (iSteps[LED_STEP_MAX])
 #define LED_PWMTIME     (iSteps[LED_STEP_MAX] / 5)  // PWM refreshrate in ms
                                         // toDo: dies gilt nur bei einer CYCLETIME von 200us (derzeit default)
 
-typedef enum  ledStat_t { OFF, ON, INCR0, DECR0, INCR, DECR };
 typedef struct {            // global led values ( used in IRQ )
   int8_t speed = 0;         // > 0 : steps per cycle ( more steps = more speed )
                             // < 0 : cycles per step ( more cycles = less speed )
                             // 0: led is inactive (not attached)
     uint8_t invert=false;   // false: ON ist HIGH, true: ON is LOW
-  volatile int8_t aStep;      // actual step (brightness)
+  volatile uint8_t aStep;      // actual step (brightness)
+  volatile uint8_t aCycle;  // actual cycle (brightness)
   volatile int8_t stpCnt;     // counter for PWM cycles on same step (for low speed)
-  volatile ledStat_t state;	
+  volatile uint8_t state;	// actual state; seady or incementing/decrementing
+    #define OFF     0       // using #defines here is a little bit faster in the ISR than enums
+    #define ON      1
+    #define INCFAST    2
+    #define DECFAST    3
+    #define INCSLOW     4
+    #define DECSLOW     5
+/*  uint8_t ledFunc;          // type of rising/decrementing
+    #define INCFAST 0
+    #define INCSLOW 1
+    #define DECSLOW 2
+    #define DECFAST 3
+*/
   uint8_t	setpoint;
   #ifdef FAST_PORTWRT
   portBits_t portPin;       // Outputpin as portaddress and bitmask for faster writing
