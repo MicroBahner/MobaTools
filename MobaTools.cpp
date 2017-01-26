@@ -29,7 +29,7 @@
 #include <Arduino.h>
 
 // Debug-Ports
-#define debug
+//#define debug
 #ifdef debug 
     #if defined(__AVR_ATmega1280__) || defined(__AVR_ATmega2560__)
         #define MODE_TP1 DDRF |= (1<<2) //pinA2
@@ -159,7 +159,121 @@ ISR ( TIMER1_COMPB_vect)
     
     SET_TP2; // Oszimessung Dauer der ISR-Routine
     spiChanged = false;
-    //sei(); // allow nested interrupts, because this IRQ may take long
+    sei(); // allow nested interrupts, because this IRQ may take long
+    
+    // ---------------Stepper motors ---------------------------------------------
+    for ( i=0; i<stepperCount; i++ ) {
+        // für maximal 4 Motore
+        if ( stepperData[i].output == A4988_PINS ) {
+            // reset step pulse - pulse is max one cycle lenght
+            #ifdef FAST_PORTWRT
+            *stepperData[i].portPins[0].Adr &= ~stepperData[i].portPins[0].Mask;
+            #else
+            digitalWrite( stepperData[i].pins[0], LOW );
+            #endif
+        }
+        if ( stepperData[i].activ && stepperData[i].stepCnt > 0 ) {
+            // only active motors
+            stepperData[i].cycCnt+=cyclesLastIRQ;
+            if ( stepperData[i].cycCnt >= stepperData[i].cycSteps ) {
+                // Do one step
+                stepperData[i].cycCnt = 0 ;
+                // update position for absolute positioning
+                stepperData[i].stepsFromZero += stepperData[i].patternIxInc;
+                
+                if ( !stepperData[i].endless ) --stepperData[i].stepCnt;
+                // sign of patternIxInc defines direction
+                stepperData[i].patternIx += stepperData[i].patternIxInc;
+                if ( stepperData[i].patternIx > 7 ) stepperData[i].patternIx = 0;
+                if ( stepperData[i].patternIx < 0 ) stepperData[i].patternIx += 8;
+                
+                // store pattern data
+                switch ( stepperData[i].output ) {
+                  case PIN4_7:
+                    PORTD = (PORTD & 0x0f) | ( stepPattern[ stepperData[i].patternIx ] <<4 );   
+                    break;
+                  case PIN8_11:
+                    PORTB = (PORTB & 0xf0) | ( stepPattern[ stepperData[i].patternIx ] );   
+                    break;
+                  case SPI_1:
+                    spiData[0] = (spiData[0] & 0xf0) | ( stepPattern[ stepperData[i].patternIx ] );
+                    spiChanged = true;                    
+                    break;
+                  case SPI_2:
+                    spiData[0] = (spiData[0] & 0x0f) | ( stepPattern[ stepperData[i].patternIx ] <<4 );
+                    spiChanged = true;
+                    break;
+                  case SPI_3:
+                    spiData[1] = (spiData[1] & 0xf0) | ( stepPattern[ stepperData[i].patternIx ] );   
+                    spiChanged = true;
+                    break;
+                  case SPI_4:
+                    spiData[1] = (spiData[1] & 0x0f) | ( stepPattern[ stepperData[i].patternIx ] <<4 );
+                    spiChanged = true;
+                    break;
+                  case SINGLE_PINS : // Outpins are individually defined
+                    changedPins = stepPattern[ stepperData[i].patternIx ] ^ stepperData[i].lastPattern;
+                    for ( bitNr = 0; bitNr < 4; bitNr++ ) {
+                        if ( changedPins & (1<<bitNr ) ) {
+                            // bit Changed, write to pin
+                            if ( stepPattern[ stepperData[i].patternIx ] & (1<<bitNr) ) {
+                                #ifdef FAST_PORTWRT
+                                *stepperData[i].portPins[bitNr].Adr |= stepperData[i].portPins[bitNr].Mask;
+                                #else
+                                digitalWrite( stepperData[i].pins[bitNr], HIGH );
+                                #endif
+                            } else {
+                                #ifdef FAST_PORTWRT
+                                *stepperData[i].portPins[bitNr].Adr &= ~stepperData[i].portPins[bitNr].Mask;
+                                #else    
+                                digitalWrite( stepperData[i].pins[bitNr], LOW );
+                                #endif    
+                            }
+                        }
+                    }
+                    stepperData[i].lastPattern = stepPattern[ stepperData[i].patternIx ];
+                    break;
+                  case A4988_PINS : // output step-pulse and direction
+                    // direction first
+                    if ( stepperData[i].patternIxInc > 0 ) {
+                        // turn forward 
+                        #ifdef FAST_PORTWRT
+                        *stepperData[i].portPins[1].Adr |= stepperData[i].portPins[1].Mask;
+                        #else
+                        digitalWrite( stepperData[i].pins[1], HIGH );
+                        #endif
+                    } else {
+                        // turn backwards
+                        #ifdef FAST_PORTWRT
+                        *stepperData[i].portPins[1].Adr &= ~stepperData[i].portPins[1].Mask;
+                        #else
+                        digitalWrite( stepperData[i].pins[1], LOW );
+                        #endif
+                    }    
+                    // Set step pulse ( will be resettet in next IRQ )
+                    #ifdef FAST_PORTWRT
+                    *stepperData[i].portPins[0].Adr |= stepperData[i].portPins[0].Mask;
+                    #else
+                    digitalWrite( stepperData[i].pins[0], HIGH );
+                    #endif
+                    
+                  default:
+                    // should never be reached
+                    break;
+                }
+            }
+            nextCycle = min ( nextCycle, stepperData[i].cycSteps-stepperData[i].cycCnt );
+        } // end of 'if stepper active'
+    } // end of stepper-loop
+    
+    // shift out spiData, if SPI is active
+    if ( spiInitialized && spiChanged ) {
+        digitalWrite( SS, LOW );
+        spiByteCount = 0;
+        SPDR = spiData[1];
+    }
+    //============  End of steppermotor ======================================
+    
     // ---------------------- softleds -----------------------------------------------
     ledCycleCnt += cyclesLastIRQ;
     if ( ledCycleCnt >= ledNextCyc ) {
@@ -297,117 +411,10 @@ ISR ( TIMER1_COMPB_vect)
      } // end of softleds 
     nextCycle = min( nextCycle, ( ledNextCyc-ledCycleCnt ) );
     CLR_TP2;
-    // ---------------Stepper motors ---------------------------------------------
-    for ( i=0; i<stepperCount; i++ ) {
-        // für maximal 4 Motore
-        if ( stepperData[i].output == A4988_PINS ) {
-            // reset step pulse - pulse is max one cycle lenght
-            #ifdef FAST_PORTWRT
-            *stepperData[i].portPins[0].Adr &= ~stepperData[i].portPins[0].Mask;
-            #else
-            digitalWrite( stepperData[i].pins[0], LOW );
-            #endif
-        }
-        if ( stepperData[i].activ && stepperData[i].stepCnt > 0 ) {
-            // only active motors
-            stepperData[i].cycCnt+=cyclesLastIRQ;
-            if ( stepperData[i].cycCnt >= stepperData[i].cycSteps ) {
-                // Do one step
-                stepperData[i].cycCnt = 0 ;
-                // update position for absolute positioning
-                stepperData[i].stepsFromZero += stepperData[i].patternIxInc;
-                
-                if ( !stepperData[i].endless ) --stepperData[i].stepCnt;
-                // sign of patternIxInc defines direction
-                stepperData[i].patternIx += stepperData[i].patternIxInc;
-                if ( stepperData[i].patternIx > 7 ) stepperData[i].patternIx = 0;
-                if ( stepperData[i].patternIx < 0 ) stepperData[i].patternIx += 8;
-                
-                // store pattern data
-                switch ( stepperData[i].output ) {
-                  case PIN4_7:
-                    PORTD = (PORTD & 0x0f) | ( stepPattern[ stepperData[i].patternIx ] <<4 );   
-                    break;
-                  case PIN8_11:
-                    PORTB = (PORTB & 0xf0) | ( stepPattern[ stepperData[i].patternIx ] );   
-                    break;
-                  case SPI_1:
-                    spiData[0] = (spiData[0] & 0xf0) | ( stepPattern[ stepperData[i].patternIx ] );
-                    spiChanged = true;                    
-                    break;
-                  case SPI_2:
-                    spiData[0] = (spiData[0] & 0x0f) | ( stepPattern[ stepperData[i].patternIx ] <<4 );
-                    spiChanged = true;
-                    break;
-                  case SPI_3:
-                    spiData[1] = (spiData[1] & 0xf0) | ( stepPattern[ stepperData[i].patternIx ] );   
-                    spiChanged = true;
-                    break;
-                  case SPI_4:
-                    spiData[1] = (spiData[1] & 0x0f) | ( stepPattern[ stepperData[i].patternIx ] <<4 );
-                    spiChanged = true;
-                    break;
-                  case SINGLE_PINS : // Outpins are individually defined
-                    changedPins = stepPattern[ stepperData[i].patternIx ] ^ stepperData[i].lastPattern;
-                    for ( bitNr = 0; bitNr < 4; bitNr++ ) {
-                        if ( changedPins & (1<<bitNr ) ) {
-                            // bit Changed, write to pin
-                            if ( stepPattern[ stepperData[i].patternIx ] & (1<<bitNr) ) {
-                                #ifdef FAST_PORTWRT
-                                *stepperData[i].portPins[bitNr].Adr |= stepperData[i].portPins[bitNr].Mask;
-                                #else
-                                digitalWrite( stepperData[i].pins[bitNr], HIGH );
-                                #endif
-                            } else {
-                                #ifdef FAST_PORTWRT
-                                *stepperData[i].portPins[bitNr].Adr &= ~stepperData[i].portPins[bitNr].Mask;
-                                #else    
-                                digitalWrite( stepperData[i].pins[bitNr], LOW );
-                                #endif    
-                            }
-                        }
-                    }
-                    stepperData[i].lastPattern = stepPattern[ stepperData[i].patternIx ];
-                    break;
-                  case A4988_PINS : // output step-pulse and direction
-                    // direction first
-                    if ( stepperData[i].patternIxInc > 0 ) {
-                        // turn forward 
-                        #ifdef FAST_PORTWRT
-                        *stepperData[i].portPins[1].Adr |= stepperData[i].portPins[1].Mask;
-                        #else
-                        digitalWrite( stepperData[i].pins[1], HIGH );
-                        #endif
-                    } else {
-                        // turn backwards
-                        #ifdef FAST_PORTWRT
-                        *stepperData[i].portPins[1].Adr &= ~stepperData[i].portPins[1].Mask;
-                        #else
-                        digitalWrite( stepperData[i].pins[1], LOW );
-                        #endif
-                    }    
-                    // Set step pulse ( will be resettet in next IRQ )
-                    #ifdef FAST_PORTWRT
-                    *stepperData[i].portPins[0].Adr |= stepperData[i].portPins[0].Mask;
-                    #else
-                    digitalWrite( stepperData[i].pins[0], HIGH );
-                    #endif
-                    
-                  default:
-                    // should never be reached
-                    break;
-                }
-            }
-            nextCycle = min ( nextCycle, stepperData[i].cycSteps-stepperData[i].cycCnt );
-        } // end of 'if stepper active'
-    } // end of stepper-loop
+    // ======================= end of softleds =====================================
     
-    // shift out spiData, if SPI is active
-    if ( spiInitialized && spiChanged ) {
-        digitalWrite( SS, LOW );
-        spiByteCount = 0;
-        SPDR = spiData[1];
-    }
+    
+    
     cyclesLastIRQ = nextCycle;
     SET_TP2;
     // set compareregister to next interrupt time;
@@ -1207,8 +1214,9 @@ SoftLed::SoftLed() {
 uint8_t SoftLed::attach(uint8_t pinArg){
     // Led-Ausgang mit Softstart. 
     if ( ledCount >= MAX_LEDS ) return false;
+    pinMode( pinArg, OUTPUT );
     ledIx = ledCount++;
-    DB_PRINT( "Led attached, ledCount = %d", ledCount )
+    DB_PRINT( "Led attached, ledCount = %d", ledCount );
     ledSpeed = 1;                   // defines rising/falling timer
     ledData[ledIx].aStep = 0 ;      // actual PWM step
     ledData[ledIx].state = OFF ;    // initialize to off
@@ -1233,9 +1241,10 @@ uint8_t SoftLed::attach(uint8_t pinArg){
 }
 
 void SoftLed::on(){
-    ledData[ledIx].setpoint=ON ;
-    // Dont do anything if its already ON or in state increasing
-    if ( ledData[ledIx].state == OFF || ledData[ledIx].state == DECFAST || ledData[ledIx].state == DECSLOW  ) {
+    // Don't do anything if its already ON 
+    if ( ledData[ledIx].setpoint != ON  ) {
+        SET_TP4;
+        ledData[ledIx].setpoint=ON ;
         ledData[ledIx].aStep = 0;
         ledData[ledIx].stpCnt = 0; 
         if ( ledType == LINEAR ) {
@@ -1243,23 +1252,25 @@ void SoftLed::on(){
             ledData[ledIx].speed = ledSpeed;
             ledData[ledIx].aCycle = 1;
         } else { // is bulb simulation
+            SET_TP4;
             ledData[ledIx].state = INCFAST;
             ledData[ledIx].speed = ledSpeed==1? -1 : ledSpeed / 3;
+            CLR_TP4;
             if ( ledData[ledIx].speed <= 0 ) {
-                SET_TP4;
                 ledData[ledIx].state = INCSLOW;
                 ledData[ledIx].stpCnt = 1;
-                CLR_TP4;
             }
             ledData[ledIx].aCycle = iSteps[0];
         }
+        CLR_TP4;
     }
 }
 
 void SoftLed::off(){
-    ledData[ledIx].setpoint=OFF ;
-    // Dont do anything if its already OFF or in state decreasing
-    if ( ledData[ledIx].state == ON || ledData[ledIx].state == INCFAST || ledData[ledIx].state == INCSLOW  ) {
+    // Dont do anything if its already OFF 
+    if ( ledData[ledIx].setpoint != OFF ) {
+        SET_TP3;
+        ledData[ledIx].setpoint=OFF ;
         ledData[ledIx].aStep = 0;
         ledData[ledIx].stpCnt = 0; 
         if ( ledType == LINEAR ) {
@@ -1267,15 +1278,23 @@ void SoftLed::off(){
             ledData[ledIx].speed = ledSpeed;
             ledData[ledIx].aCycle = LED_CYCLE_MAX-1;
         } else { // is bulb simulation
+            CLR_TP3;
             ledData[ledIx].state = DECFAST;
             ledData[ledIx].speed = ledSpeed==1? -1 : ledSpeed / 3;
+            SET_TP3;
             if ( ledData[ledIx].speed <= 0 ) {
                 ledData[ledIx].state = DECSLOW;
                 ledData[ledIx].stpCnt = 1;
             }
             ledData[ledIx].aCycle = LED_CYCLE_MAX + 1 - iSteps[0];
         }
+        CLR_TP3;
     }
+}
+
+void SoftLed::toggle( void ) {
+    if ( ledData[ledIx].setpoint == ON  ) off();
+    else on();
 }
 
 void SoftLed::write( uint8_t setpoint, uint8_t ledPar ){
@@ -1287,11 +1306,11 @@ void SoftLed::write( uint8_t setpoint ){
     if ( setpoint == ON ) on(); else off();
     #ifdef debug1
     // im Debugmode hier die Led-Daten ausgeben
-    DB_PRINT( "LedData[%d]\n\speed=%d, aStep=%d, stpCnt=%d, state=%d, setpoint= %d",
-            ledIx, ledData[ledIx].speed, ledData[ledIx].aStep, ledData[ledIx].stpCnt, ledData[ledIx].state
+    DB_PRINT( "LedData[%d]\n\speed=%d, Type=%d, aStep=%d, stpCnt=%d, state=%d, setpoint= %d",
+            ledIx, ledSpeed, ledType, ledData[ledIx].aStep, ledData[ledIx].stpCnt, ledData[ledIx].state
                     , ledData[ledIx].setpoint);
-    DB_PRINT( "ON=%d, NextCyc=%d, CycleCnt=%d, StepIx=%d, NextStep=%d", 
-             (ledStat_t) ON, ledNextCyc, ledCycleCnt, ledStepIx, ledNextStep);
+    //DB_PRINT( "ON=%d, NextCyc=%d, CycleCnt=%d, StepIx=%d, NextStep=%d", 
+    //         ON, ledNextCyc, ledCycleCnt, ledStepIx, ledNextStep);
     #endif
 }
 

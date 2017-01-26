@@ -158,7 +158,8 @@ typedef struct {
 //#define LED_STEP_INI    15
 //const uint8_t iSteps[] = {23,35 ,41, 47,53, 58, 62, 66, 68, 71, 73, 74, 75, 76, 78,79,80 };
 //const uint8_t dSteps[] = {78, 68, 58, 50 ,43,36,30, 25, 21, 17, 14, 11, 8, 6, 4, 3, 1 };
-const uint8_t iSteps[] = {2, 8 ,14 ,20, 25,30, 35, 39, 43, 47, 50, 53, 56, 58, 60, 62, 64,66,68,70,72,73,74,75,76,78,79,80 };
+//const uint8_t iSteps[] = {2, 8 ,14 ,20, 25,30, 35, 39, 43, 47, 50, 53, 56, 58, 60, 62, 64,66,68,70,72,73,74,75,76,78,79,80 };
+const uint8_t iSteps[] = {7, 14 ,21 ,28, 35,41, 45, 49, 53, 56, 59, 62, 64, 66, 68, 70, 71,72,73,74,75,76,77,77,78,78,79,80 };
 // 20ms cycletime
 //const uint8_t iSteps[] = { 2,4, 6, 9, 12, 15, 20, 25, 30, 35, 40, 45,50,55,65,80,100 };
 #define LED_STEP_MAX    (sizeof(iSteps) -1)
@@ -285,7 +286,8 @@ class SoftLed
     void off();                  // 
 	void write( uint8_t );			// is ON or OFF
     void write( uint8_t time, uint8_t type ); //weather it is a linear or bulb type
-  private:
+    void toggle( void ); 
+    private:
     uint8_t ledIx;
     uint8_t ledIsOn;
     uint8_t ledType;        // Type of lamp (linear or bulb)
