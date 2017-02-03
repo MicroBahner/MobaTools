@@ -71,6 +71,20 @@
         #define SET_TP4 PORTC |= (1<<4) 
         #define CLR_TP4 PORTC &= ~(1<<4) 
     #elif defined(__AVR_ATmega128__) ||defined(__AVR_ATmega1281__)||defined(__AVR_ATmega2561__)
+    #elif defined (__SAM3X8E__)
+        // Arduino Due
+        #define MODE_TP1 pinMode( A1,OUTPUT )   // A1= PA24
+        #define SET_TP1  REG_PIOA_SODR = (1<<24)
+        #define CLR_TP1  REG_PIOA_CODR = (1<<24)
+        #define MODE_TP2 pinMode( A2,OUTPUT )   // A2= PA23
+        #define SET_TP2  REG_PIOA_SODR = (1<<23)
+        #define CLR_TP2  REG_PIOA_CODR = (1<<23)
+        #define MODE_TP3 pinMode( A3,OUTPUT )   // A3 = PA22
+        #define SET_TP3  REG_PIOA_SODR = (1<<22)
+        #define CLR_TP3  REG_PIOA_CODR = (1<<22)
+        #define MODE_TP4 pinMode( A4,OUTPUT )   // A4 = PA6
+        #define SET_TP4  REG_PIOA_SODR = (1<<6)
+        #define CLR_TP4  REG_PIOA_CODR = (1<<6)
     #else
         #define MODE_TP1 DDRC |= (1<<3) //A3
         #define SET_TP1 PORTC |= (1<<3)
@@ -1204,18 +1218,20 @@ uint8_t Servo8::attached()
 // Version with Software PWM
 
 SoftLed::SoftLed() {
-    ledData[ledIx].speed = 0;       // defines rising/falling timer
-    ledData[ledIx].aStep = 0 ;      // actual PWM step
-    ledData[ledIx].state = OFF ;    // initialize to off
-    ledData[ledIx].setpoint = OFF ; // initialize to off
-    ledType = LINEAR;
+    ledIx = ledCount++;
+        if ( ledIx < MAX_LEDS ) {
+        ledData[ledIx].speed = 0;       // defines rising/falling timer
+        ledData[ledIx].aStep = 0 ;      // actual PWM step
+        ledData[ledIx].state = OFF ;    // initialize to off
+        ledData[ledIx].setpoint = OFF ; // initialize to off
+        ledType = LINEAR;
+    }
 }
 
 uint8_t SoftLed::attach(uint8_t pinArg){
     // Led-Ausgang mit Softstart. 
-    if ( ledCount >= MAX_LEDS ) return false;
+    if ( ledIx >= MAX_LEDS ) return false;
     pinMode( pinArg, OUTPUT );
-    ledIx = ledCount++;
     DB_PRINT( "Led attached, ledCount = %d", ledCount );
     ledSpeed = 1;                   // defines rising/falling timer
     ledData[ledIx].aStep = 0 ;      // actual PWM step
@@ -1241,6 +1257,7 @@ uint8_t SoftLed::attach(uint8_t pinArg){
 }
 
 void SoftLed::on(){
+    if ( ledIx >= MAX_LEDS ) return;
     // Don't do anything if its already ON 
     if ( ledData[ledIx].setpoint != ON  ) {
         SET_TP4;
@@ -1267,6 +1284,7 @@ void SoftLed::on(){
 }
 
 void SoftLed::off(){
+    if ( ledIx >= MAX_LEDS ) return;
     // Dont do anything if its already OFF 
     if ( ledData[ledIx].setpoint != OFF ) {
         SET_TP3;
@@ -1293,6 +1311,7 @@ void SoftLed::off(){
 }
 
 void SoftLed::toggle( void ) {
+    if ( ledIx >= MAX_LEDS ) return;
     if ( ledData[ledIx].setpoint == ON  ) off();
     else on();
 }
@@ -1303,6 +1322,7 @@ void SoftLed::write( uint8_t setpoint, uint8_t ledPar ){
 }
 
 void SoftLed::write( uint8_t setpoint ){
+    if ( ledIx >= MAX_LEDS ) return;
     if ( setpoint == ON ) on(); else off();
     #ifdef debug1
     // im Debugmode hier die Led-Daten ausgeben
@@ -1315,6 +1335,7 @@ void SoftLed::write( uint8_t setpoint ){
 }
 
 void SoftLed::riseTime( int riseTime ) {
+    if ( ledIx >= MAX_LEDS ) return;
     // length of startphase in ms (min 20ms, max 1200ms )
     // the real risetime is only a rough approximate to this time
     // risetime is computed to a 'speed' Value with 1 beeing the slowest 

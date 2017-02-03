@@ -159,7 +159,7 @@ typedef struct {
 //const uint8_t iSteps[] = {23,35 ,41, 47,53, 58, 62, 66, 68, 71, 73, 74, 75, 76, 78,79,80 };
 //const uint8_t dSteps[] = {78, 68, 58, 50 ,43,36,30, 25, 21, 17, 14, 11, 8, 6, 4, 3, 1 };
 //const uint8_t iSteps[] = {2, 8 ,14 ,20, 25,30, 35, 39, 43, 47, 50, 53, 56, 58, 60, 62, 64,66,68,70,72,73,74,75,76,78,79,80 };
-const uint8_t iSteps[] = {7, 14 ,21 ,28, 35,41, 45, 49, 53, 56, 59, 62, 64, 66, 68, 70, 71,72,73,74,75,76,77,77,78,78,79,80 };
+const uint8_t iSteps[] = {9, 16 ,23 ,29, 35,41, 45, 49, 53, 56, 59, 62, 64, 66, 68, 70, 71,72,73,74,75,76,77,77,78,78,79,80 };
 // 20ms cycletime
 //const uint8_t iSteps[] = { 2,4, 6, 9, 12, 15, 20, 25, 30, 35, 40, 45,50,55,65,80,100 };
 #define LED_STEP_MAX    (sizeof(iSteps) -1)
@@ -171,7 +171,7 @@ typedef struct {            // global led values ( used in IRQ )
   int8_t speed = 0;         // > 0 : steps per cycle ( more steps = more speed )
                             // < 0 : cycles per step ( more cycles = less speed )
                             // 0: led is inactive (not attached)
-    uint8_t invert=false;   // false: ON ist HIGH, true: ON is LOW
+    // uint8_t invert=false;   // false: ON ist HIGH, true: ON is LOW
   volatile int8_t aStep;      // actual step (brightness)
   volatile int8_t aCycle;  // actual cycle ( =length of PWM pule )
   volatile int8_t stpCnt;     // counter for PWM cycles on same step (for low speed)
@@ -285,11 +285,11 @@ class SoftLed
     void on();                   // 
     void off();                  // 
 	void write( uint8_t );			// is ON or OFF
-    void write( uint8_t time, uint8_t type ); //weather it is a linear or bulb type
+    void write( uint8_t time, uint8_t type ); //whether it is a linear or bulb type
     void toggle( void ); 
     private:
     uint8_t ledIx;
-    uint8_t ledIsOn;
+    // uint8_t ledIsOn;
     uint8_t ledType;        // Type of lamp (linear or bulb)
     #define LINEAR  0
     #define BULB    1
