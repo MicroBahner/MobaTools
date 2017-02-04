@@ -91,6 +91,10 @@
                             // OFF_COUNT cycles ( = OFF_COUNT * 20ms )
 #define FIRST_PULSE     100 // first pulse starts 200 tics after timer overflow, so we do not compete
                             // with overflow IRQ
+#define SPEED_RES       4   // All position values in tics are multiplied by this factor. This means, that one 
+                            // 'Speed-tic' is 0,125 µs per 20ms cycle. This gives better resolution in defining the speed.
+                            // Only when computing the next interrupt time the values are divided by this value again to get
+                            // the real 'timer tics'
 
 ///////////////////////////////////////////////////////////////////////////////////////////////
 // 

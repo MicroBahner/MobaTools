@@ -173,7 +173,7 @@ ISR ( TIMER1_COMPB_vect)
     
     SET_TP2; // Oszimessung Dauer der ISR-Routine
     spiChanged = false;
-    sei(); // allow nested interrupts, because this IRQ may take long
+    interrupts(); // allow nested interrupts, because this IRQ may take long
     
     // ---------------Stepper motors ---------------------------------------------
     for ( i=0; i<stepperCount; i++ ) {
@@ -432,12 +432,12 @@ ISR ( TIMER1_COMPB_vect)
     cyclesLastIRQ = nextCycle;
     SET_TP2;
     // set compareregister to next interrupt time;
-     cli(); // when manipulating 16bit Timerregisters IRQ must be disabled
+     noInterrupts(); // when manipulating 16bit Timerregisters IRQ must be disabled
     // compute next IRQ-Time in us, not in tics, so we don't need long
     tmp = ( OCR1B / TICS_PER_MICROSECOND + nextCycle * CYCLETIME );
     if ( tmp > 20000 ) tmp = tmp - 20000;
     OCR1B = tmp * TICS_PER_MICROSECOND;
-    sei();
+    interrupts();
     
     CLR_TP2; // Oszimessung Dauer der ISR-Routine
 }
@@ -503,7 +503,7 @@ ISR ( TIMER1_COMPA_vect)
                 servoData[pulseIx].ist -= servoData[pulseIx].inc;
                 if ( servoData[pulseIx].ist < servoData[pulseIx].soll ) servoData[pulseIx].ist = servoData[pulseIx].soll;
             } 
-            OCR1A = servoData[pulseIx].ist + TCNT1 - 4; // compensate for computing time
+            OCR1A = (servoData[pulseIx].ist/SPEED_RES) + TCNT1 - 4; // compensate for computing time
             if ( servoData[pulseIx].on && (servoData[pulseIx].offcnt+servoData[pulseIx].noAutoff) > 0 ) {
                 CLR_TP1;
                 #ifdef FAST_PORTWRT
@@ -570,7 +570,7 @@ ISR ( TIMER1_COMPA_vect)
             // lay after endtime of runningpuls + safetymargin (it may be necessary to start
             // another pulse between these 2 ends)
             word tmpTCNT1 = TCNT1 + MARGINTICS/2;
-            sei();
+            interrupts();
             CLR_TP3 ;
             OCR1A = max ( ((long)activePulseOff + (long) MARGINTICS - (long) nextPulseLength), ( tmpTCNT1 ) );
         } else {
@@ -606,14 +606,14 @@ ISR ( TIMER1_COMPA_vect)
                 digitalWrite( servoData[nextPulseIx].pin, HIGH );
                 #endif
             }
-            sei(); // the following isn't time critical, so allow nested interrupts
+            interrupts(); // the following isn't time critical, so allow nested interrupts
             SET_TP3;
             // the 'nextPulse' we have started now, is from now on the 'activePulse', the running activPulse is now the
             // pulse to stop next.
             stopPulseIx = activePulseIx; // because there was a 'nextPulse' there is also an 'activPulse' which is the next to stop
             OCR1A = activePulseOff;
             activePulseIx = nextPulseIx;
-            activePulseOff = servoData[activePulseIx].ist + tmpTCNT1; // end of actually started pulse
+            activePulseOff = servoData[activePulseIx].ist/SPEED_RES + tmpTCNT1; // end of actually started pulse
             nextPulseLength = 0;
             SET_TP1;
         }
@@ -622,7 +622,7 @@ ISR ( TIMER1_COMPA_vect)
             if ( activePulseOff == 0 ) {
                 // it is the first pulse in the sequence, start it
                 activePulseIx = pulseIx; 
-                activePulseOff = servoData[pulseIx].ist + TCNT1 - 4; // compensate for computing time
+                activePulseOff = servoData[pulseIx].ist/SPEED_RES + TCNT1 - 4; // compensate for computing time
                 if ( servoData[pulseIx].on && (servoData[pulseIx].offcnt+servoData[pulseIx].noAutoff) > 0 ) {
                     // its a 'real' pulse, set output pin
                     #ifdef FAST_PORTWRT
@@ -632,13 +632,13 @@ ISR ( TIMER1_COMPA_vect)
                     #endif
                 }
                 word tmpTCNT1 = TCNT1;
-                sei(); // the following isn't time critical, so allow nested interrupts
+                interrupts(); // the following isn't time critical, so allow nested interrupts
                 SET_TP3;
                 // look for second pulse
                 pulseIx++;
                 if ( searchNextPulse() ) {
                     // there is a second pulse - this is the 'nextPulse'
-                    nextPulseLength = servoData[pulseIx].ist;
+                    nextPulseLength = servoData[pulseIx].ist/SPEED_RES;
                     nextPulseIx = pulseIx++;
                     // set Starttime for 2. pulse in sequence
                     OCR1A = max ( ((long)activePulseOff + (long) MARGINTICS - (long) nextPulseLength), ( tmpTCNT1 + MARGINTICS/2 ) );
@@ -651,7 +651,7 @@ ISR ( TIMER1_COMPA_vect)
                 }
             } else {
                 // its a pulse in sequence, so this is the 'nextPulse'
-                nextPulseLength = servoData[pulseIx].ist;
+                nextPulseLength = servoData[pulseIx].ist/SPEED_RES;
                 nextPulseIx = pulseIx++;
                 IrqType = POFF;
             }
@@ -1070,11 +1070,11 @@ uint8_t Servo8::attach( int pinArg, int pmin, int pmax, bool autoOff ) {
     if ( pmax >= MINPULSEWIDTH && pmax <= MAXPULSEWIDTH ) max16 = pmax/16;
 	DB_PRINT( "pin: %d, pmin:%d pmax%d autoOff=%d, min16=%d, max16=%d", pinArg, pmin, pmax, autoOff, min16, max16);
     
-    // intialize objectspecific global data
-    lastPos = 3000 ;    // initalize to middle position
+    // intialize objectspecific data
+    lastPos = 3000*SPEED_RES ;    // initalize to middle position
     servoData[servoIndex].soll = -1;  // invalid position -> no pulse output
     servoData[servoIndex].ist = -1;   
-    servoData[servoIndex].inc = 2000;  // means immediate movement
+    servoData[servoIndex].inc = 2000*SPEED_RES;  // means immediate movement
     servoData[servoIndex].pin = pinArg;
     servoData[servoIndex].on = false;  // create no pulses until next write
     servoData[servoIndex].noAutoff = autoOff?0:1 ;  
@@ -1087,8 +1087,8 @@ uint8_t Servo8::attach( int pinArg, int pmin, int pmax, bool autoOff ) {
     #endif
     pin = pinArg;
     angle = NO_ANGLE;
-    digitalWrite(pin,0);
     pinMode(pin,OUTPUT);
+    digitalWrite(pin,LOW);
 
     if ( !timerInitialized) seizeTimer1();
     // enable compare-A interrupt
@@ -1124,16 +1124,12 @@ void Servo8::write(int angleArg)
             // pulse width as degrees
             angle = angleArg;
 
-            // bleh, have to use longs to prevent overflow, could be tricky if always a 16MHz clock, but not true
-            // That 8L on the end is the TCNT1 prescaler, it will need to change if the clock's prescaler changes,
-            // but then there will likely be an overflow problem, so it will have to be handled by a human.
-            //newpos = (min16*16L*clockCyclesPerMicrosecond() + (max16-min16)*(16L*clockCyclesPerMicrosecond())*angle/180L)/8L;
-			newpos = map( angle, 0,180, min16*16, max16*16 ) * (clockCyclesPerMicrosecond() / 8L);
+            newpos = map( angle, 0,180, min16*16, max16*16 ) * TICS_PER_MICROSECOND * SPEED_RES;
         } else {
             // pulsewidth as microseconds
             if ( angleArg < MINPULSEWIDTH ) angleArg = MINPULSEWIDTH;
             if ( angleArg > MAXPULSEWIDTH ) angleArg = MAXPULSEWIDTH;
-            newpos = angleArg * (clockCyclesPerMicrosecond() / 8L);
+            newpos = angleArg * TICS_PER_MICROSECOND * SPEED_RES;
             angle = map( angleArg, min16*16, max16*16, 0, 180 );  // angle in degrees
         }
         if ( servoData[servoIndex].soll < 0 ) {
@@ -1162,11 +1158,12 @@ void Servo8::write(int angleArg)
 
 void Servo8::setSpeed( int speed ) {
     // Set increment value for movement to new angle
+    // ToDo: Set compatibility mode for Version 0.8 end earlier
     if ( pin > 0 ) { // only if servo is attached
         uint8_t oldSREG = SREG;
         cli();
         if ( speed == 0 )
-            servoData[servoIndex].inc = 2000;  // means immiediate movement
+            servoData[servoIndex].inc = 2000*SPEED_RES;  // means immiediate movement
         else
             servoData[servoIndex].inc = speed;
         SREG = oldSREG;
@@ -1174,37 +1171,38 @@ void Servo8::setSpeed( int speed ) {
 }
 
 uint8_t Servo8::read() {
+    // get position in degrees
     int value;
     if ( pin == 0 ) return -1; // Servo not attached
     uint8_t oldSREG = SREG;
     cli();
     value = servoData[servoIndex].ist;
     SREG = oldSREG;
-    return map( value/(clockCyclesPerMicrosecond()/8), min16*16, max16*16, 0, 180 );
+    return map( value/TICS_PER_MICROSECOND/SPEED_RES, min16*16, max16*16, 0, 180 );
 }
 
 int Servo8::readMicroseconds() {
+    // get position in microseconds
     int value;
     if ( pin == 0 ) return -1; // Servo not attached
     uint8_t oldSREG = SREG;
     cli();
     value = servoData[servoIndex].ist;
     SREG = oldSREG;
-    return value/(clockCyclesPerMicrosecond()/8);   
+    return value/TICS_PER_MICROSECOND/SPEED_RES;   
 
 }
 
 uint8_t Servo8::moving() {
     // return how much still to move (percentage)
     if ( pin == 0 ) return 0; // Servo not attached
-    int total , remaining;
+    long total , remaining;
     total = abs( lastPos - servoData[servoIndex].soll );
-    uint8_t oldSREG = SREG;
-    cli(); // disable interrupt, because integer servoData[servoIndex].ist is changed in interrupt
+    noInterrupts(); // disable interrupt, because integer servoData[servoIndex].ist is changed in interrupt
     remaining = abs( servoData[servoIndex].soll - servoData[servoIndex].ist );
-    SREG = oldSREG;  // undo cli() 
-    if ( total/10  == 0 ) return 0;
-    else return ( remaining * 10 ) / ( total / 10 );
+    interrupts();  // allow interrupts again
+    if ( remaining == 0 ) return 0;
+    return ( remaining * 100 ) /  total +1;
 }
 uint8_t Servo8::attached()
 {
