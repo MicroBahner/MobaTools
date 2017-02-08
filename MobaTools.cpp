@@ -1,9 +1,15 @@
 
 /*
-  MobaTools V0.7
-   (C) 08-2015 fpm fpm@mnet-online.de
+  MobaTools V0.9
+   (C) 03-2017 fpm fpm@mnet-online.de
    
   History:
+  V0.9  03-2017
+        Better resolution for the 'speed' paramter (programm starts in compatibility mode
+        preparations for porting to STM32F1 platform
+        
+  V0.8 02-2017
+        Enable Softleds an all digital outputs
   V0.7 01-2017
 		Allow nested Interrupts with the servos. This allows more precise other
         interrupts e.g. for NmraDCC Library.
@@ -136,6 +142,7 @@ static byte activePulseIx = 0;       // Index of pulse to stop
 static byte stopPulseIx = 0;        // index of Pulse whose stop time is already in OCR1
 static word nextPulseLength = 0;
 static byte nextPulseIx = 0;
+static bool speedV08 = true;    // Compatibility-Flag for speed method
 
 
 
@@ -1156,17 +1163,23 @@ void Servo8::write(int angleArg)
     }
 }
 
+void Servo8::setSpeed( int speed, bool compatibility ) {
+    // set global compatibility-Flag
+    speedV08 = compatibility;
+    setSpeed( speed );
+}
+
 void Servo8::setSpeed( int speed ) {
     // Set increment value for movement to new angle
     // ToDo: Set compatibility mode for Version 0.8 end earlier
     if ( pin > 0 ) { // only if servo is attached
-        uint8_t oldSREG = SREG;
-        cli();
+        if ( speedV08 ) speed *= SPEED_RES;
+        noInterrupts();
         if ( speed == 0 )
             servoData[servoIndex].inc = 2000*SPEED_RES;  // means immiediate movement
         else
             servoData[servoIndex].inc = speed;
-        SREG = oldSREG;
+        interrupts();
     }
 }
 
@@ -1174,10 +1187,9 @@ uint8_t Servo8::read() {
     // get position in degrees
     int value;
     if ( pin == 0 ) return -1; // Servo not attached
-    uint8_t oldSREG = SREG;
-    cli();
+    noInterrupts();
     value = servoData[servoIndex].ist;
-    SREG = oldSREG;
+    interrupts();
     return map( value/TICS_PER_MICROSECOND/SPEED_RES, min16*16, max16*16, 0, 180 );
 }
 
@@ -1185,10 +1197,9 @@ int Servo8::readMicroseconds() {
     // get position in microseconds
     int value;
     if ( pin == 0 ) return -1; // Servo not attached
-    uint8_t oldSREG = SREG;
-    cli();
+    noInterrupts();
     value = servoData[servoIndex].ist;
-    SREG = oldSREG;
+    interrupts();
     return value/TICS_PER_MICROSECOND/SPEED_RES;   
 
 }

@@ -249,7 +249,7 @@ class Stepper4
 class Servo8
 {
   private:
-    int lastPos;     // startingpoint of movement
+    int16_t lastPos;     // startingpoint of movement
     uint8_t pin;
     uint8_t angle;       // in degrees
     uint8_t min16;       // minimum pulse, 16uS units  (default is 34)
@@ -269,6 +269,7 @@ class Servo8
                              // as microseconds, limited to MaximumPulse and MinimumPulse
     void setSpeed(int);      // Set Movement speed, the higher the faster
                              // Zero means no speed control (default)
+    void setSpeed(int,bool); // Set compatibility-Flag (true= compatibility with Version till V08)
     uint8_t moving();        // returns the remaining Way to the angle last set with write() in
                              // in percentage. '0' means, that the angle is reached
     uint8_t read();          // current position in degrees (0...180)
