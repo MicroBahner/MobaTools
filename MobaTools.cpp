@@ -91,6 +91,20 @@
         #define MODE_TP4 pinMode( A4,OUTPUT )   // A4 = PA6
         #define SET_TP4  REG_PIOA_SODR = (1<<6)
         #define CLR_TP4  REG_PIOA_CODR = (1<<6)
+    #elif defined (__STM32F1__)
+        // STM32F103...
+        #define MODE_TP1 pinMode( PB12,OUTPUT )   // TP1= PB12
+        #define SET_TP1  gpio_write_bit( GPIOB,12, HIGH );
+        #define CLR_TP1  gpio_write_bit( GPIOB,12, LOW );
+        #define MODE_TP2 pinMode( PB13,OUTPUT )   // TP2= PB13
+        #define SET_TP2  gpio_write_bit( GPIOB,13, HIGH );
+        #define CLR_TP2  gpio_write_bit( GPIOB,13, LOW );
+        #define MODE_TP3 pinMode( PB14,OUTPUT )   // TP3 = PB14
+        #define SET_TP3  gpio_write_bit( GPIOB,14, HIGH );
+        #define CLR_TP3  gpio_write_bit( GPIOB,14, LOW );
+        #define MODE_TP4 pinMode( PB15,OUTPUT )   // TP4 = PB15
+        #define SET_TP4  gpio_write_bit( GPIOB,15, HIGH );
+        #define CLR_TP4  gpio_write_bit( GPIOB,15, LOW );
     #else
         #define MODE_TP1 DDRC |= (1<<3) //A3
         #define SET_TP1 PORTC |= (1<<3)
@@ -171,7 +185,11 @@ static uint8_t  ledIx;              // Index of active Led in ISR
 
 // ---------- OCR1B Compare Interrupt used for stepper motor and Softleds ----------------
 #pragma GCC optimize "Os"
+#ifdef __AVR_MEGA__
 ISR ( TIMER1_COMPB_vect)
+#elif defined __STM32F1__
+void ISR_Stepper(void)
+#endif
 { // Timer1 Compare B, used for stepper motor, starts every CYCLETIME us
     // 26-09-15 An Interrupt is only created at timeslices, where data is to output
     uint8_t i, spiChanged, changedPins, bitNr;
@@ -210,12 +228,14 @@ ISR ( TIMER1_COMPB_vect)
                 
                 // store pattern data
                 switch ( stepperData[i].output ) {
+                  #ifdef __AVR_MEGA__
                   case PIN4_7:
                     PORTD = (PORTD & 0x0f) | ( stepPattern[ stepperData[i].patternIx ] <<4 );   
                     break;
                   case PIN8_11:
                     PORTB = (PORTB & 0xf0) | ( stepPattern[ stepperData[i].patternIx ] );   
                     break;
+                  #endif
                   case SPI_1:
                     spiData[0] = (spiData[0] & 0xf0) | ( stepPattern[ stepperData[i].patternIx ] );
                     spiChanged = true;                    
@@ -290,8 +310,13 @@ ISR ( TIMER1_COMPB_vect)
     // shift out spiData, if SPI is active
     if ( spiInitialized && spiChanged ) {
         digitalWrite( SS, LOW );
+        #ifdef __AVR_MEGA__
         spiByteCount = 0;
         SPDR = spiData[1];
+        #elif defined __STM32F1__
+        digitalWrite(BOARD_SPI2_NSS_PIN,LOW);
+        spi_tx_reg(SPI2, (spiData[1]<<8) + spiData[0] );
+        #endif
     }
     //============  End of steppermotor ======================================
     
@@ -441,15 +466,22 @@ ISR ( TIMER1_COMPB_vect)
     // set compareregister to next interrupt time;
      noInterrupts(); // when manipulating 16bit Timerregisters IRQ must be disabled
     // compute next IRQ-Time in us, not in tics, so we don't need long
+    #ifdef __AVR_MEGA__
     tmp = ( OCR1B / TICS_PER_MICROSECOND + nextCycle * CYCLETIME );
     if ( tmp > 20000 ) tmp = tmp - 20000;
     OCR1B = tmp * TICS_PER_MICROSECOND;
+    #elif defined __STM32F1__
+    tmp = ( timer_get_compare(MT_TIMER, STEP_CHN) / TICS_PER_MICROSECOND + nextCycle * CYCLETIME );
+    if ( tmp > 20000 ) tmp = tmp - 20000;
+    timer_set_compare( MT_TIMER, STEP_CHN, tmp * TICS_PER_MICROSECOND) ;
+    #endif
     interrupts();
     
     CLR_TP2; // Oszimessung Dauer der ISR-Routine
 }
-
 // ---------- SPI interupt used for output stepper motor data -------------
+extern "C" {
+#ifdef __AVR_MEGA__
 ISR ( SPI_STC_vect )
 {   // output step-pattern on SPI, set SS when ready
     if ( spiByteCount++ == 0 ) {
@@ -461,13 +493,25 @@ ISR ( SPI_STC_vect )
         spiByteCount = 0;
     }
 }
-
+#elif defined __STM32F1__
+void __irq_spi2(void) {// STM32
+    static int rxData;
+    rxData = spi_rx_reg(SPI2);            // Get dummy data (Clear RXNE-Flag)
+    digitalWrite(BOARD_SPI2_NSS_PIN,HIGH);
+}
+#endif
+}
 #ifdef FIXED_POSITION_SERVO_PULSES
 // ---------- OCR1A Compare Interrupt used for servo motor ----------------
 // Positions of servopulses within 20ms cycle are fixed -  8 servos
 #define PULSESTEP ( 40000 / MAX_SERVOS )
-ISR ( TIMER1_COMPA_vect)
-{   // Timer1 Compare A, used for servo motor
+#ifdef __AVR_MEGA__
+ISR ( TIMER1_COMPA_vect) {
+#elif defined __STM32F1__
+void ISR_Servo( void) {
+    uint16_t OCR1A;
+#endif
+    // Timer1 Compare A, used for servo motor
     SET_TP1; // Oszimessung Dauer der ISR-Routine
     if ( IrqType == POFF ) {
         IrqType = PON ; // it's always alternating
@@ -510,7 +554,7 @@ ISR ( TIMER1_COMPA_vect)
                 servoData[pulseIx].ist -= servoData[pulseIx].inc;
                 if ( servoData[pulseIx].ist < servoData[pulseIx].soll ) servoData[pulseIx].ist = servoData[pulseIx].soll;
             } 
-            OCR1A = (servoData[pulseIx].ist/SPEED_RES) + TCNT1 - 4; // compensate for computing time
+            OCR1A = (servoData[pulseIx].ist/SPEED_RES) + GET_COUNT - 4; // compensate for computing time
             if ( servoData[pulseIx].on && (servoData[pulseIx].offcnt+servoData[pulseIx].noAutoff) > 0 ) {
                 CLR_TP1;
                 #ifdef FAST_PORTWRT
@@ -523,6 +567,9 @@ ISR ( TIMER1_COMPA_vect)
             IrqType = POFF;
         } 
     } //end of 'pulse ON'
+    #ifdef __STM32F1__
+    timer_set_compare(MT_TIMER,  SERVO_CHN, OCR1A);
+    #endif 
     CLR_TP1; // Oszimessung Dauer der ISR-Routine
 }
 
@@ -559,8 +606,13 @@ static bool searchNextPulse() {
 } //end of 'searchNextPulse'
 
 // ---------- OCR1A Compare Interrupt used for servo motor ----------------
-ISR ( TIMER1_COMPA_vect)
-{   // Timer1 Compare A, used for servo motor
+#ifdef __AVR_MEGA__
+ISR ( TIMER1_COMPA_vect) {
+#elif defined __STM32F1__
+void ISR_Servo( void) {
+    uint16_t OCR1A;
+#endif
+    // Timer1 Compare A, used for servo motor
     if ( IrqType == POFF ) { // Pulse OFF time
         SET_TP3; // Oszimessung Dauer der ISR-Routine
         IrqType = PON ; // it's (nearly) always alternating
@@ -576,7 +628,7 @@ ISR ( TIMER1_COMPA_vect)
             // next starttime must behind actual timervalue and endtime of next pulse must
             // lay after endtime of runningpuls + safetymargin (it may be necessary to start
             // another pulse between these 2 ends)
-            word tmpTCNT1 = TCNT1 + MARGINTICS/2;
+            word tmpTCNT1 = GET_COUNT + MARGINTICS/2;
             interrupts();
             CLR_TP3 ;
             OCR1A = max ( ((long)activePulseOff + (long) MARGINTICS - (long) nextPulseLength), ( tmpTCNT1 ) );
@@ -603,7 +655,7 @@ ISR ( TIMER1_COMPA_vect)
         // do we know the next pulse already?
         if ( nextPulseLength > 0 ) {
             // yes we know, start this pulse and then look for next one
-            word tmpTCNT1= TCNT1-4; // compensate for computing time
+            word tmpTCNT1= GET_COUNT-4; // compensate for computing time
             if ( servoData[nextPulseIx].on && (servoData[nextPulseIx].offcnt+servoData[nextPulseIx].noAutoff) > 0 ) {
                 // its a 'real' pulse, set output pin
                 CLR_TP1;
@@ -629,7 +681,7 @@ ISR ( TIMER1_COMPA_vect)
             if ( activePulseOff == 0 ) {
                 // it is the first pulse in the sequence, start it
                 activePulseIx = pulseIx; 
-                activePulseOff = servoData[pulseIx].ist/SPEED_RES + TCNT1 - 4; // compensate for computing time
+                activePulseOff = servoData[pulseIx].ist/SPEED_RES + GET_COUNT - 4; // compensate for computing time
                 if ( servoData[pulseIx].on && (servoData[pulseIx].offcnt+servoData[pulseIx].noAutoff) > 0 ) {
                     // its a 'real' pulse, set output pin
                     #ifdef FAST_PORTWRT
@@ -638,7 +690,7 @@ ISR ( TIMER1_COMPA_vect)
                     digitalWrite( servoData[pulseIx].pin, HIGH );
                     #endif
                 }
-                word tmpTCNT1 = TCNT1;
+                word tmpTCNT1 = GET_COUNT;
                 interrupts(); // the following isn't time critical, so allow nested interrupts
                 SET_TP3;
                 // look for second pulse
@@ -678,6 +730,9 @@ ISR ( TIMER1_COMPA_vect)
         CLR_TP1; CLR_TP3; // Oszimessung Dauer der ISR-Routine
        
     } //end of 'pulse ON'
+    #ifdef __STM32F1__
+    timer_set_compare(MT_TIMER,  SERVO_CHN, OCR1A);
+    #endif 
 }
 
 #endif // VARIABLE_POSITION_SERVO_PULSES
@@ -686,6 +741,7 @@ ISR ( TIMER1_COMPA_vect)
 
 static void seizeTimer1()
 {
+# ifdef __AVR_MEGA__
     uint8_t oldSREG = SREG;
     cli();
     
@@ -698,6 +754,20 @@ static void seizeTimer1()
     OCR1B = 400;
     // Serial.print( " Timer initialized " ); Serial.println( TIMSK1, HEX );
     SREG = oldSREG;  // undo cli() 
+#elif defined __STM32F1__
+    timer_init( MT_TIMER );
+    timer_pause(MT_TIMER);
+    timer_oc_set_mode( MT_TIMER, SERVO_CHN, TIMER_OC_MODE_FROZEN, 0 );  // comparison between output compare register and counter 
+                                                                //has no effect on the outputs
+    timer_oc_set_mode( MT_TIMER, STEP_CHN, TIMER_OC_MODE_FROZEN, 0 );
+    timer_set_prescaler(MT_TIMER, 36-1 );    // = 0.5µs Tics at 72MHz
+    timer_set_reload(MT_TIMER, 20000 * TICS_PER_MICROSECOND );
+    timer_set_compare(MT_TIMER, SERVO_CHN, FIRST_PULSE );
+    timer_attach_interrupt(MT_TIMER, TIMER_CC1_INTERRUPT, ISR_Servo );
+    timer_set_compare(MT_TIMER, STEP_CHN, 400 );
+    timer_attach_interrupt(MT_TIMER, TIMER_CC2_INTERRUPT, ISR_Stepper );
+    timer_resume(MT_TIMER);
+#endif
     timerInitialized = true;  
     MODE_TP1;   // set debug-pins to Output
     MODE_TP2;
@@ -708,6 +778,7 @@ static void seizeTimer1()
 static void initSPI() {
     // initialize SPI hardware.
     // MSB first, default Clk Level is 0, shift on leading edge
+#ifdef __AVR_MEGA__
     byte tmp;
     uint8_t oldSREG = SREG;
     cli();
@@ -723,6 +794,23 @@ static void initSPI() {
          | (0<<SPR1) | (1<<SPR0);    // fosc/16
     digitalWrite( SS, LOW );
     SREG = oldSREG;  // undo cli() 
+    
+#elif defined __STM32F1__
+    // use SPI 2 interface
+    spi_init(SPI2);
+    spi_config_gpios(SPI2, 1,  // initialize as master
+                     PIN_MAP[BOARD_SPI2_NSS_PIN].gpio_device, PIN_MAP[BOARD_SPI2_NSS_PIN].gpio_bit,        
+                     PIN_MAP[BOARD_SPI2_SCK_PIN].gpio_device, PIN_MAP[BOARD_SPI2_SCK_PIN].gpio_bit,
+                     PIN_MAP[BOARD_SPI2_MISO_PIN].gpio_bit,
+                     PIN_MAP[BOARD_SPI2_MOSI_PIN].gpio_bit);
+
+    uint32 flags = (SPI_FRAME_MSB | SPI_CR1_DFF_16_BIT | SPI_SW_SLAVE | SPI_SOFT_SS);
+    spi_master_enable(SPI2, (spi_baud_rate)SPI_BAUD_PCLK_DIV_16, (spi_mode)SPI_MODE_0, flags);
+    spi_irq_enable(SPI2, SPI_RXNE_INTERRUPT);
+    pinMode( BOARD_SPI2_NSS_PIN, OUTPUT);
+    digitalWrite( BOARD_SPI2_NSS_PIN, LOW );
+
+#endif
     spiInitialized = true;  
 }
 // ========================= Class Definitions ============================================
@@ -772,10 +860,9 @@ long Stepper4::getSFZ() {
     // get step-distance from zero point
     // irq must be disabled, because stepsFromZero is updated in interrupt
     long tmp;
-    uint8_t oldSREG = SREG;
-    cli();
+    noInterrupts();
     tmp = stepperData[stepperIx].stepsFromZero;
-    SREG = oldSREG;
+    interrupts();
     return tmp / stepMode;
 }
 
@@ -807,6 +894,7 @@ uint8_t Stepper4::attach( byte outArg, byte pins[] ) {
     if ( stepMode == NOSTEP ) return 0; // Invalid object
     uint8_t attachOK = true;
     switch ( outArg ) {
+      #ifdef __AVR_MEGA__
       case PIN4_7:
         if ( Stepper4::outputsUsed.pin4_7 ) {
             // output already in use
@@ -828,6 +916,7 @@ uint8_t Stepper4::attach( byte outArg, byte pins[] ) {
             PORTB &= 0xf0;
         }
         break;
+      #endif
       case SPI_1:
       case SPI_2:
       case SPI_3:
@@ -882,8 +971,10 @@ uint8_t Stepper4::attach( byte outArg, byte pins[] ) {
         // enable compareB- interrupt
         #if defined(__AVR_ATmega8__)|| defined(__AVR_ATmega128__)
             TIMSK |= ( _BV(OCIE1B) );    // enable compare interrupts
-        #else
+        #elif defined __AVR_MEGA__
             TIMSK1 |= _BV(OCIE1B) ; 
+        #elif defined __STM32F1__
+            timer_cc_enable(MT_TIMER, STEP_CHN);
         #endif
     }
     DB_PRINT( "attach: output=%d, attachOK=%d", stepperData[stepperIx].output, attachOK );
@@ -912,10 +1003,9 @@ int Stepper4::setSpeed( int rpm10 ) {
 void Stepper4::setZero() {
     // set reference point for absolute positioning
     if ( stepMode == NOSTEP ) return ; // Invalid object
-    uint8_t oldSREG = SREG;
-    cli();
+    noInterrupts();
     stepperData[stepperIx].stepsFromZero = 0;
-    SREG = oldSREG;
+    interrupts();
 }
 
 void Stepper4::write(long angleArg ) {
@@ -972,10 +1062,9 @@ void Stepper4::doSteps( long stepValue ) {
      DB_PRINT( " stepsToMove: %d ",stepsToMove );
     if ( stepValue > 0 ) stepperData[stepperIx].patternIxInc = abs( stepperData[stepperIx].patternIxInc );
     else stepperData[stepperIx].patternIxInc = -abs( stepperData[stepperIx].patternIxInc );
-    uint8_t oldSREG = SREG;
-    cli();
+    noInterrupts();
     stepperData[stepperIx].stepCnt = abs(stepsToMove);
-    SREG = oldSREG;
+    interrupts();
 }
 
 
@@ -988,10 +1077,9 @@ uint8_t Stepper4::moving() {
     if ( stepsToMove == 0 ) {
         tmp = 0;        // there was nothing to move
     } else {
-        uint8_t oldSREG = SREG;
-        cli(); // disable interrupt, because integer stepcnt is changed in TCR interrupt
+        noInterrupts(); // disable interrupt, because integer stepcnt is changed in TCR interrupt
         tmp = stepperData[stepperIx].stepCnt;
-        SREG = oldSREG;  // undo cli() 
+        interrupts();  // undo cli() 
         if ( tmp > 0 ) {
             // do NOT return 0, even if less than 1%, because 0 means real stop of the motor
             tmp = max ( ((long)tmp * 100L / abs( stepsToMove)) , 1 );
@@ -1008,8 +1096,7 @@ void Stepper4::rotate(int8_t direction) {
         // identical to 'stop'
 		stop();
 	} else {
-		uint8_t oldSREG = SREG;
-		cli();
+		noInterrupts();
 		stepperData[stepperIx].endless = true;
 		stepperData[stepperIx].stepCnt = 1;
 		if ( direction > 0 ) {
@@ -1019,7 +1106,7 @@ void Stepper4::rotate(int8_t direction) {
             stepperData[stepperIx].patternIxInc = -abs( stepperData[stepperIx].patternIxInc );
             stepsToMove = -1;
          }
-		SREG = oldSREG;
+		interrupts();
 	}
 }
 
@@ -1027,12 +1114,11 @@ void Stepper4::stop() {
 	// immediate stop of the motor
     if ( stepMode == NOSTEP ) return ; // Invalid object
     
-    uint8_t oldSREG = SREG;
-    cli();
+    noInterrupts();
     stepperData[stepperIx].endless = false;
 	stepsToMove = 0;
     stepperData[stepperIx].stepCnt = 0;
-    SREG = oldSREG;
+    interrupts();
 }
 ///////////////////////////////////////////////////////////////////////////////////
 // --------- Class Servo8 ---------------------------------
@@ -1101,8 +1187,10 @@ uint8_t Servo8::attach( int pinArg, int pmin, int pmax, bool autoOff ) {
     // enable compare-A interrupt
     #if defined(__AVR_ATmega8__)|| defined(__AVR_ATmega128__)
     TIMSK |=  _BV(OCIE1A);   
-    #else
+    #elif defined __AVR_MEGA__
     TIMSK1 |=  _BV(OCIE1A) ; 
+    #elif defined __STM32F1__
+        timer_cc_enable(MT_TIMER, SERVO_CHN);
     #endif
 
     return 1;
@@ -1124,12 +1212,14 @@ void Servo8::write(int angleArg)
     static int newpos;
 	DB_PRINT( "Write: angleArg=%d, Soll=%d", angleArg, servoData[servoIndex].soll );
     if ( pin > 0 ) { // only if servo is attached
-        //Serial.print( "Pin:" );Serial.print(pin);Serial.print("Wert:");Serial.println(angleArg);
+        Serial.print( "Pin:" );Serial.print(pin);Serial.print("Wert:");Serial.println(angleArg);
+        #ifdef __AVR_MEGA__
 		DB_PRINT( "Stack=0x%04x, &sIx=0x%04x", ((SPH&0x7)<<8)|SPL, &servoIndex );
+        #endif
         if ( angleArg < 0) angleArg = 0;
-        if ( angleArg <= 180) {
-            // pulse width as degrees
-            angle = angleArg;
+        if ( angleArg <= 255) {
+            // pulse width as degrees (byte values are always degrees) 09-02-2017
+            angle = min( 180,angleArg);
 
             newpos = map( angle, 0,180, min16*16, max16*16 ) * TICS_PER_MICROSECOND * SPEED_RES;
         } else {
@@ -1144,20 +1234,18 @@ void Servo8::write(int angleArg)
             // this is the first pulse to be created after attach
             servoData[servoIndex].on = true;
             lastPos = newpos;
-            uint8_t oldSREG = SREG;
-            cli();
+            noInterrupts();
             servoData[servoIndex].soll= newpos ; // .ist - value is still -1 (invalid) -> will jump to .soll immediately
-            SREG = oldSREG;
+            interrupts();
 			DB_PRINT( "FirstWrite: Ix=%d,%d Soll=%d", servoIndex, this->servoIndex, servoData[servoIndex].soll );
             
         }
         else if ( newpos != servoData[servoIndex].soll ) {
             // position has changed, store old position, set new position
             lastPos = servoData[servoIndex].soll;
-            uint8_t oldSREG = SREG;
-            cli();
+            noInterrupts();
             servoData[servoIndex].soll= newpos ;
-            SREG = oldSREG;
+            interrupts();
 			DB_PRINT( "NextWrite: Ix= %d,%d Soll=%d, On=%d", servoIndex, this->servoIndex, servoData[servoIndex].soll, servoData[servoIndex].on );
         }
     }
@@ -1257,8 +1345,10 @@ uint8_t SoftLed::attach(uint8_t pinArg){
     // enable compareB- interrupt
     #if defined(__AVR_ATmega8__)|| defined(__AVR_ATmega128__)
         TIMSK |= ( _BV(OCIE1B) );    // enable compare interrupts
-    #else
+    #elif defined __AVR_MEGA__
         TIMSK1 |= _BV(OCIE1B) ; 
+    #elif defined __STM32F1__
+        timer_cc_enable(MT_TIMER, STEP_CHN);
     #endif
   
 

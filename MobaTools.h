@@ -24,16 +24,25 @@
   Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 */
 
-/* 02-11-16 / (V0.7) Updating Stepper driver:
+/*  08-02-17    start of implementing STM32 support
+    03-02-17 / V0.8  Softleds now working on all digital outputs
+    02-11-16 / (V0.7) Updating Stepper driver:
    - stepper motor can be connected ba means of a4988 stepper motor driver IC
      this uses only 2 pins: STEP and DIRECTION
 */
 #include <inttypes.h>
 #include <Arduino.h>
 
-#ifndef __AVR_MEGA__
-#error "Only AVR AtMega processors are supported"
+#ifndef  __AVR_MEGA__
+#ifndef __STM32F1__
+#error "Only AVR AtMega  or STM32F1 processors are supported"
 #endif
+#endif
+#ifdef __STM32F1__
+#include <libmaple/timer.h>
+#include <libmaple/spi.h>
+#endif
+
 
 #define Servo2	Servo8		// Kompatibilität zu Version 01 und 02
 //defines used in user programs
@@ -43,8 +52,10 @@
 #define NOSTEP      0   // invalid-flag
 
 #define NO_OUTPUT   0
+#ifdef __AVR_MEGA__
 #define PIN8_11     1
 #define PIN4_7      2
+#endif
 #define SPI_1        3
 #define SPI_2        4
 #define SPI_3        5
@@ -60,9 +71,20 @@
 ////////////////// END OF 'PUBLIC' PARAMETERS ////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 // internal defines
+#ifdef __AVR_MEGA__
+// defines only for ATMega
 #define FAST_PORTWRT        // if this is defined, ports are written directly in IRQ-Routines,
                             // not with 'digitalWrite' functions
-#define TICS_PER_MICROSECOND (clockCyclesPerMicrosecond() / 8 ) // prescaler is 8
+#define TICS_PER_MICROSECOND (clockCyclesPerMicrosecond() / 8 ) // prescaler is 8 = 0.5us
+#define GET_COUNT   TCNT1
+#elif defined __STM32F1__
+//defines only for STM32
+#define TICS_PER_MICROSECOND (clockCyclesPerMicrosecond() / 36 ) // prescaler is 36 = 0.5us
+#define MT_TIMER TIMER4     // Timer used by MobaTools
+#define STEP_CHN    2       // OCR channel for Stepper and Leds
+#define SERVO_CHN   1       // OCR channel for Servos
+#define GET_COUNT timer_get_count(MT_TIMER)
+#endif
 
 // defines for the stepper motor
 #define MAX_STEPPER  4    // 
@@ -126,7 +148,7 @@ typedef struct {
   uint8_t lastPattern;             // only changed pins are updated ( is faster )
 } stepperData_t ;
 
-typedef union { // used output channels as bit und uint8_t
+typedef union { // used output channels as bit and uint8_t
       struct {
         uint8_t pin8_11 :1;
         uint8_t pin4_7  :1;
