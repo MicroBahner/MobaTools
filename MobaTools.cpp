@@ -1212,7 +1212,7 @@ void Servo8::write(int angleArg)
     static int newpos;
 	DB_PRINT( "Write: angleArg=%d, Soll=%d", angleArg, servoData[servoIndex].soll );
     if ( pin > 0 ) { // only if servo is attached
-        Serial.print( "Pin:" );Serial.print(pin);Serial.print("Wert:");Serial.println(angleArg);
+        //Serial.print( "Pin:" );Serial.print(pin);Serial.print("Wert:");Serial.println(angleArg);
         #ifdef __AVR_MEGA__
 		DB_PRINT( "Stack=0x%04x, &sIx=0x%04x", ((SPH&0x7)<<8)|SPL, &servoIndex );
         #endif
