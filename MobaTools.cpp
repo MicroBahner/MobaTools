@@ -171,13 +171,13 @@ static byte stepperCount = 0;
 static uint8_t cyclesLastIRQ = 1;  // cycles since last IRQ
 
 // variables for softLeds
-static ledData_t ledData[MAX_LEDS];
+static ledData_t* lastLedDataP = NULL; //start of ledData-chain
 static byte ledCount = 0;
 static uint8_t ledNextCyc = 1;     // next Cycle that is relevant for leds
 static uint8_t ledCycleCnt = 0;    // count IRQ cycles within PWM cycle
 //static uint8_t  ledStepIx = 0;      // Stepcounter for Leds ( Index in Array isteps , 0: start of pwm-Cycle )
 //static uint8_t  ledNextStep = 0;    // next step needed for softleds
-static uint8_t  ledIx;              // Index of active Led in ISR
+static ledData_t*  ledDataP;              // pointer to active Led in ISR
 //==========================================================================
 
 // global functions / Interrupts
@@ -328,34 +328,34 @@ void ISR_Stepper(void)
         if ( ledCycleCnt >= LED_CYCLE_MAX ) {
             // start of a new PWM Cycle - switch all leds rising/falling state to on
             ledCycleCnt = 0;
-            for ( ledIx=0; ledIx<ledCount; ledIx++ ) {
+            for ( ledDataP=lastLedDataP; ledDataP!=NULL; ledDataP = ledDataP->prevLedDataP ) {
                 SET_TP1;
                 // loop over active Leds
                 // yes it's ugly, but because of performance reasons this is done a little bit assembler like
                 static void * const pwm0tab[]  { &&pwm0end,&&pwm0end,
                             &&incfast0,&&decfast0,&&incslow0,&&decslow0,&&inclin0,&&declin0 };
-                goto  *pwm0tab[ledData[ledIx].state] ;
+                goto  *pwm0tab[ledDataP->state] ;
                   incfast0:
                   incslow0:
                   inclin0:
                     SET_TP4;
                     // switch on led with linear characteristic
                    #ifdef FAST_PORTWRT
-                    *ledData[ledIx].portPin.Adr |= ledData[ledIx].portPin.Mask;
+                    *ledDataP->portPin.Adr |= ledDataP->portPin.Mask;
                     #else
-                    digitalWrite( ledData[ledIx].pin, HIGH );
+                    digitalWrite( ledDataP->pin, HIGH );
                     #endif
                     // check if led off is reached
-                    if ( ledData[ledIx].aCycle >=  LED_CYCLE_MAX-1 ) {
+                    if ( ledDataP->aCycle >=  LED_CYCLE_MAX-1 ) {
                         SET_TP3;
                         // led is full on
-                        ledData[ledIx].state = ON;
-                        ledData[ledIx].aCycle = 0;
+                        ledDataP->state = ON;
+                        ledDataP->aCycle = 0;
                         CLR_TP3;
                     } else { // switch to next PWM step
-                        //ledNextCyc = min( ledData[ledIx].aCycle, ledNextCyc);
-                        if ( ledNextCyc > ledData[ledIx].aCycle ) ledNextCyc = ledData[ledIx].aCycle;
-                        ledData[ledIx].actPulse = true;
+                        //ledNextCyc = min( ledDataP->aCycle, ledNextCyc);
+                        if ( ledNextCyc > ledDataP->aCycle ) ledNextCyc = ledDataP->aCycle;
+                        ledDataP->actPulse = true;
                     }
                     CLR_TP4;
                     goto pwm0end;
@@ -364,80 +364,80 @@ void ISR_Stepper(void)
                   declin0:
                     CLR_TP2;
                     // switch off led 
-                   if ( ledData[ledIx].aCycle <= 0  ) {
+                   if ( ledDataP->aCycle <= 0  ) {
                         SET_TP3;
                         // led is full off
-                        ledData[ledIx].state = OFF;
-                        ledData[ledIx].aCycle = 0;
+                        ledDataP->state = OFF;
+                        ledDataP->aCycle = 0;
                         CLR_TP3;
                     } else { // switch to next PWM step
                         #ifdef FAST_PORTWRT
-                        *ledData[ledIx].portPin.Adr |= ledData[ledIx].portPin.Mask;
+                        *ledDataP->portPin.Adr |= ledDataP->portPin.Mask;
                         #else
-                        digitalWrite( ledData[ledIx].pin, HIGH );
+                        digitalWrite( ledDataP->pin, HIGH );
                         #endif
-                        //ledNextCyc = min( ledData[ledIx].aCycle, ledNextCyc);
-                        if ( ledNextCyc > ledData[ledIx].aCycle ) ledNextCyc = ledData[ledIx].aCycle;
-                        ledData[ledIx].actPulse = true;
+                        //ledNextCyc = min( ledDataP->aCycle, ledNextCyc);
+                        if ( ledNextCyc > ledDataP->aCycle ) ledNextCyc = ledDataP->aCycle;
+                        ledDataP->actPulse = true;
                     }
                     SET_TP2;
                 pwm0end: // end of 'switch'
                 CLR_TP1;
             } // end of led loop
         } else { // is switchofftime within PWM cycle
-            for ( ledIx=0; ledIx<ledCount; ledIx++ ) {
+            for ( ledDataP=lastLedDataP; ledDataP!=NULL; ledDataP = ledDataP->prevLedDataP ) {
                 SET_TP3;
-                if ( ledData[ledIx].actPulse ) {
+                if ( ledDataP->actPulse ) {
                     // led is within PWM cycle with output high
-                    if ( ledData[ledIx].aCycle <= ledCycleCnt ) {
+                    if ( ledDataP->aCycle <= ledCycleCnt ) {
                         CLR_TP3;
                         #ifdef FAST_PORTWRT
-                        *ledData[ledIx].portPin.Adr &= ~ledData[ledIx].portPin.Mask;
+                        *ledDataP->portPin.Adr &= ~ledDataP->portPin.Mask;
                         #else
-                        digitalWrite( ledData[ledIx].pin, LOW );
+                        digitalWrite( ledDataP->pin, LOW );
                         #endif
-                        ledData[ledIx].actPulse = false;
+                        ledDataP->actPulse = false;
                         // determine length of next PWM Cyle
-                        switch ( ledData[ledIx].state ) {
+                        switch ( ledDataP->state ) {
                           case INCFAST:
-                            ledData[ledIx].aStep += ledData[ledIx].speed;
-                            if ( ledData[ledIx].aStep > LED_STEP_MAX ) ledData[ledIx].aStep = LED_STEP_MAX;
-                            ledData[ledIx].aCycle = iSteps[ledData[ledIx].aStep];
+                            ledDataP->aStep += ledDataP->speed;
+                            if ( ledDataP->aStep > LED_STEP_MAX ) ledDataP->aStep = LED_STEP_MAX;
+                            ledDataP->aCycle = iSteps[ledDataP->aStep];
                             break;
                           case DECFAST:
-                            ledData[ledIx].aStep += ledData[ledIx].speed;
-                            if ( ledData[ledIx].aStep > LED_STEP_MAX ) ledData[ledIx].aStep = LED_STEP_MAX;
-                            ledData[ledIx].aCycle = LED_CYCLE_MAX-iSteps[ledData[ledIx].aStep];
+                            ledDataP->aStep += ledDataP->speed;
+                            if ( ledDataP->aStep > LED_STEP_MAX ) ledDataP->aStep = LED_STEP_MAX;
+                            ledDataP->aCycle = LED_CYCLE_MAX-iSteps[ledDataP->aStep];
                             break;
                           case INCSLOW:
-                            if ( --ledData[ledIx].stpCnt < ledData[ledIx].speed ) {
-                                ledData[ledIx].aStep += 1;
-                                ledData[ledIx].stpCnt = 1;
+                            if ( --ledDataP->stpCnt < ledDataP->speed ) {
+                                ledDataP->aStep += 1;
+                                ledDataP->stpCnt = 1;
                             }
-                            if ( ledData[ledIx].aStep > LED_STEP_MAX ) ledData[ledIx].aStep = LED_STEP_MAX;
-                            ledData[ledIx].aCycle = iSteps[ledData[ledIx].aStep];
+                            if ( ledDataP->aStep > LED_STEP_MAX ) ledDataP->aStep = LED_STEP_MAX;
+                            ledDataP->aCycle = iSteps[ledDataP->aStep];
                             break;
                           case DECSLOW:
                             SET_TP4;
-                            if ( --ledData[ledIx].stpCnt < ledData[ledIx].speed ) {
+                            if ( --ledDataP->stpCnt < ledDataP->speed ) {
                             CLR_TP4;
-                                ledData[ledIx].aStep += 1;
-                                ledData[ledIx].stpCnt = 1;
+                                ledDataP->aStep += 1;
+                                ledDataP->stpCnt = 1;
                             SET_TP4;
                             }
-                            if ( ledData[ledIx].aStep > LED_STEP_MAX ) ledData[ledIx].aStep = LED_STEP_MAX;
-                            ledData[ledIx].aCycle = LED_CYCLE_MAX-iSteps[ledData[ledIx].aStep];
+                            if ( ledDataP->aStep > LED_STEP_MAX ) ledDataP->aStep = LED_STEP_MAX;
+                            ledDataP->aCycle = LED_CYCLE_MAX-iSteps[ledDataP->aStep];
                             CLR_TP4;
                             break;
                           case INCLIN:
-                            ledData[ledIx].aCycle += ledData[ledIx].speed;
-                            if ( ledData[ledIx].aCycle > LED_CYCLE_MAX-1 ) ledData[ledIx].aCycle = LED_CYCLE_MAX-1;
-                            //ledNextCyc = min( ledData[ledIx].aCycle, ledNextCyc);
+                            ledDataP->aCycle += ledDataP->speed;
+                            if ( ledDataP->aCycle > LED_CYCLE_MAX-1 ) ledDataP->aCycle = LED_CYCLE_MAX-1;
+                            //ledNextCyc = min( ledDataP->aCycle, ledNextCyc);
                             break;
                           case DECLIN:
-                            ledData[ledIx].aCycle -= ledData[ledIx].speed;
-                            if ( ledData[ledIx].aCycle <= 0 ) ledData[ledIx].aCycle = 0;
-                            //ledNextCyc = min( ledData[ledIx].aCycle, ledNextCyc);
+                            ledDataP->aCycle -= ledDataP->speed;
+                            if ( ledDataP->aCycle <= 0 ) ledDataP->aCycle = 0;
+                            //ledNextCyc = min( ledDataP->aCycle, ledNextCyc);
                             break;
                           default:
                             break;
@@ -446,7 +446,7 @@ void ISR_Stepper(void)
                         
                     } else { // next necessary step
                        SET_TP1;
-                       ledNextCyc = min( ledData[ledIx].aCycle, ledNextCyc);
+                       ledNextCyc = min( ledDataP->aCycle, ledNextCyc);
                        CLR_TP1;
                     }
                 }
@@ -1317,11 +1317,15 @@ uint8_t Servo8::attached()
 SoftLed::SoftLed() {
     ledIx = ledCount++;
         if ( ledIx < MAX_LEDS ) {
-        ledData[ledIx].speed = 0;       // defines rising/falling timer
-        ledData[ledIx].aStep = 0 ;      // actual PWM step
-        ledData[ledIx].state = OFF ;    // initialize to off
-        ledData[ledIx].setpoint = OFF ; // initialize to off
+        ledData.speed = 0;       // defines rising/falling timer
+        ledData.aStep = 0 ;      // actual PWM step
+        ledData.state = OFF ;    // initialize to off
+        ledData.setpoint = OFF ; // initialize to off
         ledType = LINEAR;
+        noInterrupts();
+        ledData.prevLedDataP = lastLedDataP;
+        lastLedDataP = &ledData;
+        interrupts();
     }
 }
 
@@ -1331,15 +1335,15 @@ uint8_t SoftLed::attach(uint8_t pinArg){
     pinMode( pinArg, OUTPUT );
     DB_PRINT( "Led attached, ledCount = %d", ledCount );
     ledSpeed = 1;                   // defines rising/falling timer
-    ledData[ledIx].aStep = 0 ;      // actual PWM step
-    ledData[ledIx].state = OFF ;    // initialize to off
-    ledData[ledIx].setpoint = OFF ; // initialize to off
+    ledData.aStep = 0 ;      // actual PWM step
+    ledData.state = OFF ;    // initialize to off
+    ledData.setpoint = OFF ; // initialize to off
 
     #ifdef FAST_PORTWRT
-    ledData[ledIx].portPin.Adr = (byte *) pgm_read_word_near(&port_to_output_PGM[pgm_read_byte_near(&digital_pin_to_port_PGM[pinArg])]);
-    ledData[ledIx].portPin.Mask = pgm_read_byte_near(&digital_pin_to_bit_mask_PGM[pinArg]);
+    ledData.portPin.Adr = (byte *) pgm_read_word_near(&port_to_output_PGM[pgm_read_byte_near(&digital_pin_to_port_PGM[pinArg])]);
+    ledData.portPin.Mask = pgm_read_byte_near(&digital_pin_to_bit_mask_PGM[pinArg]);
     #else
-    ledData[ledIx].pin=pinArg ;      // Pin-Nbr 
+    ledData.pin=pinArg ;      // Pin-Nbr 
     #endif
     if ( !timerInitialized ) seizeTimer1();
     // enable compareB- interrupt
@@ -1358,25 +1362,25 @@ uint8_t SoftLed::attach(uint8_t pinArg){
 void SoftLed::on(){
     if ( ledIx >= MAX_LEDS ) return;
     // Don't do anything if its already ON 
-    if ( ledData[ledIx].setpoint != ON  ) {
+    if ( ledData.setpoint != ON  ) {
         SET_TP4;
-        ledData[ledIx].setpoint=ON ;
-        ledData[ledIx].aStep = 0;
-        ledData[ledIx].stpCnt = 0; 
+        ledData.setpoint=ON ;
+        ledData.aStep = 0;
+        ledData.stpCnt = 0; 
         if ( ledType == LINEAR ) {
-            ledData[ledIx].state = INCLIN;
-            ledData[ledIx].speed = ledSpeed;
-            ledData[ledIx].aCycle = 1;
+            ledData.state = INCLIN;
+            ledData.speed = ledSpeed;
+            ledData.aCycle = 1;
         } else { // is bulb simulation
             SET_TP4;
-            ledData[ledIx].state = INCFAST;
-            ledData[ledIx].speed = ledSpeed==1? -1 : ledSpeed / 3;
+            ledData.state = INCFAST;
+            ledData.speed = ledSpeed==1? -1 : ledSpeed / 3;
             CLR_TP4;
-            if ( ledData[ledIx].speed <= 0 ) {
-                ledData[ledIx].state = INCSLOW;
-                ledData[ledIx].stpCnt = 1;
+            if ( ledData.speed <= 0 ) {
+                ledData.state = INCSLOW;
+                ledData.stpCnt = 1;
             }
-            ledData[ledIx].aCycle = iSteps[0];
+            ledData.aCycle = iSteps[0];
         }
         CLR_TP4;
     }
@@ -1385,25 +1389,25 @@ void SoftLed::on(){
 void SoftLed::off(){
     if ( ledIx >= MAX_LEDS ) return;
     // Dont do anything if its already OFF 
-    if ( ledData[ledIx].setpoint != OFF ) {
+    if ( ledData.setpoint != OFF ) {
         SET_TP3;
-        ledData[ledIx].setpoint=OFF ;
-        ledData[ledIx].aStep = 0;
-        ledData[ledIx].stpCnt = 0; 
+        ledData.setpoint=OFF ;
+        ledData.aStep = 0;
+        ledData.stpCnt = 0; 
         if ( ledType == LINEAR ) {
-            ledData[ledIx].state = DECLIN;
-            ledData[ledIx].speed = ledSpeed;
-            ledData[ledIx].aCycle = LED_CYCLE_MAX-1;
+            ledData.state = DECLIN;
+            ledData.speed = ledSpeed;
+            ledData.aCycle = LED_CYCLE_MAX-1;
         } else { // is bulb simulation
             CLR_TP3;
-            ledData[ledIx].state = DECFAST;
-            ledData[ledIx].speed = ledSpeed==1? -1 : ledSpeed / 3;
+            ledData.state = DECFAST;
+            ledData.speed = ledSpeed==1? -1 : ledSpeed / 3;
             SET_TP3;
-            if ( ledData[ledIx].speed <= 0 ) {
-                ledData[ledIx].state = DECSLOW;
-                ledData[ledIx].stpCnt = 1;
+            if ( ledData.speed <= 0 ) {
+                ledData.state = DECSLOW;
+                ledData.stpCnt = 1;
             }
-            ledData[ledIx].aCycle = LED_CYCLE_MAX + 1 - iSteps[0];
+            ledData.aCycle = LED_CYCLE_MAX + 1 - iSteps[0];
         }
         CLR_TP3;
     }
@@ -1411,7 +1415,7 @@ void SoftLed::off(){
 
 void SoftLed::toggle( void ) {
     if ( ledIx >= MAX_LEDS ) return;
-    if ( ledData[ledIx].setpoint == ON  ) off();
+    if ( ledData.setpoint == ON  ) off();
     else on();
 }
 
@@ -1426,8 +1430,8 @@ void SoftLed::write( uint8_t setpoint ){
     #ifdef debug1
     // im Debugmode hier die Led-Daten ausgeben
     DB_PRINT( "LedData[%d]\n\speed=%d, Type=%d, aStep=%d, stpCnt=%d, state=%d, setpoint= %d",
-            ledIx, ledSpeed, ledType, ledData[ledIx].aStep, ledData[ledIx].stpCnt, ledData[ledIx].state
-                    , ledData[ledIx].setpoint);
+            ledIx, ledSpeed, ledType, ledData.aStep, ledData.stpCnt, ledData.state
+                    , ledData.setpoint);
     //DB_PRINT( "ON=%d, NextCyc=%d, CycleCnt=%d, StepIx=%d, NextStep=%d", 
     //         ON, ledNextCyc, ledCycleCnt, ledStepIx, ledNextStep);
     #endif
