@@ -35,8 +35,9 @@
 #include <Arduino.h>
 
 // Debug-Ports
-//#define debug
-#ifdef debug 
+#define debugTP
+//#define debugPrint
+#ifdef debugTP 
     #if defined(__AVR_ATmega1280__) || defined(__AVR_ATmega2560__)
         #define MODE_TP1 DDRF |= (1<<2) //pinA2
         #define SET_TP1 PORTF |= (1<<2)
@@ -92,7 +93,7 @@
         #define SET_TP4  REG_PIOA_SODR = (1<<6)
         #define CLR_TP4  REG_PIOA_CODR = (1<<6)
     #elif defined (__STM32F1__)
-        // STM32F103...
+        // STM32F103... ( SPI2-Pins! pin 31-28 maple mini )
         #define MODE_TP1 pinMode( PB12,OUTPUT )   // TP1= PB12
         #define SET_TP1  gpio_write_bit( GPIOB,12, HIGH );
         #define CLR_TP1  gpio_write_bit( GPIOB,12, LOW );
@@ -119,8 +120,6 @@
         #define SET_TP4 
         #define CLR_TP4 
     #endif 
-    #define DB_PRINT( x, ... ) { sprintf_P( dbgBuf, PSTR( x ), __VA_ARGS__ ) ; Serial.println( dbgBuf ); }
-    static char dbgBuf[80];
 #else
     #define MODE_TP1 
     #define SET_TP1 
@@ -135,6 +134,12 @@
     #define SET_TP4 
     #define CLR_TP4 
     
+#endif
+
+#ifdef debugPrint
+    #define DB_PRINT( x, ... ) { sprintf_P( dbgBuf, PSTR( x ), __VA_ARGS__ ) ; Serial.println( dbgBuf ); }
+    static char dbgBuf[80];
+#else
     #define DB_PRINT ;
 #endif
 
