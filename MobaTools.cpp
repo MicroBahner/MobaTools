@@ -152,15 +152,15 @@ static uint8_t timerInitialized = false;
 static uint8_t spiInitialized = false;
 
 // Variables for servos
-static servoData_t servoData[MAX_SERVOS];
+static servoData_t* lastServoDataP = NULL; //start of ServoData-chain
 static byte servoCount = 0;
-static byte pulseIx = 0;    // pulse Index in IRQ
+static servoData_t* pulseP = 0;         // pulse Ptr in IRQ
+static servoData_t* activePulseP = 0;   // Ptr to pulse to stop
+static servoData_t* stopPulseP = 0;     // Ptr to Pulse whose stop time is already in OCR1
+static servoData_t* nextPulseP = 0;
 static enum { PON, POFF } IrqType = PON; // Cycle starts with 'pulse on'
 static word activePulseOff = 0;     // OCR-value of pulse end 
-static byte activePulseIx = 0;       // Index of pulse to stop
-static byte stopPulseIx = 0;        // index of Pulse whose stop time is already in OCR1
 static word nextPulseLength = 0;
-static byte nextPulseIx = 0;
 static bool speedV08 = true;    // Compatibility-Flag for speed method
 
 
@@ -522,50 +522,52 @@ void ISR_Servo( void) {
         IrqType = PON ; // it's always alternating
         // switch off previous started pulse
         #ifdef FAST_PORTWRT
-        *servoData[pulseIx].portAdr &= ~servoData[pulseIx].bitMask;
+        *pulseP->portAdr &= ~pulseP->bitMask;
         #else
-        digitalWrite( servoData[pulseIx].pin, LOW );
+        digitalWrite( pulseP->pin, LOW );
         #endif
         // Set next startpoint of servopulse
-        if ( ++pulseIx >= MAX_SERVOS ) {
+        if ( (pulseP = pulseP->prevServoDataP) == NULL ) {
             // Start over
             OCR1A = FIRST_PULSE;
-            pulseIx = 0;
+            pulseP = lastServoDataP;
         } else {
-            OCR1A = FIRST_PULSE + pulseIx * PULSESTEP;
+            // The pointerchain comes from the end of the servos, but servoIx is incremented starting
+            // from the first servo. Pulses must be sorted in ascending order.
+            OCR1A = FIRST_PULSE + (servoCount-1-pulseP->servoIx) * PULSESTEP;
         }
     } else {
         // look for next pulse to start
-        if ( servoData[pulseIx].soll < 0 ) {
+        if ( pulseP->soll < 0 ) {
             // no pulse to output, switch to next startpoint
-            if ( ++pulseIx >= MAX_SERVOS ) {
+            if ( (pulseP = pulseP->prevServoDataP) == NULL ) {
                 // Start over
                 OCR1A = FIRST_PULSE;
-                pulseIx = 0;
+                pulseP = lastServoDataP;
             } else {
-                OCR1A = FIRST_PULSE + pulseIx * PULSESTEP;
+                OCR1A = FIRST_PULSE + (servoCount-1-pulseP->servoIx) * PULSESTEP;
             }
         } else { // found pulse to output
-            if ( servoData[pulseIx].ist == servoData[pulseIx].soll ) {
+            if ( pulseP->ist == pulseP->soll ) {
                 // no change of pulselength
-                if ( servoData[pulseIx].offcnt > 0 ) servoData[pulseIx].offcnt--;
-            } else if ( servoData[pulseIx].ist < servoData[pulseIx].soll ) {
-                servoData[pulseIx].offcnt = OFF_COUNT;
-                if ( servoData[pulseIx].ist < 0 ) servoData[pulseIx].ist = servoData[pulseIx].soll; // first position after attach
-                else servoData[pulseIx].ist += servoData[pulseIx].inc;
-                if ( servoData[pulseIx].ist > servoData[pulseIx].soll ) servoData[pulseIx].ist = servoData[pulseIx].soll;
+                if ( pulseP->offcnt > 0 ) pulseP->offcnt--;
+            } else if ( pulseP->ist < pulseP->soll ) {
+                pulseP->offcnt = OFF_COUNT;
+                if ( pulseP->ist < 0 ) pulseP->ist = pulseP->soll; // first position after attach
+                else pulseP->ist += pulseP->inc;
+                if ( pulseP->ist > pulseP->soll ) pulseP->ist = pulseP->soll;
             } else {
-                servoData[pulseIx].offcnt = OFF_COUNT;
-                servoData[pulseIx].ist -= servoData[pulseIx].inc;
-                if ( servoData[pulseIx].ist < servoData[pulseIx].soll ) servoData[pulseIx].ist = servoData[pulseIx].soll;
+                pulseP->offcnt = OFF_COUNT;
+                pulseP->ist -= pulseP->inc;
+                if ( pulseP->ist < pulseP->soll ) pulseP->ist = pulseP->soll;
             } 
-            OCR1A = (servoData[pulseIx].ist/SPEED_RES) + GET_COUNT - 4; // compensate for computing time
-            if ( servoData[pulseIx].on && (servoData[pulseIx].offcnt+servoData[pulseIx].noAutoff) > 0 ) {
+            OCR1A = (pulseP->ist/SPEED_RES) + GET_COUNT - 4; // compensate for computing time
+            if ( pulseP->on && (pulseP->offcnt+pulseP->noAutoff) > 0 ) {
                 CLR_TP1;
                 #ifdef FAST_PORTWRT
-                *servoData[pulseIx].portAdr |= servoData[pulseIx].bitMask;
+                *pulseP->portAdr |= pulseP->bitMask;
                 #else
-                digitalWrite( servoData[pulseIx].pin, HIGH );
+                digitalWrite( pulseP->pin, HIGH );
                 #endif
                 SET_TP1;
             }
@@ -584,27 +586,27 @@ void ISR_Servo( void) {
 // 2.1.16 Enable interrupts after timecritical path (e.g. starting/stopping servo pulses)
 //        so other timecritical tasks can interrupt (nested interrupts)
 static bool searchNextPulse() {
-    while ( pulseIx < servoCount && servoData[pulseIx].soll < 0 ) {
+    while ( pulseP != NULL && pulseP->soll < 0 ) {
         //SET_TP2;
-        pulseIx++;
+        pulseP = pulseP->prevServoDataP;
         //CLR_TP2;
     }
-    if ( pulseIx >= servoCount ) {
+    if ( pulseP == NULL ) {
         // there is no more pulse to start, we reached the end
         return false;
     } else { // found pulse to output
-        if ( servoData[pulseIx].ist == servoData[pulseIx].soll ) {
+        if ( pulseP->ist == pulseP->soll ) {
             // no change of pulselength
-            if ( servoData[pulseIx].offcnt > 0 ) servoData[pulseIx].offcnt--;
-        } else if ( servoData[pulseIx].ist < servoData[pulseIx].soll ) {
-            servoData[pulseIx].offcnt = OFF_COUNT;
-            if ( servoData[pulseIx].ist < 0 ) servoData[pulseIx].ist = servoData[pulseIx].soll; // first position after attach
-            else servoData[pulseIx].ist += servoData[pulseIx].inc;
-            if ( servoData[pulseIx].ist > servoData[pulseIx].soll ) servoData[pulseIx].ist = servoData[pulseIx].soll;
+            if ( pulseP->offcnt > 0 ) pulseP->offcnt--;
+        } else if ( pulseP->ist < pulseP->soll ) {
+            pulseP->offcnt = OFF_COUNT;
+            if ( pulseP->ist < 0 ) pulseP->ist = pulseP->soll; // first position after attach
+            else pulseP->ist += pulseP->inc;
+            if ( pulseP->ist > pulseP->soll ) pulseP->ist = pulseP->soll;
         } else {
-            servoData[pulseIx].offcnt = OFF_COUNT;
-            servoData[pulseIx].ist -= servoData[pulseIx].inc;
-            if ( servoData[pulseIx].ist < servoData[pulseIx].soll ) servoData[pulseIx].ist = servoData[pulseIx].soll;
+            pulseP->offcnt = OFF_COUNT;
+            pulseP->ist -= pulseP->inc;
+            if ( pulseP->ist < pulseP->soll ) pulseP->ist = pulseP->soll;
         } 
         return true;
     } 
@@ -623,9 +625,9 @@ void ISR_Servo( void) {
         IrqType = PON ; // it's (nearly) always alternating
         // switch off previous started pulse
         #ifdef FAST_PORTWRT
-        *servoData[stopPulseIx].portAdr &= ~servoData[stopPulseIx].bitMask;
+        *stopPulseP->portAdr &= ~stopPulseP->bitMask;
         #else
-        digitalWrite( servoData[stopPulseIx].pin, LOW );
+        digitalWrite( stopPulseP->pin, LOW );
         #endif
         if ( nextPulseLength > 0 ) {
             // there is a next pulse to start, compute starttime 
@@ -644,11 +646,11 @@ void ISR_Servo( void) {
                 SET_TP1; // Oszimessung Dauer der ISR-Routine
                 OCR1A = activePulseOff;
                 IrqType = POFF;
-                stopPulseIx = activePulseIx;
+                stopPulseP = activePulseP;
                 activePulseOff = 0;
                 CLR_TP1; // Oszimessung Dauer der ISR-Routine
             } else { // was last pulse, start over
-                pulseIx = 0;
+                pulseP = lastServoDataP;
                 nextPulseLength = 0;
                 OCR1A = FIRST_PULSE;
             }
@@ -661,23 +663,23 @@ void ISR_Servo( void) {
         if ( nextPulseLength > 0 ) {
             // yes we know, start this pulse and then look for next one
             word tmpTCNT1= GET_COUNT-4; // compensate for computing time
-            if ( servoData[nextPulseIx].on && (servoData[nextPulseIx].offcnt+servoData[nextPulseIx].noAutoff) > 0 ) {
+            if ( nextPulseP->on && (nextPulseP->offcnt+nextPulseP->noAutoff) > 0 ) {
                 // its a 'real' pulse, set output pin
                 CLR_TP1;
                 #ifdef FAST_PORTWRT
-                *servoData[nextPulseIx].portAdr |= servoData[nextPulseIx].bitMask;
+                *nextPulseP->portAdr |= nextPulseP->bitMask;
                 #else
-                digitalWrite( servoData[nextPulseIx].pin, HIGH );
+                digitalWrite( nextPulseP->pin, HIGH );
                 #endif
             }
             interrupts(); // the following isn't time critical, so allow nested interrupts
             SET_TP3;
             // the 'nextPulse' we have started now, is from now on the 'activePulse', the running activPulse is now the
             // pulse to stop next.
-            stopPulseIx = activePulseIx; // because there was a 'nextPulse' there is also an 'activPulse' which is the next to stop
+            stopPulseP = activePulseP; // because there was a 'nextPulse' there is also an 'activPulse' which is the next to stop
             OCR1A = activePulseOff;
-            activePulseIx = nextPulseIx;
-            activePulseOff = servoData[activePulseIx].ist/SPEED_RES + tmpTCNT1; // end of actually started pulse
+            activePulseP = nextPulseP;
+            activePulseOff = activePulseP->ist/SPEED_RES + tmpTCNT1; // end of actually started pulse
             nextPulseLength = 0;
             SET_TP1;
         }
@@ -685,38 +687,39 @@ void ISR_Servo( void) {
             // found a pulse
             if ( activePulseOff == 0 ) {
                 // it is the first pulse in the sequence, start it
-                activePulseIx = pulseIx; 
-                activePulseOff = servoData[pulseIx].ist/SPEED_RES + GET_COUNT - 4; // compensate for computing time
-                if ( servoData[pulseIx].on && (servoData[pulseIx].offcnt+servoData[pulseIx].noAutoff) > 0 ) {
+                activePulseP = pulseP; 
+                activePulseOff = pulseP->ist/SPEED_RES + GET_COUNT - 4; // compensate for computing time
+                if ( pulseP->on && (pulseP->offcnt+pulseP->noAutoff) > 0 ) {
                     // its a 'real' pulse, set output pin
                     #ifdef FAST_PORTWRT
-                    *servoData[pulseIx].portAdr |= servoData[pulseIx].bitMask;
+                    *pulseP->portAdr |= pulseP->bitMask;
                     #else
-                    digitalWrite( servoData[pulseIx].pin, HIGH );
+                    digitalWrite( pulseP->pin, HIGH );
                     #endif
                 }
                 word tmpTCNT1 = GET_COUNT;
                 interrupts(); // the following isn't time critical, so allow nested interrupts
                 SET_TP3;
                 // look for second pulse
-                pulseIx++;
+                pulseP = pulseP->prevServoDataP;
                 if ( searchNextPulse() ) {
                     // there is a second pulse - this is the 'nextPulse'
-                    nextPulseLength = servoData[pulseIx].ist/SPEED_RES;
-                    nextPulseIx = pulseIx++;
+                    nextPulseLength = pulseP->ist/SPEED_RES;
+                    nextPulseP = pulseP;
+                    pulseP = pulseP->prevServoDataP;
                     // set Starttime for 2. pulse in sequence
                     OCR1A = max ( ((long)activePulseOff + (long) MARGINTICS - (long) nextPulseLength), ( tmpTCNT1 + MARGINTICS/2 ) );
                 } else {
                     // no next pulse, there is only one pulse
                     OCR1A = activePulseOff;
                     activePulseOff = 0;
-                    stopPulseIx = activePulseIx;
+                    stopPulseP = activePulseP;
                     IrqType = POFF;
                 }
             } else {
                 // its a pulse in sequence, so this is the 'nextPulse'
-                nextPulseLength = servoData[pulseIx].ist/SPEED_RES;
-                nextPulseIx = pulseIx++;
+                nextPulseLength = pulseP->ist/SPEED_RES;
+                nextPulseP = pulseP->prevServoDataP;
                 IrqType = POFF;
             }
         } else {
@@ -724,7 +727,7 @@ void ISR_Servo( void) {
             
             if ( activePulseOff == 0 ) {
                 // there wasn't any pulse, restart
-                pulseIx = 0;
+                pulseP = lastServoDataP;
                 nextPulseLength = 0;
                 OCR1A = FIRST_PULSE;
             } else {
@@ -1133,8 +1136,12 @@ void Stepper4::stop() {
 #define NO_ANGLE (0xff)
 
 Servo8::Servo8() : pin(0),angle(NO_ANGLE),min16(1000/16),max16(2000/16)
-{   servoIndex = servoCount++;
-    servoData[servoIndex].soll = -1;    // = not initialized
+{   servoData.servoIx = servoCount++;
+    servoData.soll = -1;    // = not initialized
+    noInterrupts();
+    servoData.prevServoDataP = lastServoDataP;
+    lastServoDataP = &servoData;
+    interrupts();
 }
 
 void Servo8::setMinimumPulse(uint16_t t)
@@ -1162,7 +1169,7 @@ uint8_t Servo8::attach(int pinArg, int pmin, int pmax ) {
 
 uint8_t Servo8::attach( int pinArg, int pmin, int pmax, bool autoOff ) {
     // return false if already attached or too many servos
-    if ( pin != 0 ||  servoIndex >= MAX_SERVOS ) return 0;
+    if ( pin != 0 ||  servoData.servoIx >= MAX_SERVOS ) return 0;
     // set pulselength for angle 0 and 180
     if ( pmin >= MINPULSEWIDTH && pmin <= MAXPULSEWIDTH) min16 = pmin/16;
     if ( pmax >= MINPULSEWIDTH && pmax <= MAXPULSEWIDTH ) max16 = pmax/16;
@@ -1170,19 +1177,18 @@ uint8_t Servo8::attach( int pinArg, int pmin, int pmax, bool autoOff ) {
     
     // intialize objectspecific data
     lastPos = 3000*SPEED_RES ;    // initalize to middle position
-    servoData[servoIndex].soll = -1;  // invalid position -> no pulse output
-    servoData[servoIndex].ist = -1;   
-    servoData[servoIndex].inc = 2000*SPEED_RES;  // means immediate movement
-    servoData[servoIndex].pin = pinArg;
-    servoData[servoIndex].on = false;  // create no pulses until next write
-    servoData[servoIndex].noAutoff = autoOff?0:1 ;  
+    servoData.soll = -1;  // invalid position -> no pulse output
+    servoData.ist = -1;   
+    servoData.inc = 2000*SPEED_RES;  // means immediate movement
+    servoData.pin = pinArg;
+    servoData.on = false;  // create no pulses until next write
+    servoData.noAutoff = autoOff?0:1 ;  
     #ifdef FAST_PORTWRT
     // compute portaddress and bitmask related to pin number
-    servoData[servoIndex].portAdr = (byte *) pgm_read_word_near(&port_to_output_PGM[pgm_read_byte_near(&digital_pin_to_port_PGM[ pinArg])]);
-    servoData[servoIndex].bitMask = pgm_read_byte_near(&digital_pin_to_bit_mask_PGM[pinArg]);
-    DB_PRINT( "Idx: %d Portadr: 0x%x, Bitmsk: 0x%x", servoIndex, servoData[servoIndex].portAdr, servoData[servoIndex].bitMask );
-	DB_PRINT( "Stack=0x%04x, &sIx=0x%04x", ((SPH&0x7)<<8)|SPL, &servoIndex );
-    #endif
+    servoData.portAdr = (byte *) pgm_read_word_near(&port_to_output_PGM[pgm_read_byte_near(&digital_pin_to_port_PGM[ pinArg])]);
+    servoData.bitMask = pgm_read_byte_near(&digital_pin_to_bit_mask_PGM[pinArg]);
+    DB_PRINT( "Idx: %d Portadr: 0x%x, Bitmsk: 0x%x", servoData.servoIx, servoData.portAdr, servoData.bitMask );
+	#endif
     pin = pinArg;
     angle = NO_ANGLE;
     pinMode(pin,OUTPUT);
@@ -1203,10 +1209,10 @@ uint8_t Servo8::attach( int pinArg, int pmin, int pmax, bool autoOff ) {
 
 void Servo8::detach()
 {
-    servoData[servoIndex].on = false;  
-    servoData[servoIndex].soll = -1;  
-    servoData[servoIndex].ist = -1;  
-    servoData[servoIndex].pin = 0;  
+    servoData.on = false;  
+    servoData.soll = -1;  
+    servoData.ist = -1;  
+    servoData.pin = 0;  
     pin = 0;
 }
 
@@ -1215,11 +1221,11 @@ void Servo8::write(int angleArg)
     // values between 0 and 180 are interpreted as degrees,
     // values between MINPULSEWIDTH and MAXPULSEWIDTH are interpreted as microseconds
     static int newpos;
-	DB_PRINT( "Write: angleArg=%d, Soll=%d", angleArg, servoData[servoIndex].soll );
+	DB_PRINT( "Write: angleArg=%d, Soll=%d", angleArg, servoData.soll );
     if ( pin > 0 ) { // only if servo is attached
         //Serial.print( "Pin:" );Serial.print(pin);Serial.print("Wert:");Serial.println(angleArg);
         #ifdef __AVR_MEGA__
-		DB_PRINT( "Stack=0x%04x, &sIx=0x%04x", ((SPH&0x7)<<8)|SPL, &servoIndex );
+		DB_PRINT( "Stack=0x%04x, &sIx=0x%04x", ((SPH&0x7)<<8)|SPL, &servoData.servoIx );
         #endif
         if ( angleArg < 0) angleArg = 0;
         if ( angleArg <= 255) {
@@ -1234,24 +1240,22 @@ void Servo8::write(int angleArg)
             newpos = angleArg * TICS_PER_MICROSECOND * SPEED_RES;
             angle = map( angleArg, min16*16, max16*16, 0, 180 );  // angle in degrees
         }
-        if ( servoData[servoIndex].soll < 0 ) {
+        if ( servoData.soll < 0 ) {
             // Serial.println( "first write");
             // this is the first pulse to be created after attach
-            servoData[servoIndex].on = true;
+            servoData.on = true;
             lastPos = newpos;
             noInterrupts();
-            servoData[servoIndex].soll= newpos ; // .ist - value is still -1 (invalid) -> will jump to .soll immediately
+            servoData.soll= newpos ; // .ist - value is still -1 (invalid) -> will jump to .soll immediately
             interrupts();
-			DB_PRINT( "FirstWrite: Ix=%d,%d Soll=%d", servoIndex, this->servoIndex, servoData[servoIndex].soll );
             
         }
-        else if ( newpos != servoData[servoIndex].soll ) {
+        else if ( newpos != servoData.soll ) {
             // position has changed, store old position, set new position
-            lastPos = servoData[servoIndex].soll;
+            lastPos = servoData.soll;
             noInterrupts();
-            servoData[servoIndex].soll= newpos ;
+            servoData.soll= newpos ;
             interrupts();
-			DB_PRINT( "NextWrite: Ix= %d,%d Soll=%d, On=%d", servoIndex, this->servoIndex, servoData[servoIndex].soll, servoData[servoIndex].on );
         }
     }
 }
@@ -1269,9 +1273,9 @@ void Servo8::setSpeed( int speed ) {
         if ( speedV08 ) speed *= SPEED_RES;
         noInterrupts();
         if ( speed == 0 )
-            servoData[servoIndex].inc = 2000*SPEED_RES;  // means immiediate movement
+            servoData.inc = 2000*SPEED_RES;  // means immiediate movement
         else
-            servoData[servoIndex].inc = speed;
+            servoData.inc = speed;
         interrupts();
     }
 }
@@ -1281,7 +1285,7 @@ uint8_t Servo8::read() {
     int value;
     if ( pin == 0 ) return -1; // Servo not attached
     noInterrupts();
-    value = servoData[servoIndex].ist;
+    value = servoData.ist;
     interrupts();
     return map( value/TICS_PER_MICROSECOND/SPEED_RES, min16*16, max16*16, 0, 180 );
 }
@@ -1291,7 +1295,7 @@ int Servo8::readMicroseconds() {
     int value;
     if ( pin == 0 ) return -1; // Servo not attached
     noInterrupts();
-    value = servoData[servoIndex].ist;
+    value = servoData.ist;
     interrupts();
     return value/TICS_PER_MICROSECOND/SPEED_RES;   
 
@@ -1301,9 +1305,9 @@ uint8_t Servo8::moving() {
     // return how much still to move (percentage)
     if ( pin == 0 ) return 0; // Servo not attached
     long total , remaining;
-    total = abs( lastPos - servoData[servoIndex].soll );
-    noInterrupts(); // disable interrupt, because integer servoData[servoIndex].ist is changed in interrupt
-    remaining = abs( servoData[servoIndex].soll - servoData[servoIndex].ist );
+    total = abs( lastPos - servoData.soll );
+    noInterrupts(); // disable interrupt, because integer servoData.ist is changed in interrupt
+    remaining = abs( servoData.soll - servoData.ist );
     interrupts();  // allow interrupts again
     if ( remaining == 0 ) return 0;
     return ( remaining * 100 ) /  total +1;
@@ -1321,7 +1325,7 @@ uint8_t Servo8::attached()
 
 SoftLed::SoftLed() {
     ledIx = ledCount++;
-        if ( ledIx < MAX_LEDS ) {
+    if ( ledIx < MAX_LEDS ) {
         ledData.speed = 0;       // defines rising/falling timer
         ledData.aStep = 0 ;      // actual PWM step
         ledData.state = OFF ;    // initialize to off

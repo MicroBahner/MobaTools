@@ -162,17 +162,19 @@ typedef union { // used output channels as bit and uint8_t
 } outUsed_t;
 
 // global servo data ( used in ISR )
-typedef struct {
-  int soll = -1;     // Position, die der Servo anfahren soll ( in Tics )
-  volatile int ist;      // Position, die der Servo derzeit einnimt ( in Tics )
-  int inc;     // Schrittweite je Zyklus um Ist an Soll anzugleichen
-  uint8_t offcnt;  // counter to switch off pulses if length doesn't change
+typedef struct servoData_t {
+  struct servoData_t* prevServoDataP;
+  uint8_t servoIx;      // Servo number
+  int soll = -1;        // Position, die der Servo anfahren soll ( in Tics )
+  volatile int ist;     // Position, die der Servo derzeit einnimt ( in Tics )
+  int inc;              // Schrittweite je Zyklus um Ist an Soll anzugleichen
+  uint8_t offcnt;       // counter to switch off pulses if length doesn't change
   #ifdef FAST_PORTWRT
-  uint8_t* portAdr; // port adress related to pin number
-  uint8_t  bitMask; // bitmask related to pin number
+  uint8_t* portAdr;     // port adress related to pin number
+  uint8_t  bitMask;     // bitmask related to pin number
   #endif
-  uint8_t pin  :6 ; // pin 
-  uint8_t on   :1 ; // True: create pulse
+  uint8_t pin  :6 ;     // pin 
+  uint8_t on   :1 ;     // True: create pulse
   uint8_t noAutoff :1;  // don't switch pulses off automatically
 } servoData_t ;
 
@@ -278,7 +280,7 @@ class Servo8
     uint8_t angle;       // in degrees
     uint8_t min16;       // minimum pulse, 16uS units  (default is 34)
     uint8_t max16;       // maximum pulse, 16uS units, (default is 150)
-    uint8_t servoIndex;  //
+    servoData_t servoData;  // Servo data to be used in ISR
 
 	public:
     Servo8();
