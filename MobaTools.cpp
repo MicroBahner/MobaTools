@@ -36,7 +36,7 @@
 
 // Debug-Ports
 #define debugTP
-//#define debugPrint
+#define debugPrint
 #ifdef debugTP 
     #if defined(__AVR_ATmega1280__) || defined(__AVR_ATmega2560__)
         #define MODE_TP1 DDRF |= (1<<2) //pinA2
@@ -586,15 +586,19 @@ void ISR_Servo( void) {
 // 2.1.16 Enable interrupts after timecritical path (e.g. starting/stopping servo pulses)
 //        so other timecritical tasks can interrupt (nested interrupts)
 static bool searchNextPulse() {
-    while ( pulseP != NULL && pulseP->soll < 0 ) {
-        //SET_TP2;
+    SET_TP2;
+   while ( pulseP != NULL && pulseP->soll < 0 ) {
+        SET_TP4;
         pulseP = pulseP->prevServoDataP;
-        //CLR_TP2;
+        CLR_TP4;
     }
+    CLR_TP2;
     if ( pulseP == NULL ) {
         // there is no more pulse to start, we reached the end
+        SET_TP2; CLR_TP2;
         return false;
     } else { // found pulse to output
+        SET_TP2;
         if ( pulseP->ist == pulseP->soll ) {
             // no change of pulselength
             if ( pulseP->offcnt > 0 ) pulseP->offcnt--;
@@ -608,6 +612,7 @@ static bool searchNextPulse() {
             pulseP->ist -= pulseP->inc;
             if ( pulseP->ist < pulseP->soll ) pulseP->ist = pulseP->soll;
         } 
+        CLR_TP2;
         return true;
     } 
 } //end of 'searchNextPulse'
@@ -655,7 +660,6 @@ void ISR_Servo( void) {
                 OCR1A = FIRST_PULSE;
             }
         }
-        CLR_TP3 ;
     } else { // Pulse ON - time
         SET_TP1; // Oszimessung Dauer der ISR-Routine
         // look for next pulse to start
@@ -701,12 +705,16 @@ void ISR_Servo( void) {
                 interrupts(); // the following isn't time critical, so allow nested interrupts
                 SET_TP3;
                 // look for second pulse
+                SET_TP4;
                 pulseP = pulseP->prevServoDataP;
+                CLR_TP4;
                 if ( searchNextPulse() ) {
                     // there is a second pulse - this is the 'nextPulse'
                     nextPulseLength = pulseP->ist/SPEED_RES;
                     nextPulseP = pulseP;
+                    SET_TP4;
                     pulseP = pulseP->prevServoDataP;
+                    CLR_TP4;
                     // set Starttime for 2. pulse in sequence
                     OCR1A = max ( ((long)activePulseOff + (long) MARGINTICS - (long) nextPulseLength), ( tmpTCNT1 + MARGINTICS/2 ) );
                 } else {
@@ -719,7 +727,10 @@ void ISR_Servo( void) {
             } else {
                 // its a pulse in sequence, so this is the 'nextPulse'
                 nextPulseLength = pulseP->ist/SPEED_RES;
-                nextPulseP = pulseP->prevServoDataP;
+                nextPulseP = pulseP;
+                SET_TP4;
+                pulseP = pulseP->prevServoDataP;
+                CLR_TP4;
                 IrqType = POFF;
             }
         } else {
@@ -735,12 +746,12 @@ void ISR_Servo( void) {
                 IrqType = POFF;
             }
         }
-        CLR_TP1; CLR_TP3; // Oszimessung Dauer der ISR-Routine
        
     } //end of 'pulse ON'
     #ifdef __STM32F1__
     timer_set_compare(MT_TIMER,  SERVO_CHN, OCR1A);
     #endif 
+    CLR_TP1; CLR_TP3; // Oszimessung Dauer der ISR-Routine
 }
 
 #endif // VARIABLE_POSITION_SERVO_PULSES
