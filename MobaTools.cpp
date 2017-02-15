@@ -35,8 +35,8 @@
 #include <Arduino.h>
 
 // Debug-Ports
-#define debugTP
-#define debugPrint
+//#define debugTP
+//#define debugPrint
 #ifdef debugTP 
     #if defined(__AVR_ATmega1280__) || defined(__AVR_ATmega2560__)
         #define MODE_TP1 DDRF |= (1<<2) //pinA2
