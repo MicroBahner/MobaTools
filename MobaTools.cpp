@@ -35,7 +35,7 @@
 #include <Arduino.h>
 
 // Debug-Ports
-//#define debugTP
+#define debugTP
 //#define debugPrint
 #ifdef debugTP 
     #if defined(__AVR_ATmega1280__) || defined(__AVR_ATmega2560__)
@@ -176,7 +176,7 @@ static byte stepperCount = 0;
 static uint8_t cyclesLastIRQ = 1;  // cycles since last IRQ
 
 // variables for softLeds
-static ledData_t* lastLedDataP = NULL; //start of ledData-chain
+static ledData_t* ledRootP = NULL; //start of ledData-chain
 static byte ledCount = 0;
 static uint8_t ledNextCyc = 1;     // next Cycle that is relevant for leds
 static uint8_t ledCycleCnt = 0;    // count IRQ cycles within PWM cycle
@@ -334,7 +334,7 @@ void ISR_Stepper(void)
         if ( ledCycleCnt >= LED_CYCLE_MAX ) {
             // start of a new PWM Cycle - switch all leds with rising/falling state to on
             ledCycleCnt = 0;
-            for ( ledDataP=lastLedDataP; ledDataP!=NULL; ledDataP = ledDataP->prevLedDataP ) {
+            for ( ledDataP=ledRootP; ledDataP!=NULL; ledDataP = ledDataP->nextLedDataP ) {
                 SET_TP1;
                 // loop over led-objects
                 // yes it's ugly, but because of performance reasons this is done a little bit assembler like
@@ -344,7 +344,6 @@ void ISR_Stepper(void)
                   incfast0:
                   incslow0:
                   inclin0:
-                    SET_TP4;
                     // switch on led with linear characteristic
                     if (ledDataP->invFlg  ) {
                         #ifdef FAST_PORTWRT
@@ -359,12 +358,15 @@ void ISR_Stepper(void)
                         digitalWrite( ledDataP->pin, HIGH );
                         #endif
                     }
-                    CLR_TP4;
                     // check if led off is reached
                     if ( ledDataP->aCycle >=  LED_CYCLE_MAX-1 ) {
-                        // led is full on
+                        // led is full on, remove from active-chain
+                        SET_TP2;
                         ledDataP->state = STATE_ON;
+                        *ledDataP->backLedDataPP = ledDataP->nextLedDataP;
+                        ledDataP->nextLedDataP->backLedDataPP = ledDataP->backLedDataPP;
                         ledDataP->aCycle = 0;
+                        CLR_TP2;
                     } else { // switch to next PWM step
                         //ledNextCyc = min( ledDataP->aCycle, ledNextCyc);
                         if ( ledNextCyc > ledDataP->aCycle ) ledNextCyc = ledDataP->aCycle;
@@ -376,11 +378,14 @@ void ISR_Stepper(void)
                   declin0:
                     // switch off led 
                    if ( ledDataP->aCycle <= 0  ) {
-                        // led is full off
+                        // led is full off, remove from active-chain
+                        SET_TP2;
                         ledDataP->state = STATE_OFF;
+                        *ledDataP->backLedDataPP = ledDataP->nextLedDataP;
+                        if ( ledDataP->nextLedDataP ) ledDataP->nextLedDataP->backLedDataPP = ledDataP->backLedDataPP;
+                        CLR_TP2;
                         ledDataP->aCycle = 0;
                     } else { // switch to next PWM step
-                        SET_TP4;
                         if (ledDataP->invFlg  ) {
                             #ifdef FAST_PORTWRT
                             *ledDataP->portPin.Adr &= ~ledDataP->portPin.Mask;
@@ -394,7 +399,6 @@ void ISR_Stepper(void)
                             digitalWrite( ledDataP->pin, HIGH );
                             #endif
                         }
-                        CLR_TP4;
                         if ( ledNextCyc > ledDataP->aCycle ) ledNextCyc = ledDataP->aCycle;
                         ledDataP->actPulse = true;
                     }
@@ -402,7 +406,8 @@ void ISR_Stepper(void)
                 CLR_TP1;
             } // end of led loop
         } else { // is switchofftime within PWM cycle
-            for ( ledDataP=lastLedDataP; ledDataP!=NULL; ledDataP = ledDataP->prevLedDataP ) {
+            for ( ledDataP=ledRootP; ledDataP!=NULL; ledDataP = ledDataP->nextLedDataP ) {
+                SET_TP4;
                 if ( ledDataP->actPulse ) {
                     // led is within PWM cycle with output high
                     if ( ledDataP->aCycle <= ledCycleCnt ) {
@@ -466,11 +471,12 @@ void ISR_Stepper(void)
                         }
                         
                     } else { // next necessary step
-                       SET_TP2;
+                       //SET_TP2;
                        ledNextCyc = min( ledDataP->aCycle, ledNextCyc);
-                       CLR_TP2;
+                       //CLR_TP2;
                     }
                 }
+                CLR_TP4;
             }
         }
         CLR_TP1;
@@ -663,12 +669,12 @@ void ISR_Servo( void) {
             // we are at the end, no need to start another pulse in this cycle
             if ( activePulseOff ) {
                 // there is still a running pulse to stop
-                SET_TP1; // Oszimessung Dauer der ISR-Routine
+                //SET_TP1; // Oszimessung Dauer der ISR-Routine
                 OCR1A = activePulseOff;
                 IrqType = POFF;
                 stopPulseP = activePulseP;
                 activePulseOff = 0;
-                CLR_TP1; // Oszimessung Dauer der ISR-Routine
+                //CLR_TP1; // Oszimessung Dauer der ISR-Routine
             } else { // was last pulse, start over
                 pulseP = lastServoDataP;
                 nextPulseLength = 0;
@@ -676,7 +682,7 @@ void ISR_Servo( void) {
             }
         }
     } else { // Pulse ON - time
-        SET_TP1; // Oszimessung Dauer der ISR-Routine
+        //SET_TP1; // Oszimessung Dauer der ISR-Routine
         // look for next pulse to start
         // do we know the next pulse already?
         if ( nextPulseLength > 0 ) {
@@ -684,7 +690,7 @@ void ISR_Servo( void) {
             word tmpTCNT1= GET_COUNT-4; // compensate for computing time
             if ( nextPulseP->on && (nextPulseP->offcnt+nextPulseP->noAutoff) > 0 ) {
                 // its a 'real' pulse, set output pin
-                CLR_TP1;
+                //CLR_TP1;
                 #ifdef FAST_PORTWRT
                 *nextPulseP->portAdr |= nextPulseP->bitMask;
                 #else
@@ -700,7 +706,7 @@ void ISR_Servo( void) {
             activePulseP = nextPulseP;
             activePulseOff = activePulseP->ist/SPEED_RES + tmpTCNT1; // end of actually started pulse
             nextPulseLength = 0;
-            SET_TP1;
+            //SET_TP1;
         }
         if ( searchNextPulse() ) {
             // found a pulse
@@ -1360,13 +1366,33 @@ SoftLed::SoftLed() {
         ledData.state   = NOTATTACHED ;     // initialize 
         setpoint = OFF ;    // initialize to off
         ledType = LINEAR;
-        noInterrupts();
-        ledData.prevLedDataP = lastLedDataP;
-        lastLedDataP = &ledData;
-        interrupts();
+        /*noInterrupts();
+        ledData.nextLedDataP = ledRootP;
+        ledRootP = &ledData;
+        interrupts();*/
+        ledData.nextLedDataP = NULL;    // don't put in 'active' chain
         ledData.invFlg = false;
     }
 }
+
+void SoftLed::mount( uint8_t state ) {
+    // mount softLed to 'active' chain ( if not already in )
+        noInterrupts();
+        SET_TP2;
+        if ( ledData.state < ACTIVE ) {
+            // its not mounted already
+            ledRootP->backLedDataPP = &ledData.nextLedDataP;
+            CLR_TP2;
+            ledData.nextLedDataP = ledRootP;
+            ledRootP = &ledData;
+            ledData.backLedDataPP = &ledRootP;
+            SET_TP2;
+        }
+        ledData.state = state;
+        CLR_TP2;
+        interrupts();
+}   
+    
 
 uint8_t SoftLed::attach(uint8_t pinArg, uint8_t invArg = false){
     // Led-Ausgang mit Softstart. 
@@ -1406,52 +1432,56 @@ uint8_t SoftLed::attach(uint8_t pinArg, uint8_t invArg = false){
 void SoftLed::on(){
     if ( ledIx >= MAX_LEDS ) return;
     // Don't do anything if its already ON 
+    uint8_t stateT;
     if ( setpoint != ON  ) {
         setpoint=ON ;
         ledData.aStep = 0;
         ledData.stpCnt = 0; 
         if ( ledType == LINEAR ) {
-            ledData.state = INCLIN;
+            stateT = INCLIN;
             ledData.speed = ledSpeed;
             ledData.aCycle = 1;
         } else { // is bulb simulation
-            ledData.state = INCFAST;
+            stateT = INCFAST;
             ledData.speed = ledSpeed==1? -1 : ledSpeed / 3;
             if ( ledData.speed <= 0 ) {
-                ledData.state = INCSLOW;
+                stateT = INCSLOW;
                 ledData.stpCnt = 1;
             }
             ledData.aCycle = iSteps[0];
         }
     }
+    mount(stateT);
     DB_PRINT( "Led On, state=%d", ledData.state);
 }
 
 void SoftLed::off(){
     if ( ledIx >= MAX_LEDS ) return;
     // Dont do anything if its already OFF 
+    uint8_t stateT;
     if ( setpoint != OFF ) {
-        SET_TP3;
+        //SET_TP3;
         setpoint=OFF ;
         ledData.aStep = 0;
         ledData.stpCnt = 0; 
         if ( ledType == LINEAR ) {
-            ledData.state = DECLIN;
+            stateT = DECLIN;
             ledData.speed = ledSpeed;
             ledData.aCycle = LED_CYCLE_MAX-1;
         } else { // is bulb simulation
-            CLR_TP3;
-            ledData.state = DECFAST;
+            //CLR_TP3;
+            stateT = DECFAST;
             ledData.speed = ledSpeed==1? -1 : ledSpeed / 3;
-            SET_TP3;
+            //SET_TP3;
             if ( ledData.speed <= 0 ) {
-                ledData.state = DECSLOW;
+                stateT=DECSLOW;
                 ledData.stpCnt = 1;
             }
             ledData.aCycle = LED_CYCLE_MAX + 1 - iSteps[0];
         }
-        CLR_TP3;
+        //CLR_TP3;
     }
+    mount(stateT);
     DB_PRINT( "Led Off, state=%d", ledData.state);
 }
 

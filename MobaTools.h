@@ -196,7 +196,8 @@ const uint8_t iSteps[] = {9, 16 ,23 ,29, 35,41, 45, 49, 53, 56, 59, 62, 64, 66, 
                                         // toDo: dies gilt nur bei einer CYCLETIME von 200us (derzeit default)
 
 typedef struct ledData_t {            // global led values ( used in IRQ )
-  struct ledData_t*   prevLedDataP;   // chaining the active Leds
+  struct ledData_t*   nextLedDataP;   // chaining the active Leds
+  struct ledData_t**  backLedDataPP;    // adress of pointer, that points to this led (backwards reference)
   int8_t speed = 0;         // > 0 : steps per cycle ( more steps = more speed )
                             // < 0 : cycles per step ( more cycles = less speed )
                             // 0: led is inactive (not attached)
@@ -209,6 +210,7 @@ typedef struct ledData_t {            // global led values ( used in IRQ )
     #define NOTATTACHED 0
     #define STATE_OFF   1       // using #defines here is a little bit faster in the ISR than enums
     #define STATE_ON    2
+    #define ACTIVE      3       // state >= ACTIVE means active in ISR routine
     #define INCFAST     3
     #define DECFAST     4
     #define INCSLOW     5
@@ -319,6 +321,7 @@ class SoftLed
     void write( uint8_t time, uint8_t type ); //whether it is a linear or bulb type
     void toggle( void ); 
     private:
+    void mount( uint8_t state );
     ledData_t ledData;
     uint8_t	setpoint;
     #define OFF 0
