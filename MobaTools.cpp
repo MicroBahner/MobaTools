@@ -35,7 +35,7 @@
 #include <Arduino.h>
 
 // Debug-Ports
-#define debugTP
+//#define debugTP
 //#define debugPrint
 #ifdef debugTP 
     #if defined(__AVR_ATmega1280__) || defined(__AVR_ATmega2560__)
@@ -1375,7 +1375,7 @@ SoftLed::SoftLed() {
     }
 }
 
-void SoftLed::mount( uint8_t state ) {
+void SoftLed::mount( uint8_t stateVal ) {
     // mount softLed to 'active' chain ( if not already in )
         noInterrupts();
         SET_TP2;
@@ -1388,7 +1388,7 @@ void SoftLed::mount( uint8_t state ) {
             ledData.backLedDataPP = &ledRootP;
             SET_TP2;
         }
-        ledData.state = state;
+        ledData.state = stateVal;
         CLR_TP2;
         interrupts();
 }   
@@ -1450,8 +1450,8 @@ void SoftLed::on(){
             }
             ledData.aCycle = iSteps[0];
         }
+        mount(stateT);
     }
-    mount(stateT);
     DB_PRINT( "Led On, state=%d", ledData.state);
 }
 
@@ -1480,8 +1480,8 @@ void SoftLed::off(){
             ledData.aCycle = LED_CYCLE_MAX + 1 - iSteps[0];
         }
         //CLR_TP3;
+        mount(stateT);
     }
-    mount(stateT);
     DB_PRINT( "Led Off, state=%d", ledData.state);
 }
 
@@ -1491,15 +1491,15 @@ void SoftLed::toggle( void ) {
     else on();
 }
 
-void SoftLed::write( uint8_t setpoint, uint8_t ledPar ){
+void SoftLed::write( uint8_t setpntVal, uint8_t ledPar ){
     ledType = ledPar;
-    write( setpoint ) ;
+    write( setpntVal ) ;
 }
 
-void SoftLed::write( uint8_t setpoint ){
-    DB_PRINT( "LedWrite[%d], sp=%d, lT=%d", ledIx, setpoint, ledType );
+void SoftLed::write( uint8_t setpntVal ){
+    DB_PRINT( "LedWrite[%d], sp=%d, lT=%d", ledIx, setpntVal, ledType );
     if ( ledIx >= MAX_LEDS ) return;
-    if ( setpoint == ON ) on(); else off();
+    if ( setpntVal == ON ) on(); else off();
     #ifdef debug
     // im Debugmode hier die Led-Daten ausgeben
     DB_PRINT( "LedData[%d]\n\speed=%d, Type=%d, aStep=%d, stpCnt=%d, state=%d, setpoint= %d",
