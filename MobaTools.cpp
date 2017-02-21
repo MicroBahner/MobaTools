@@ -364,7 +364,7 @@ void ISR_Stepper(void)
                         SET_TP2;
                         ledDataP->state = STATE_ON;
                         *ledDataP->backLedDataPP = ledDataP->nextLedDataP;
-                        ledDataP->nextLedDataP->backLedDataPP = ledDataP->backLedDataPP;
+                        if ( ledDataP->nextLedDataP ) ledDataP->nextLedDataP->backLedDataPP = ledDataP->backLedDataPP;
                         ledDataP->aCycle = 0;
                         CLR_TP2;
                     } else { // switch to next PWM step
