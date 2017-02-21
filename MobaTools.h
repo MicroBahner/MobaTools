@@ -72,18 +72,18 @@
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 // internal defines
 #ifdef __AVR_MEGA__
-// defines only for ATMega
-#define FAST_PORTWRT        // if this is defined, ports are written directly in IRQ-Routines,
-                            // not with 'digitalWrite' functions
-#define TICS_PER_MICROSECOND (clockCyclesPerMicrosecond() / 8 ) // prescaler is 8 = 0.5us
-#define GET_COUNT   TCNT1
+    // defines only for ATMega
+    #define FAST_PORTWRT        // if this is defined, ports are written directly in IRQ-Routines,
+                                // not with 'digitalWrite' functions
+    #define TICS_PER_MICROSECOND (clockCyclesPerMicrosecond() / 8 ) // prescaler is 8 = 0.5us
+    #define GET_COUNT   TCNT1
 #elif defined __STM32F1__
-//defines only for STM32
-#define TICS_PER_MICROSECOND (clockCyclesPerMicrosecond() / 36 ) // prescaler is 36 = 0.5us
-#define MT_TIMER TIMER4     // Timer used by MobaTools
-#define STEP_CHN    2       // OCR channel for Stepper and Leds
-#define SERVO_CHN   1       // OCR channel for Servos
-#define GET_COUNT timer_get_count(MT_TIMER)
+    //defines only for STM32
+    #define TICS_PER_MICROSECOND (clockCyclesPerMicrosecond() / 36 ) // prescaler is 36 = 0.5us
+    #define MT_TIMER TIMER4     // Timer used by MobaTools
+    #define STEP_CHN    2       // OCR channel for Stepper and Leds
+    #define SERVO_CHN   1       // OCR channel for Servos
+    #define GET_COUNT timer_get_count(MT_TIMER)
 #endif
 
 // defines for the stepper motor
@@ -94,7 +94,7 @@
 #define CYCLETICS   CYCLETIME*TICS_PER_MICROSECOND
 
 // defines for soft-leds
-#define MAX_LEDS    12     // Soft On/Off of 12 LEDs
+#define MAX_LEDS    16     // Soft On/Off defined for compatibility reasons. There is no fixed limit now.
 
 // defines for servos
     #define MINPULSEWIDTH   700     // don't make it shorter
@@ -125,6 +125,7 @@ typedef struct {    // portaddress and bitmask for direkt pin set/reset
    uint8_t Mask;
 } portBits_t;
 
+/////////////////////////////////////////////////////////////////////////////////
 // global stepper data ( used in ISR )
 typedef struct {
   volatile long stepCnt;        // nmbr of steps to take
@@ -161,6 +162,7 @@ typedef union { // used output channels as bit and uint8_t
     
 } outUsed_t;
 
+////////////////////////////////////////////////////////////////////////////////////
 // global servo data ( used in ISR )
 typedef struct servoData_t {
   struct servoData_t* prevServoDataP;
@@ -178,18 +180,18 @@ typedef struct servoData_t {
   uint8_t noAutoff :1;  // don't switch pulses off automatically
 } servoData_t ;
 
+//////////////////////////////////////////////////////////////////////////////////
 // global Data to softleds ( used in ISR )
 // the PWM pulses are created together with stepper pulses
 // pwm-Steps for soft on/off in CYCLETIME units. The last value means pwm cycletime
-//14mss cycletime
+//14ms cycletime
 //const uint8_t iSteps[] = { 2, 3 , 4, 6, 8, 11, 14, 17, 21, 25, 30, 36, 43, 55, 70 };
-//#define LED_STEP_INI    15
-//const uint8_t iSteps[] = {23,35 ,41, 47,53, 58, 62, 66, 68, 71, 73, 74, 75, 76, 78,79,80 };
-//const uint8_t dSteps[] = {78, 68, 58, 50 ,43,36,30, 25, 21, 17, 14, 11, 8, 6, 4, 3, 1 };
+//16ms cycletime ( 60Hz )
 //const uint8_t iSteps[] = {2, 8 ,14 ,20, 25,30, 35, 39, 43, 47, 50, 53, 56, 58, 60, 62, 64,66,68,70,72,73,74,75,76,78,79,80 };
 const uint8_t iSteps[] = {9, 16 ,23 ,29, 35,41, 45, 49, 53, 56, 59, 62, 64, 66, 68, 70, 71,72,73,74,75,76,77,77,78,78,79,80 };
-// 20ms cycletime
+// 20ms cycletime ( 50Hz )
 //const uint8_t iSteps[] = { 2,4, 6, 9, 12, 15, 20, 25, 30, 35, 40, 45,50,55,65,80,100 };
+
 #define LED_STEP_MAX    (sizeof(iSteps) -1)
 #define LED_CYCLE_MAX   (iSteps[LED_STEP_MAX])
 #define LED_PWMTIME     (iSteps[LED_STEP_MAX] / 5)  // PWM refreshrate in ms
@@ -206,7 +208,7 @@ typedef struct ledData_t {            // global led values ( used in IRQ )
   int8_t aCycle;  // actual cycle ( =length of PWM pule )
   int8_t stpCnt;     // counter for PWM cycles on same step (for low speed)
   uint8_t actPulse;    // PWM pulse is active
-  uint8_t state;	// actual state; steady or incementing/decrementing
+  uint8_t state;	// actual state: steady or incementing/decrementing
     #define NOTATTACHED 0
     #define STATE_OFF   1       // using #defines here is a little bit faster in the ISR than enums
     #define STATE_ON    2
@@ -313,24 +315,25 @@ class SoftLed
   // 
   public:
     SoftLed();
-    uint8_t attach(uint8_t, uint8_t = false );     // Led-pin with soft on
+    uint8_t attach(uint8_t pinArg, uint8_t invArg = false );     // Led-pin with soft on
     void riseTime( int );       // in millisec - falltime is the same
     void on();                   // 
     void off();                  // 
 	void write( uint8_t );			// is ON or OFF
-    void write( uint8_t time, uint8_t type ); //whether it is a linear or bulb type
+    void write( uint8_t time, uint8_t type  ); //whether it is a linear or bulb type
     void toggle( void ); 
-    private:
+  private:
     void mount( uint8_t state );
     ledData_t ledData;
     uint8_t	setpoint;
     #define OFF 0
     #define ON  1
-    uint8_t ledIx;
-    // uint8_t ledIsOn;
     uint8_t ledType;        // Type of lamp (linear or bulb)
     #define LINEAR  0
     #define BULB    1
+    uint8_t ledIx;
+    uint8_t ledValid;       // Flag that this is a valid instance
+    #define LEDVALID 0x55
     uint8_t ledSpeed;       // speed with IRQ based softleds
     
 };

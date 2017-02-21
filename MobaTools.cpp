@@ -1356,53 +1356,54 @@ uint8_t Servo8::attached()
 // Version with Software PWM
 
 SoftLed::SoftLed() {
+    ledValid = LEDVALID;            // Flag 'object created'
     ledIx = ledCount++;
-    if ( ledIx < MAX_LEDS ) {
-        ledData.speed   = 0;        // defines rising/falling timer
-        ledData.aStep   = 0 ;       // actual PWM step
-        ledData.aCycle          = 0;        // actual cycle ( =length of PWM pule )
-        ledData.stpCnt          = 0;        // counter for PWM cycles on same step (for low speed)
-        ledData.actPulse        = false;    // PWM pulse is active
-        ledData.state   = NOTATTACHED ;     // initialize 
-        setpoint = OFF ;    // initialize to off
-        ledType = LINEAR;
-        /*noInterrupts();
-        ledData.nextLedDataP = ledRootP;
-        ledRootP = &ledData;
-        interrupts();*/
-        ledData.nextLedDataP = NULL;    // don't put in 'active' chain
-        ledData.invFlg = false;
-    }
+    ledData.speed    = 0;           // defines rising/falling timer
+    ledData.aStep    = 0 ;          // actual PWM step
+    ledData.aCycle   = 0;           // actual cycle ( =length of PWM pule )
+    ledData.stpCnt   = 0;           // counter for PWM cycles on same step (for low speed)
+    ledData.actPulse = false;       // PWM pulse is active
+    ledData.state    = NOTATTACHED; // initialize 
+    setpoint = OFF ;                // initialize to off
+    ledType = LINEAR;
+    ledData.nextLedDataP = NULL;    // don't put in ISR chain
+    ledData.invFlg = false;
 }
 
 void SoftLed::mount( uint8_t stateVal ) {
-    // mount softLed to 'active' chain ( if not already in )
-        noInterrupts();
-        SET_TP2;
-        if ( ledData.state < ACTIVE ) {
-            // its not mounted already
-            ledRootP->backLedDataPP = &ledData.nextLedDataP;
-            CLR_TP2;
-            ledData.nextLedDataP = ledRootP;
-            ledRootP = &ledData;
-            ledData.backLedDataPP = &ledRootP;
-            SET_TP2;
-        }
-        ledData.state = stateVal;
+    // mount softLed to ISR chain ( if not already in )
+    // new active Softleds are always inserted at the beginning of the chain
+    // only leds in the ISR chain are processed in ISR
+    noInterrupts();
+    SET_TP2;
+    // check if it's not already active (mounted)
+    // Leds must not be mounted twice!
+    if ( ledData.state < ACTIVE ) {
+        // write backward reference into the existing first entry 
+        // only if the chain is not empty
+        if ( ledRootP ) ledRootP->backLedDataPP = &ledData.nextLedDataP;
         CLR_TP2;
-        interrupts();
+        ledData.nextLedDataP = ledRootP;
+        ledRootP = &ledData;
+        ledData.backLedDataPP = &ledRootP;
+        SET_TP2;
+    }
+    ledData.state = stateVal;
+    CLR_TP2;
+    interrupts();
 }   
     
 
-uint8_t SoftLed::attach(uint8_t pinArg, uint8_t invArg = false){
+uint8_t SoftLed::attach(uint8_t pinArg, uint8_t invArg ){
     // Led-Ausgang mit Softstart. 
-    if ( ledIx >= MAX_LEDS ) return false;
-    ledData.invFlg = invArg;
+    if ( ledValid != LEDVALID ) return false; // this is not a valid instance
+    
+    ledData.invFlg  = invArg;
     pinMode( pinArg, OUTPUT );
-    DB_PRINT( "Led attached, ledCount = %d", ledCount );
-    ledData.state   = STATE_OFF ;     // initialize 
-    ledSpeed = 1;                   // defines rising/falling timer
-    ledData.aStep = 0 ;      // actual PWM step
+    DB_PRINT( "Led attached, ledIx = 0x%x, Count = %d", ledIx, ledCount );
+    ledData.state   = STATE_OFF ;   // initialize 
+    ledSpeed        = 1;            // defines rising/falling timer
+    ledData.aStep   = 0 ;           // actual PWM step
     if ( ledData.invFlg ) { 
         digitalWrite( pinArg, HIGH );
     } else {
@@ -1415,6 +1416,7 @@ uint8_t SoftLed::attach(uint8_t pinArg, uint8_t invArg = false){
     #else
     ledData.pin=pinArg ;      // Pin-Nbr 
     #endif
+    
     if ( !timerInitialized ) seizeTimer1();
     // enable compareB- interrupt
     #if defined(__AVR_ATmega8__)|| defined(__AVR_ATmega128__)
@@ -1424,86 +1426,86 @@ uint8_t SoftLed::attach(uint8_t pinArg, uint8_t invArg = false){
     #elif defined __STM32F1__
         timer_cc_enable(MT_TIMER, STEP_CHN);
     #endif
-  
 
     return true;
 }
 
 void SoftLed::on(){
-    if ( ledIx >= MAX_LEDS ) return;
-    // Don't do anything if its already ON 
+    if ( ledValid != LEDVALID ) return;  // this is not a valid instance
     uint8_t stateT;
+    // Don't do anything if its already ON 
     if ( setpoint != ON  ) {
-        setpoint=ON ;
-        ledData.aStep = 0;
-        ledData.stpCnt = 0; 
+        setpoint        = ON ;
+        ledData.aStep   = 0;
+        ledData.stpCnt  = 0; 
         if ( ledType == LINEAR ) {
-            stateT = INCLIN;
-            ledData.speed = ledSpeed;
-            ledData.aCycle = 1;
+            stateT          = INCLIN;
+            ledData.speed   = ledSpeed;
+            ledData.aCycle  = 1;
         } else { // is bulb simulation
-            stateT = INCFAST;
-            ledData.speed = ledSpeed==1? -1 : ledSpeed / 3;
+            stateT          = INCFAST;
+            ledData.speed   = ledSpeed==1? -1 : ledSpeed / 3;
             if ( ledData.speed <= 0 ) {
-                stateT = INCSLOW;
+                stateT      = INCSLOW;
                 ledData.stpCnt = 1;
             }
-            ledData.aCycle = iSteps[0];
+            ledData.aCycle  = iSteps[0];
         }
         mount(stateT);
     }
-    DB_PRINT( "Led On, state=%d", ledData.state);
+    DB_PRINT( "Led %d On, state=%d", ledIx, ledData.state);
 }
 
 void SoftLed::off(){
-    if ( ledIx >= MAX_LEDS ) return;
-    // Dont do anything if its already OFF 
+    if ( ledValid != LEDVALID ) return; // this is not a valid instance
     uint8_t stateT;
+    // Dont do anything if its already OFF 
     if ( setpoint != OFF ) {
         //SET_TP3;
-        setpoint=OFF ;
-        ledData.aStep = 0;
-        ledData.stpCnt = 0; 
+        setpoint            = OFF;
+        ledData.aStep       = 0;
+        ledData.stpCnt      = 0; 
         if ( ledType == LINEAR ) {
-            stateT = DECLIN;
-            ledData.speed = ledSpeed;
-            ledData.aCycle = LED_CYCLE_MAX-1;
+            stateT          = DECLIN;
+            ledData.speed   = ledSpeed;
+            ledData.aCycle  = LED_CYCLE_MAX-1;
         } else { // is bulb simulation
             //CLR_TP3;
             stateT = DECFAST;
             ledData.speed = ledSpeed==1? -1 : ledSpeed / 3;
             //SET_TP3;
             if ( ledData.speed <= 0 ) {
-                stateT=DECSLOW;
-                ledData.stpCnt = 1;
+                stateT          = DECSLOW;
+                ledData.stpCnt  = 1;
             }
             ledData.aCycle = LED_CYCLE_MAX + 1 - iSteps[0];
         }
         //CLR_TP3;
         mount(stateT);
     }
-    DB_PRINT( "Led Off, state=%d", ledData.state);
+    DB_PRINT( "Led %d Off, state=%d", ledIx, ledData.state);
 }
 
 void SoftLed::toggle( void ) {
-    if ( ledIx >= MAX_LEDS ) return;
+    if ( ledValid != LEDVALID ) return; // this is not a valid instance
     if ( setpoint == ON  ) off();
     else on();
 }
 
 void SoftLed::write( uint8_t setpntVal, uint8_t ledPar ){
+    if ( ledValid != LEDVALID ) return; // this is not a valid instance
     ledType = ledPar;
     write( setpntVal ) ;
 }
 
 void SoftLed::write( uint8_t setpntVal ){
-    DB_PRINT( "LedWrite[%d], sp=%d, lT=%d", ledIx, setpntVal, ledType );
-    if ( ledIx >= MAX_LEDS ) return;
+    DB_PRINT( "LedWrite ix= %d, valid= 0x%x, sp=%d, lT=%d", ledIx, ledValid, setpntVal, ledType );
+    if ( ledValid != LEDVALID ) return; // this is not a valid instance
     if ( setpntVal == ON ) on(); else off();
     #ifdef debug
     // im Debugmode hier die Led-Daten ausgeben
     DB_PRINT( "LedData[%d]\n\speed=%d, Type=%d, aStep=%d, stpCnt=%d, state=%d, setpoint= %d",
-            ledIx, ledSpeed, ledType, ledData.aStep, ledData.stpCnt, ledData.state
+            ledValid, ledSpeed, ledType, ledData.aStep, ledData.stpCnt, ledData.state
                     , setpoint);
     //DB_PRINT( "ON=%d, NextCyc=%d, CycleCnt=%d, StepIx=%d, NextStep=%d", 
     //         ON, ledNextCyc, ledCycleCnt, ledStepIx, ledNextStep);
@@ -1511,7 +1513,7 @@ void SoftLed::write( uint8_t setpntVal ){
 }
 
 void SoftLed::riseTime( int riseTime ) {
-    if ( ledIx >= MAX_LEDS ) return;
+    if ( ledValid != LEDVALID ) return;
     // length of startphase in ms (min 20ms, max 1200ms )
     // the real risetime is only a rough approximate to this time
     // risetime is computed to a 'speed' Value with 1 beeing the slowest 
