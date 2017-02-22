@@ -94,7 +94,7 @@
 #define CYCLETICS   CYCLETIME*TICS_PER_MICROSECOND
 
 // defines for soft-leds
-#define MAX_LEDS    16     // Soft On/Off defined for compatibility reasons. There is no fixed limit now.
+#define MAX_LEDS    16     // Soft On/Off defined for compatibility reasons. There is no fixed limit anymore.
 
 // defines for servos
     #define MINPULSEWIDTH   700     // don't make it shorter
@@ -181,9 +181,10 @@ typedef struct servoData_t {
 } servoData_t ;
 
 //////////////////////////////////////////////////////////////////////////////////
-// global Data to softleds ( used in ISR )
+// global data for softleds ( used in ISR )
 // the PWM pulses are created together with stepper pulses
-// pwm-Steps for soft on/off in CYCLETIME units. The last value means pwm cycletime
+//
+// table of pwm-steps for soft on/off in CYCLETIME units ( bulb simulation). The last value means pwm cycletime
 //14ms cycletime
 //const uint8_t iSteps[] = { 2, 3 , 4, 6, 8, 11, 14, 17, 21, 25, 30, 36, 43, 55, 70 };
 //16ms cycletime ( 60Hz )
@@ -195,7 +196,7 @@ const uint8_t iSteps[] = {9, 16 ,23 ,29, 35,41, 45, 49, 53, 56, 59, 62, 64, 66, 
 #define LED_STEP_MAX    (sizeof(iSteps) -1)
 #define LED_CYCLE_MAX   (iSteps[LED_STEP_MAX])
 #define LED_PWMTIME     (iSteps[LED_STEP_MAX] / 5)  // PWM refreshrate in ms
-                                        // toDo: dies gilt nur bei einer CYCLETIME von 200us (derzeit default)
+                                        // todo: dies gilt nur bei einer CYCLETIME von 200us (derzeit default)
 
 typedef struct ledData_t {            // global led values ( used in IRQ )
   struct ledData_t*   nextLedDataP;   // chaining the active Leds
@@ -288,10 +289,9 @@ class Servo8
 
 	public:
     Servo8();
-    uint8_t attach(int pin);     // attach to a pin, sets pinMode, returns 0 on failure, won't
+    uint8_t attach(int pin); // attach to a pin, sets pinMode, returns 0 on failure, won't
                              // position the servo until a subsequent write() happens
-                             // Only works for 9 and 10.
-    uint8_t attach( int pin, bool autoOff ); // automatic switch off pulses with constant length
+    uint8_t attach( int pin, bool autoOff );        // automatic switch off pulses with constant length
     uint8_t attach(int pin, int pos0, int pos180 ); // also sets position values (in us) for angele 0 and 180
     uint8_t attach(int pin, int pos0, int pos180, bool autoOff );
     void detach();
