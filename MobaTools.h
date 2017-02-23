@@ -5,6 +5,22 @@
   Author: fpm, fpm@mnet-mail.de
   Copyright (c) 2017 All right reserved.
 
+  MobaTools V0.9
+   (C) 03-2017 fpm fpm@mnet-online.de
+   
+  History:
+  V0.9  03-2017
+        Better resolution for the 'speed' servo-paramter (programm starts in compatibility mode)
+        outputs for softleds can be inverted
+        MobaTools run on STM32F1 platform
+        
+  V0.8 02-2017
+        Enable Softleds an all digital outputs
+  V0.7 01-2017
+		Allow nested Interrupts with the servos. This allows more precise other
+        interrupts e.g. for NmraDCC Library.
+		A4988 stepper driver IC is supported (needs only 2 ports: step and direction)
+
   Library to drive the Stepper Motor 28BYJ-48
   connected to SPI (MOSI,CLK,SS) Interface via shift register
   or 4 pins directly
@@ -299,7 +315,10 @@ class Servo8
                              // as microseconds, limited to MaximumPulse and MinimumPulse
     void setSpeed(int);      // Set Movement speed, the higher the faster
                              // Zero means no speed control (default)
-    void setSpeed(int,bool); // Set compatibility-Flag (true= compatibility with Version till V08)
+    void setSpeed(int,bool); // Set compatibility-Flag (true= compatibility with version V08 and earlier)
+    #define HIGHRES 0
+    #define SPEEDV08 1
+    
     uint8_t moving();        // returns the remaining Way to the angle last set with write() in
                              // in percentage. '0' means, that the angle is reached
     uint8_t read();          // current position in degrees (0...180)

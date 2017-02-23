@@ -1300,7 +1300,6 @@ void Servo8::setSpeed( int speed, bool compatibility ) {
 
 void Servo8::setSpeed( int speed ) {
     // Set increment value for movement to new angle
-    // ToDo: Set compatibility mode for Version 0.8 end earlier
     if ( pin > 0 ) { // only if servo is attached
         if ( speedV08 ) speed *= SPEED_RES;
         noInterrupts();
