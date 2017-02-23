@@ -35,8 +35,9 @@
 #include <Arduino.h>
 
 // Debug-Ports
-//#define debug
-#ifdef debug 
+//#define debugTP
+//#define debugPrint
+#ifdef debugTP 
     #if defined(__AVR_ATmega1280__) || defined(__AVR_ATmega2560__)
         #define MODE_TP1 DDRF |= (1<<2) //pinA2
         #define SET_TP1 PORTF |= (1<<2)
@@ -92,7 +93,7 @@
         #define SET_TP4  REG_PIOA_SODR = (1<<6)
         #define CLR_TP4  REG_PIOA_CODR = (1<<6)
     #elif defined (__STM32F1__)
-        // STM32F103...
+        // STM32F103... ( SPI2-Pins! pin 31-28 maple mini )
         #define MODE_TP1 pinMode( PB12,OUTPUT )   // TP1= PB12
         #define SET_TP1  gpio_write_bit( GPIOB,12, HIGH );
         #define CLR_TP1  gpio_write_bit( GPIOB,12, LOW );
@@ -119,8 +120,6 @@
         #define SET_TP4 
         #define CLR_TP4 
     #endif 
-    #define DB_PRINT( x, ... ) { sprintf_P( dbgBuf, PSTR( x ), __VA_ARGS__ ) ; Serial.println( dbgBuf ); }
-    static char dbgBuf[80];
 #else
     #define MODE_TP1 
     #define SET_TP1 
@@ -135,6 +134,12 @@
     #define SET_TP4 
     #define CLR_TP4 
     
+#endif
+
+#ifdef debugPrint
+    #define DB_PRINT( x, ... ) { sprintf_P( dbgBuf, PSTR( x ), __VA_ARGS__ ) ; Serial.println( dbgBuf ); }
+    static char dbgBuf[80];
+#else
     #define DB_PRINT ;
 #endif
 
@@ -147,15 +152,15 @@ static uint8_t timerInitialized = false;
 static uint8_t spiInitialized = false;
 
 // Variables for servos
-static servoData_t servoData[MAX_SERVOS];
+static servoData_t* lastServoDataP = NULL; //start of ServoData-chain
 static byte servoCount = 0;
-static byte pulseIx = 0;    // pulse Index in IRQ
+static servoData_t* pulseP = 0;         // pulse Ptr in IRQ
+static servoData_t* activePulseP = 0;   // Ptr to pulse to stop
+static servoData_t* stopPulseP = 0;     // Ptr to Pulse whose stop time is already in OCR1
+static servoData_t* nextPulseP = 0;
 static enum { PON, POFF } IrqType = PON; // Cycle starts with 'pulse on'
 static word activePulseOff = 0;     // OCR-value of pulse end 
-static byte activePulseIx = 0;       // Index of pulse to stop
-static byte stopPulseIx = 0;        // index of Pulse whose stop time is already in OCR1
 static word nextPulseLength = 0;
-static byte nextPulseIx = 0;
 static bool speedV08 = true;    // Compatibility-Flag for speed method
 
 
@@ -171,13 +176,13 @@ static byte stepperCount = 0;
 static uint8_t cyclesLastIRQ = 1;  // cycles since last IRQ
 
 // variables for softLeds
-static ledData_t ledData[MAX_LEDS];
+static ledData_t* ledRootP = NULL; //start of ledData-chain
 static byte ledCount = 0;
 static uint8_t ledNextCyc = 1;     // next Cycle that is relevant for leds
 static uint8_t ledCycleCnt = 0;    // count IRQ cycles within PWM cycle
 //static uint8_t  ledStepIx = 0;      // Stepcounter for Leds ( Index in Array isteps , 0: start of pwm-Cycle )
 //static uint8_t  ledNextStep = 0;    // next step needed for softleds
-static uint8_t  ledIx;              // Index of active Led in ISR
+//static ledData_t*  ledDataP;              // pointer to active Led in ISR
 //==========================================================================
 
 // global functions / Interrupts
@@ -195,8 +200,7 @@ void ISR_Stepper(void)
     uint8_t i, spiChanged, changedPins, bitNr;
     uint16_t tmp;
     uint8_t nextCycle = 20000  / CYCLETIME ;// min ist one cycle per Timeroverflow
-    
-    SET_TP2; // Oszimessung Dauer der ISR-Routine
+    SET_TP3; // Oszimessung Dauer der ISR-Routine
     spiChanged = false;
     interrupts(); // allow nested interrupts, because this IRQ may take long
     
@@ -319,150 +323,172 @@ void ISR_Stepper(void)
         #endif
     }
     //============  End of steppermotor ======================================
-    
+    ledData_t*  ledDataP;              // pointer to active Led in ISR
     // ---------------------- softleds -----------------------------------------------
+    CLR_TP3;
     ledCycleCnt += cyclesLastIRQ;
+    SET_TP3;
     if ( ledCycleCnt >= ledNextCyc ) {
         // this IRQ is relevant for softleds
         ledNextCyc = LED_CYCLE_MAX; // there must be atleast one IRQ per PWM Cycle
         if ( ledCycleCnt >= LED_CYCLE_MAX ) {
-            // start of a new PWM Cycle - switch all leds rising/falling state to on
+            // start of a new PWM Cycle - switch all leds with rising/falling state to on
             ledCycleCnt = 0;
-            for ( ledIx=0; ledIx<ledCount; ledIx++ ) {
+            for ( ledDataP=ledRootP; ledDataP!=NULL; ledDataP = ledDataP->nextLedDataP ) {
                 SET_TP1;
-                // loop over active Leds
+                // loop over led-objects
                 // yes it's ugly, but because of performance reasons this is done a little bit assembler like
-                static void * const pwm0tab[]  { &&pwm0end,&&pwm0end,
+                static void * const pwm0tab[]  { &&pwm0end,&&pwm0end,&&pwm0end,         // NOTATTACHED, STATE_OFF, STATE_ON
                             &&incfast0,&&decfast0,&&incslow0,&&decslow0,&&inclin0,&&declin0 };
-                goto  *pwm0tab[ledData[ledIx].state] ;
+                goto  *pwm0tab[ledDataP->state] ;
                   incfast0:
                   incslow0:
                   inclin0:
-                    SET_TP4;
                     // switch on led with linear characteristic
-                   #ifdef FAST_PORTWRT
-                    *ledData[ledIx].portPin.Adr |= ledData[ledIx].portPin.Mask;
-                    #else
-                    digitalWrite( ledData[ledIx].pin, HIGH );
-                    #endif
-                    // check if led off is reached
-                    if ( ledData[ledIx].aCycle >=  LED_CYCLE_MAX-1 ) {
-                        SET_TP3;
-                        // led is full on
-                        ledData[ledIx].state = ON;
-                        ledData[ledIx].aCycle = 0;
-                        CLR_TP3;
-                    } else { // switch to next PWM step
-                        //ledNextCyc = min( ledData[ledIx].aCycle, ledNextCyc);
-                        if ( ledNextCyc > ledData[ledIx].aCycle ) ledNextCyc = ledData[ledIx].aCycle;
-                        ledData[ledIx].actPulse = true;
+                    if (ledDataP->invFlg  ) {
+                        #ifdef FAST_PORTWRT
+                        *ledDataP->portPin.Adr &= ~ledDataP->portPin.Mask;
+                        #else
+                        digitalWrite( ledDataP->pin, LOW );
+                        #endif
+                    } else { 
+                        #ifdef FAST_PORTWRT
+                        *ledDataP->portPin.Adr |= ledDataP->portPin.Mask;
+                        #else
+                        digitalWrite( ledDataP->pin, HIGH );
+                        #endif
                     }
-                    CLR_TP4;
+                    // check if led off is reached
+                    if ( ledDataP->aCycle >=  LED_CYCLE_MAX-1 ) {
+                        // led is full on, remove from active-chain
+                        SET_TP2;
+                        ledDataP->state = STATE_ON;
+                        *ledDataP->backLedDataPP = ledDataP->nextLedDataP;
+                        if ( ledDataP->nextLedDataP ) ledDataP->nextLedDataP->backLedDataPP = ledDataP->backLedDataPP;
+                        ledDataP->aCycle = 0;
+                        CLR_TP2;
+                    } else { // switch to next PWM step
+                        //ledNextCyc = min( ledDataP->aCycle, ledNextCyc);
+                        if ( ledNextCyc > ledDataP->aCycle ) ledNextCyc = ledDataP->aCycle;
+                        ledDataP->actPulse = true;
+                    }
                     goto pwm0end;
                   decfast0:
                   decslow0:
                   declin0:
-                    CLR_TP2;
                     // switch off led 
-                   if ( ledData[ledIx].aCycle <= 0  ) {
-                        SET_TP3;
-                        // led is full off
-                        ledData[ledIx].state = OFF;
-                        ledData[ledIx].aCycle = 0;
-                        CLR_TP3;
+                   if ( ledDataP->aCycle <= 0  ) {
+                        // led is full off, remove from active-chain
+                        SET_TP2;
+                        ledDataP->state = STATE_OFF;
+                        *ledDataP->backLedDataPP = ledDataP->nextLedDataP;
+                        if ( ledDataP->nextLedDataP ) ledDataP->nextLedDataP->backLedDataPP = ledDataP->backLedDataPP;
+                        CLR_TP2;
+                        ledDataP->aCycle = 0;
                     } else { // switch to next PWM step
-                        #ifdef FAST_PORTWRT
-                        *ledData[ledIx].portPin.Adr |= ledData[ledIx].portPin.Mask;
-                        #else
-                        digitalWrite( ledData[ledIx].pin, HIGH );
-                        #endif
-                        //ledNextCyc = min( ledData[ledIx].aCycle, ledNextCyc);
-                        if ( ledNextCyc > ledData[ledIx].aCycle ) ledNextCyc = ledData[ledIx].aCycle;
-                        ledData[ledIx].actPulse = true;
+                        if (ledDataP->invFlg  ) {
+                            #ifdef FAST_PORTWRT
+                            *ledDataP->portPin.Adr &= ~ledDataP->portPin.Mask;
+                            #else
+                            digitalWrite( ledDataP->pin, LOW );
+                            #endif
+                        } else {
+                            #ifdef FAST_PORTWRT
+                            *ledDataP->portPin.Adr |= ledDataP->portPin.Mask;
+                            #else
+                            digitalWrite( ledDataP->pin, HIGH );
+                            #endif
+                        }
+                        if ( ledNextCyc > ledDataP->aCycle ) ledNextCyc = ledDataP->aCycle;
+                        ledDataP->actPulse = true;
                     }
-                    SET_TP2;
                 pwm0end: // end of 'switch'
                 CLR_TP1;
             } // end of led loop
         } else { // is switchofftime within PWM cycle
-            for ( ledIx=0; ledIx<ledCount; ledIx++ ) {
-                SET_TP3;
-                if ( ledData[ledIx].actPulse ) {
+            for ( ledDataP=ledRootP; ledDataP!=NULL; ledDataP = ledDataP->nextLedDataP ) {
+                SET_TP4;
+                if ( ledDataP->actPulse ) {
                     // led is within PWM cycle with output high
-                    if ( ledData[ledIx].aCycle <= ledCycleCnt ) {
-                        CLR_TP3;
-                        #ifdef FAST_PORTWRT
-                        *ledData[ledIx].portPin.Adr &= ~ledData[ledIx].portPin.Mask;
-                        #else
-                        digitalWrite( ledData[ledIx].pin, LOW );
-                        #endif
-                        ledData[ledIx].actPulse = false;
+                    if ( ledDataP->aCycle <= ledCycleCnt ) {
+                        SET_TP4;
+                        if (ledDataP->invFlg  ) {
+                            #ifdef FAST_PORTWRT
+                            *ledDataP->portPin.Adr |= ledDataP->portPin.Mask;
+                            #else
+                            digitalWrite( ledDataP->pin, HIGH );
+                            #endif
+                        } else {
+                            #ifdef FAST_PORTWRT
+                            *ledDataP->portPin.Adr &= ~ledDataP->portPin.Mask;
+                            #else
+                            digitalWrite( ledDataP->pin, LOW );
+                            #endif
+                        }
+                        CLR_TP4;
+                        ledDataP->actPulse = false;
                         // determine length of next PWM Cyle
-                        switch ( ledData[ledIx].state ) {
+                        switch ( ledDataP->state ) {
                           case INCFAST:
-                            ledData[ledIx].aStep += ledData[ledIx].speed;
-                            if ( ledData[ledIx].aStep > LED_STEP_MAX ) ledData[ledIx].aStep = LED_STEP_MAX;
-                            ledData[ledIx].aCycle = iSteps[ledData[ledIx].aStep];
+                            ledDataP->aStep += ledDataP->speed;
+                            if ( ledDataP->aStep > LED_STEP_MAX ) ledDataP->aStep = LED_STEP_MAX;
+                            ledDataP->aCycle = iSteps[ledDataP->aStep];
                             break;
                           case DECFAST:
-                            ledData[ledIx].aStep += ledData[ledIx].speed;
-                            if ( ledData[ledIx].aStep > LED_STEP_MAX ) ledData[ledIx].aStep = LED_STEP_MAX;
-                            ledData[ledIx].aCycle = LED_CYCLE_MAX-iSteps[ledData[ledIx].aStep];
+                            ledDataP->aStep += ledDataP->speed;
+                            if ( ledDataP->aStep > LED_STEP_MAX ) ledDataP->aStep = LED_STEP_MAX;
+                            ledDataP->aCycle = LED_CYCLE_MAX-iSteps[ledDataP->aStep];
                             break;
                           case INCSLOW:
-                            if ( --ledData[ledIx].stpCnt < ledData[ledIx].speed ) {
-                                ledData[ledIx].aStep += 1;
-                                ledData[ledIx].stpCnt = 1;
+                            if ( --ledDataP->stpCnt < ledDataP->speed ) {
+                                ledDataP->aStep += 1;
+                                ledDataP->stpCnt = 1;
                             }
-                            if ( ledData[ledIx].aStep > LED_STEP_MAX ) ledData[ledIx].aStep = LED_STEP_MAX;
-                            ledData[ledIx].aCycle = iSteps[ledData[ledIx].aStep];
+                            if ( ledDataP->aStep > LED_STEP_MAX ) ledDataP->aStep = LED_STEP_MAX;
+                            ledDataP->aCycle = iSteps[ledDataP->aStep];
                             break;
                           case DECSLOW:
-                            SET_TP4;
-                            if ( --ledData[ledIx].stpCnt < ledData[ledIx].speed ) {
-                            CLR_TP4;
-                                ledData[ledIx].aStep += 1;
-                                ledData[ledIx].stpCnt = 1;
-                            SET_TP4;
+                            if ( --ledDataP->stpCnt < ledDataP->speed ) {
+                                ledDataP->aStep += 1;
+                                ledDataP->stpCnt = 1;
                             }
-                            if ( ledData[ledIx].aStep > LED_STEP_MAX ) ledData[ledIx].aStep = LED_STEP_MAX;
-                            ledData[ledIx].aCycle = LED_CYCLE_MAX-iSteps[ledData[ledIx].aStep];
-                            CLR_TP4;
+                            if ( ledDataP->aStep > LED_STEP_MAX ) ledDataP->aStep = LED_STEP_MAX;
+                            ledDataP->aCycle = LED_CYCLE_MAX-iSteps[ledDataP->aStep];
                             break;
                           case INCLIN:
-                            ledData[ledIx].aCycle += ledData[ledIx].speed;
-                            if ( ledData[ledIx].aCycle > LED_CYCLE_MAX-1 ) ledData[ledIx].aCycle = LED_CYCLE_MAX-1;
-                            //ledNextCyc = min( ledData[ledIx].aCycle, ledNextCyc);
+                            ledDataP->aCycle += ledDataP->speed;
+                            if ( ledDataP->aCycle > LED_CYCLE_MAX-1 ) ledDataP->aCycle = LED_CYCLE_MAX-1;
+                            //ledNextCyc = min( ledDataP->aCycle, ledNextCyc);
                             break;
                           case DECLIN:
-                            ledData[ledIx].aCycle -= ledData[ledIx].speed;
-                            if ( ledData[ledIx].aCycle <= 0 ) ledData[ledIx].aCycle = 0;
-                            //ledNextCyc = min( ledData[ledIx].aCycle, ledNextCyc);
+                            ledDataP->aCycle -= ledDataP->speed;
+                            if ( ledDataP->aCycle <= 0 ) ledDataP->aCycle = 0;
+                            //ledNextCyc = min( ledDataP->aCycle, ledNextCyc);
                             break;
                           default:
+                            // no action if state is one of NOTATTACHED, STATE_ON, STATE_OFF
                             break;
                         }
-                        SET_TP3;
                         
                     } else { // next necessary step
-                       SET_TP1;
-                       ledNextCyc = min( ledData[ledIx].aCycle, ledNextCyc);
-                       CLR_TP1;
+                       //SET_TP2;
+                       ledNextCyc = min( ledDataP->aCycle, ledNextCyc);
+                       //CLR_TP2;
                     }
                 }
-                CLR_TP3;
+                CLR_TP4;
             }
         }
         CLR_TP1;
      } // end of softleds 
+    CLR_TP3;
     nextCycle = min( nextCycle, ( ledNextCyc-ledCycleCnt ) );
-    CLR_TP2;
+    SET_TP3;
     // ======================= end of softleds =====================================
-    
+        
     
     
     cyclesLastIRQ = nextCycle;
-    SET_TP2;
     // set compareregister to next interrupt time;
      noInterrupts(); // when manipulating 16bit Timerregisters IRQ must be disabled
     // compute next IRQ-Time in us, not in tics, so we don't need long
@@ -477,7 +503,7 @@ void ISR_Stepper(void)
     #endif
     interrupts();
     
-    CLR_TP2; // Oszimessung Dauer der ISR-Routine
+    CLR_TP3; // Oszimessung Dauer der ISR-Routine
 }
 // ---------- SPI interupt used for output stepper motor data -------------
 extern "C" {
@@ -517,50 +543,52 @@ void ISR_Servo( void) {
         IrqType = PON ; // it's always alternating
         // switch off previous started pulse
         #ifdef FAST_PORTWRT
-        *servoData[pulseIx].portAdr &= ~servoData[pulseIx].bitMask;
+        *pulseP->portAdr &= ~pulseP->bitMask;
         #else
-        digitalWrite( servoData[pulseIx].pin, LOW );
+        digitalWrite( pulseP->pin, LOW );
         #endif
         // Set next startpoint of servopulse
-        if ( ++pulseIx >= MAX_SERVOS ) {
+        if ( (pulseP = pulseP->prevServoDataP) == NULL ) {
             // Start over
             OCR1A = FIRST_PULSE;
-            pulseIx = 0;
+            pulseP = lastServoDataP;
         } else {
-            OCR1A = FIRST_PULSE + pulseIx * PULSESTEP;
+            // The pointerchain comes from the end of the servos, but servoIx is incremented starting
+            // from the first servo. Pulses must be sorted in ascending order.
+            OCR1A = FIRST_PULSE + (servoCount-1-pulseP->servoIx) * PULSESTEP;
         }
     } else {
         // look for next pulse to start
-        if ( servoData[pulseIx].soll < 0 ) {
+        if ( pulseP->soll < 0 ) {
             // no pulse to output, switch to next startpoint
-            if ( ++pulseIx >= MAX_SERVOS ) {
+            if ( (pulseP = pulseP->prevServoDataP) == NULL ) {
                 // Start over
                 OCR1A = FIRST_PULSE;
-                pulseIx = 0;
+                pulseP = lastServoDataP;
             } else {
-                OCR1A = FIRST_PULSE + pulseIx * PULSESTEP;
+                OCR1A = FIRST_PULSE + (servoCount-1-pulseP->servoIx) * PULSESTEP;
             }
         } else { // found pulse to output
-            if ( servoData[pulseIx].ist == servoData[pulseIx].soll ) {
+            if ( pulseP->ist == pulseP->soll ) {
                 // no change of pulselength
-                if ( servoData[pulseIx].offcnt > 0 ) servoData[pulseIx].offcnt--;
-            } else if ( servoData[pulseIx].ist < servoData[pulseIx].soll ) {
-                servoData[pulseIx].offcnt = OFF_COUNT;
-                if ( servoData[pulseIx].ist < 0 ) servoData[pulseIx].ist = servoData[pulseIx].soll; // first position after attach
-                else servoData[pulseIx].ist += servoData[pulseIx].inc;
-                if ( servoData[pulseIx].ist > servoData[pulseIx].soll ) servoData[pulseIx].ist = servoData[pulseIx].soll;
+                if ( pulseP->offcnt > 0 ) pulseP->offcnt--;
+            } else if ( pulseP->ist < pulseP->soll ) {
+                pulseP->offcnt = OFF_COUNT;
+                if ( pulseP->ist < 0 ) pulseP->ist = pulseP->soll; // first position after attach
+                else pulseP->ist += pulseP->inc;
+                if ( pulseP->ist > pulseP->soll ) pulseP->ist = pulseP->soll;
             } else {
-                servoData[pulseIx].offcnt = OFF_COUNT;
-                servoData[pulseIx].ist -= servoData[pulseIx].inc;
-                if ( servoData[pulseIx].ist < servoData[pulseIx].soll ) servoData[pulseIx].ist = servoData[pulseIx].soll;
+                pulseP->offcnt = OFF_COUNT;
+                pulseP->ist -= pulseP->inc;
+                if ( pulseP->ist < pulseP->soll ) pulseP->ist = pulseP->soll;
             } 
-            OCR1A = (servoData[pulseIx].ist/SPEED_RES) + GET_COUNT - 4; // compensate for computing time
-            if ( servoData[pulseIx].on && (servoData[pulseIx].offcnt+servoData[pulseIx].noAutoff) > 0 ) {
+            OCR1A = (pulseP->ist/SPEED_RES) + GET_COUNT - 4; // compensate for computing time
+            if ( pulseP->on && (pulseP->offcnt+pulseP->noAutoff) > 0 ) {
                 CLR_TP1;
                 #ifdef FAST_PORTWRT
-                *servoData[pulseIx].portAdr |= servoData[pulseIx].bitMask;
+                *pulseP->portAdr |= pulseP->bitMask;
                 #else
-                digitalWrite( servoData[pulseIx].pin, HIGH );
+                digitalWrite( pulseP->pin, HIGH );
                 #endif
                 SET_TP1;
             }
@@ -579,28 +607,33 @@ void ISR_Servo( void) {
 // 2.1.16 Enable interrupts after timecritical path (e.g. starting/stopping servo pulses)
 //        so other timecritical tasks can interrupt (nested interrupts)
 static bool searchNextPulse() {
-    while ( pulseIx < servoCount && servoData[pulseIx].soll < 0 ) {
-        //SET_TP2;
-        pulseIx++;
-        //CLR_TP2;
+    //SET_TP2;
+   while ( pulseP != NULL && pulseP->soll < 0 ) {
+        //SET_TP4;
+        pulseP = pulseP->prevServoDataP;
+        //CLR_TP4;
     }
-    if ( pulseIx >= servoCount ) {
+    //CLR_TP2;
+    if ( pulseP == NULL ) {
         // there is no more pulse to start, we reached the end
+        //SET_TP2; CLR_TP2;
         return false;
     } else { // found pulse to output
-        if ( servoData[pulseIx].ist == servoData[pulseIx].soll ) {
+        //SET_TP2;
+        if ( pulseP->ist == pulseP->soll ) {
             // no change of pulselength
-            if ( servoData[pulseIx].offcnt > 0 ) servoData[pulseIx].offcnt--;
-        } else if ( servoData[pulseIx].ist < servoData[pulseIx].soll ) {
-            servoData[pulseIx].offcnt = OFF_COUNT;
-            if ( servoData[pulseIx].ist < 0 ) servoData[pulseIx].ist = servoData[pulseIx].soll; // first position after attach
-            else servoData[pulseIx].ist += servoData[pulseIx].inc;
-            if ( servoData[pulseIx].ist > servoData[pulseIx].soll ) servoData[pulseIx].ist = servoData[pulseIx].soll;
+            if ( pulseP->offcnt > 0 ) pulseP->offcnt--;
+        } else if ( pulseP->ist < pulseP->soll ) {
+            pulseP->offcnt = OFF_COUNT;
+            if ( pulseP->ist < 0 ) pulseP->ist = pulseP->soll; // first position after attach
+            else pulseP->ist += pulseP->inc;
+            if ( pulseP->ist > pulseP->soll ) pulseP->ist = pulseP->soll;
         } else {
-            servoData[pulseIx].offcnt = OFF_COUNT;
-            servoData[pulseIx].ist -= servoData[pulseIx].inc;
-            if ( servoData[pulseIx].ist < servoData[pulseIx].soll ) servoData[pulseIx].ist = servoData[pulseIx].soll;
+            pulseP->offcnt = OFF_COUNT;
+            pulseP->ist -= pulseP->inc;
+            if ( pulseP->ist < pulseP->soll ) pulseP->ist = pulseP->soll;
         } 
+        //CLR_TP2;
         return true;
     } 
 } //end of 'searchNextPulse'
@@ -614,13 +647,13 @@ void ISR_Servo( void) {
 #endif
     // Timer1 Compare A, used for servo motor
     if ( IrqType == POFF ) { // Pulse OFF time
-        SET_TP3; // Oszimessung Dauer der ISR-Routine
+        //SET_TP3; // Oszimessung Dauer der ISR-Routine
         IrqType = PON ; // it's (nearly) always alternating
         // switch off previous started pulse
         #ifdef FAST_PORTWRT
-        *servoData[stopPulseIx].portAdr &= ~servoData[stopPulseIx].bitMask;
+        *stopPulseP->portAdr &= ~stopPulseP->bitMask;
         #else
-        digitalWrite( servoData[stopPulseIx].pin, LOW );
+        digitalWrite( stopPulseP->pin, LOW );
         #endif
         if ( nextPulseLength > 0 ) {
             // there is a next pulse to start, compute starttime 
@@ -630,88 +663,95 @@ void ISR_Servo( void) {
             // another pulse between these 2 ends)
             word tmpTCNT1 = GET_COUNT + MARGINTICS/2;
             interrupts();
-            CLR_TP3 ;
+            //CLR_TP3 ;
             OCR1A = max ( ((long)activePulseOff + (long) MARGINTICS - (long) nextPulseLength), ( tmpTCNT1 ) );
         } else {
             // we are at the end, no need to start another pulse in this cycle
             if ( activePulseOff ) {
                 // there is still a running pulse to stop
-                SET_TP1; // Oszimessung Dauer der ISR-Routine
+                //SET_TP1; // Oszimessung Dauer der ISR-Routine
                 OCR1A = activePulseOff;
                 IrqType = POFF;
-                stopPulseIx = activePulseIx;
+                stopPulseP = activePulseP;
                 activePulseOff = 0;
-                CLR_TP1; // Oszimessung Dauer der ISR-Routine
+                //CLR_TP1; // Oszimessung Dauer der ISR-Routine
             } else { // was last pulse, start over
-                pulseIx = 0;
+                pulseP = lastServoDataP;
                 nextPulseLength = 0;
                 OCR1A = FIRST_PULSE;
             }
         }
-        CLR_TP3 ;
     } else { // Pulse ON - time
-        SET_TP1; // Oszimessung Dauer der ISR-Routine
+        //SET_TP1; // Oszimessung Dauer der ISR-Routine
         // look for next pulse to start
         // do we know the next pulse already?
         if ( nextPulseLength > 0 ) {
             // yes we know, start this pulse and then look for next one
             word tmpTCNT1= GET_COUNT-4; // compensate for computing time
-            if ( servoData[nextPulseIx].on && (servoData[nextPulseIx].offcnt+servoData[nextPulseIx].noAutoff) > 0 ) {
+            if ( nextPulseP->on && (nextPulseP->offcnt+nextPulseP->noAutoff) > 0 ) {
                 // its a 'real' pulse, set output pin
-                CLR_TP1;
+                //CLR_TP1;
                 #ifdef FAST_PORTWRT
-                *servoData[nextPulseIx].portAdr |= servoData[nextPulseIx].bitMask;
+                *nextPulseP->portAdr |= nextPulseP->bitMask;
                 #else
-                digitalWrite( servoData[nextPulseIx].pin, HIGH );
+                digitalWrite( nextPulseP->pin, HIGH );
                 #endif
             }
             interrupts(); // the following isn't time critical, so allow nested interrupts
-            SET_TP3;
+            //SET_TP3;
             // the 'nextPulse' we have started now, is from now on the 'activePulse', the running activPulse is now the
             // pulse to stop next.
-            stopPulseIx = activePulseIx; // because there was a 'nextPulse' there is also an 'activPulse' which is the next to stop
+            stopPulseP = activePulseP; // because there was a 'nextPulse' there is also an 'activPulse' which is the next to stop
             OCR1A = activePulseOff;
-            activePulseIx = nextPulseIx;
-            activePulseOff = servoData[activePulseIx].ist/SPEED_RES + tmpTCNT1; // end of actually started pulse
+            activePulseP = nextPulseP;
+            activePulseOff = activePulseP->ist/SPEED_RES + tmpTCNT1; // end of actually started pulse
             nextPulseLength = 0;
-            SET_TP1;
+            //SET_TP1;
         }
         if ( searchNextPulse() ) {
             // found a pulse
             if ( activePulseOff == 0 ) {
                 // it is the first pulse in the sequence, start it
-                activePulseIx = pulseIx; 
-                activePulseOff = servoData[pulseIx].ist/SPEED_RES + GET_COUNT - 4; // compensate for computing time
-                if ( servoData[pulseIx].on && (servoData[pulseIx].offcnt+servoData[pulseIx].noAutoff) > 0 ) {
+                activePulseP = pulseP; 
+                activePulseOff = pulseP->ist/SPEED_RES + GET_COUNT - 4; // compensate for computing time
+                if ( pulseP->on && (pulseP->offcnt+pulseP->noAutoff) > 0 ) {
                     // its a 'real' pulse, set output pin
                     #ifdef FAST_PORTWRT
-                    *servoData[pulseIx].portAdr |= servoData[pulseIx].bitMask;
+                    *pulseP->portAdr |= pulseP->bitMask;
                     #else
-                    digitalWrite( servoData[pulseIx].pin, HIGH );
+                    digitalWrite( pulseP->pin, HIGH );
                     #endif
                 }
                 word tmpTCNT1 = GET_COUNT;
                 interrupts(); // the following isn't time critical, so allow nested interrupts
-                SET_TP3;
+                //SET_TP3;
                 // look for second pulse
-                pulseIx++;
+                //SET_TP4;
+                pulseP = pulseP->prevServoDataP;
+                //CLR_TP4;
                 if ( searchNextPulse() ) {
                     // there is a second pulse - this is the 'nextPulse'
-                    nextPulseLength = servoData[pulseIx].ist/SPEED_RES;
-                    nextPulseIx = pulseIx++;
+                    nextPulseLength = pulseP->ist/SPEED_RES;
+                    nextPulseP = pulseP;
+                    //SET_TP4;
+                    pulseP = pulseP->prevServoDataP;
+                    //CLR_TP4;
                     // set Starttime for 2. pulse in sequence
                     OCR1A = max ( ((long)activePulseOff + (long) MARGINTICS - (long) nextPulseLength), ( tmpTCNT1 + MARGINTICS/2 ) );
                 } else {
                     // no next pulse, there is only one pulse
                     OCR1A = activePulseOff;
                     activePulseOff = 0;
-                    stopPulseIx = activePulseIx;
+                    stopPulseP = activePulseP;
                     IrqType = POFF;
                 }
             } else {
                 // its a pulse in sequence, so this is the 'nextPulse'
-                nextPulseLength = servoData[pulseIx].ist/SPEED_RES;
-                nextPulseIx = pulseIx++;
+                nextPulseLength = pulseP->ist/SPEED_RES;
+                nextPulseP = pulseP;
+                //SET_TP4;
+                pulseP = pulseP->prevServoDataP;
+                //CLR_TP4;
                 IrqType = POFF;
             }
         } else {
@@ -719,7 +759,7 @@ void ISR_Servo( void) {
             
             if ( activePulseOff == 0 ) {
                 // there wasn't any pulse, restart
-                pulseIx = 0;
+                pulseP = lastServoDataP;
                 nextPulseLength = 0;
                 OCR1A = FIRST_PULSE;
             } else {
@@ -727,12 +767,12 @@ void ISR_Servo( void) {
                 IrqType = POFF;
             }
         }
-        CLR_TP1; CLR_TP3; // Oszimessung Dauer der ISR-Routine
        
     } //end of 'pulse ON'
     #ifdef __STM32F1__
     timer_set_compare(MT_TIMER,  SERVO_CHN, OCR1A);
     #endif 
+    //CLR_TP1; CLR_TP3; // Oszimessung Dauer der ISR-Routine
 }
 
 #endif // VARIABLE_POSITION_SERVO_PULSES
@@ -871,7 +911,7 @@ uint8_t Stepper4::attach( byte stepP, byte dirP ) {
     // step motor driver A4988 is used
     byte pins[2];
     if ( stepMode != A4988 ) return 0;    // false mode
-    DB_PRINT( "Attach4988, S=%d, D=%d", stepP, dirP );
+    //DB_PRINT( "Attach4988, S=%d, D=%d", stepP, dirP );
     
     pins[0] = stepP;
     pins[1] = dirP;
@@ -977,7 +1017,7 @@ uint8_t Stepper4::attach( byte outArg, byte pins[] ) {
             timer_cc_enable(MT_TIMER, STEP_CHN);
         #endif
     }
-    DB_PRINT( "attach: output=%d, attachOK=%d", stepperData[stepperIx].output, attachOK );
+    //DB_PRINT( "attach: output=%d, attachOK=%d", stepperData[stepperIx].output, attachOK );
     //Serial.print( "Attach Stepper, Ix= "); Serial.println( stepperIx );
     return attachOK;
 }
@@ -1010,7 +1050,7 @@ void Stepper4::setZero() {
 
 void Stepper4::write(long angleArg ) {
     // set next position as angle, measured from last setZero() - point
-    DB_PRINT("write: %d", angleArg);
+    //DB_PRINT("write: %d", angleArg);
     Stepper4::write( angleArg, 1 );
 }
 
@@ -1021,7 +1061,7 @@ void Stepper4::write( long angleArg, byte fact ) {
     bool negative;
     int angel2steps;
     negative =  ( angleArg < 0 ) ;
-    DB_PRINT( "angleArg: %d",angleArg ); //DB_PRINT( " getSFZ: ", getSFZ() );
+    //DB_PRINT( "angleArg: %d",angleArg ); //DB_PRINT( " getSFZ: ", getSFZ() );
     //Serial.print( "Write: " ); Serial.println( angleArg );
     angel2steps =  ( (abs(angleArg) * (long)stepsRev*10) / ( 360L * fact) +5) /10 ;
     if ( negative ) angel2steps = -angel2steps;
@@ -1059,7 +1099,7 @@ void Stepper4::doSteps( long stepValue ) {
     if ( stepMode == NOSTEP ) return ; // Invalid object
     //Serial.print( "doSteps: " ); Serial.println( stepValue );
     stepsToMove = stepValue;
-     DB_PRINT( " stepsToMove: %d ",stepsToMove );
+    //DB_PRINT( " stepsToMove: %d ",stepsToMove );
     if ( stepValue > 0 ) stepperData[stepperIx].patternIxInc = abs( stepperData[stepperIx].patternIxInc );
     else stepperData[stepperIx].patternIxInc = -abs( stepperData[stepperIx].patternIxInc );
     noInterrupts();
@@ -1128,8 +1168,12 @@ void Stepper4::stop() {
 #define NO_ANGLE (0xff)
 
 Servo8::Servo8() : pin(0),angle(NO_ANGLE),min16(1000/16),max16(2000/16)
-{   servoIndex = servoCount++;
-    servoData[servoIndex].soll = -1;    // = not initialized
+{   servoData.servoIx = servoCount++;
+    servoData.soll = -1;    // = not initialized
+    noInterrupts();
+    servoData.prevServoDataP = lastServoDataP;
+    lastServoDataP = &servoData;
+    interrupts();
 }
 
 void Servo8::setMinimumPulse(uint16_t t)
@@ -1157,27 +1201,26 @@ uint8_t Servo8::attach(int pinArg, int pmin, int pmax ) {
 
 uint8_t Servo8::attach( int pinArg, int pmin, int pmax, bool autoOff ) {
     // return false if already attached or too many servos
-    if ( pin != 0 ||  servoIndex >= MAX_SERVOS ) return 0;
+    if ( pin != 0 ||  servoData.servoIx >= MAX_SERVOS ) return 0;
     // set pulselength for angle 0 and 180
     if ( pmin >= MINPULSEWIDTH && pmin <= MAXPULSEWIDTH) min16 = pmin/16;
     if ( pmax >= MINPULSEWIDTH && pmax <= MAXPULSEWIDTH ) max16 = pmax/16;
-	DB_PRINT( "pin: %d, pmin:%d pmax%d autoOff=%d, min16=%d, max16=%d", pinArg, pmin, pmax, autoOff, min16, max16);
+	//DB_PRINT( "pin: %d, pmin:%d pmax%d autoOff=%d, min16=%d, max16=%d", pinArg, pmin, pmax, autoOff, min16, max16);
     
     // intialize objectspecific data
     lastPos = 3000*SPEED_RES ;    // initalize to middle position
-    servoData[servoIndex].soll = -1;  // invalid position -> no pulse output
-    servoData[servoIndex].ist = -1;   
-    servoData[servoIndex].inc = 2000*SPEED_RES;  // means immediate movement
-    servoData[servoIndex].pin = pinArg;
-    servoData[servoIndex].on = false;  // create no pulses until next write
-    servoData[servoIndex].noAutoff = autoOff?0:1 ;  
+    servoData.soll = -1;  // invalid position -> no pulse output
+    servoData.ist = -1;   
+    servoData.inc = 2000*SPEED_RES;  // means immediate movement
+    servoData.pin = pinArg;
+    servoData.on = false;  // create no pulses until next write
+    servoData.noAutoff = autoOff?0:1 ;  
     #ifdef FAST_PORTWRT
     // compute portaddress and bitmask related to pin number
-    servoData[servoIndex].portAdr = (byte *) pgm_read_word_near(&port_to_output_PGM[pgm_read_byte_near(&digital_pin_to_port_PGM[ pinArg])]);
-    servoData[servoIndex].bitMask = pgm_read_byte_near(&digital_pin_to_bit_mask_PGM[pinArg]);
-    DB_PRINT( "Idx: %d Portadr: 0x%x, Bitmsk: 0x%x", servoIndex, servoData[servoIndex].portAdr, servoData[servoIndex].bitMask );
-	DB_PRINT( "Stack=0x%04x, &sIx=0x%04x", ((SPH&0x7)<<8)|SPL, &servoIndex );
-    #endif
+    servoData.portAdr = (byte *) pgm_read_word_near(&port_to_output_PGM[pgm_read_byte_near(&digital_pin_to_port_PGM[ pinArg])]);
+    servoData.bitMask = pgm_read_byte_near(&digital_pin_to_bit_mask_PGM[pinArg]);
+    //DB_PRINT( "Idx: %d Portadr: 0x%x, Bitmsk: 0x%x", servoData.servoIx, servoData.portAdr, servoData.bitMask );
+	#endif
     pin = pinArg;
     angle = NO_ANGLE;
     pinMode(pin,OUTPUT);
@@ -1198,10 +1241,10 @@ uint8_t Servo8::attach( int pinArg, int pmin, int pmax, bool autoOff ) {
 
 void Servo8::detach()
 {
-    servoData[servoIndex].on = false;  
-    servoData[servoIndex].soll = -1;  
-    servoData[servoIndex].ist = -1;  
-    servoData[servoIndex].pin = 0;  
+    servoData.on = false;  
+    servoData.soll = -1;  
+    servoData.ist = -1;  
+    servoData.pin = 0;  
     pin = 0;
 }
 
@@ -1210,11 +1253,11 @@ void Servo8::write(int angleArg)
     // values between 0 and 180 are interpreted as degrees,
     // values between MINPULSEWIDTH and MAXPULSEWIDTH are interpreted as microseconds
     static int newpos;
-	DB_PRINT( "Write: angleArg=%d, Soll=%d", angleArg, servoData[servoIndex].soll );
+	//DB_PRINT( "Write: angleArg=%d, Soll=%d", angleArg, servoData.soll );
     if ( pin > 0 ) { // only if servo is attached
         //Serial.print( "Pin:" );Serial.print(pin);Serial.print("Wert:");Serial.println(angleArg);
         #ifdef __AVR_MEGA__
-		DB_PRINT( "Stack=0x%04x, &sIx=0x%04x", ((SPH&0x7)<<8)|SPL, &servoIndex );
+		//DB_PRINT( "Stack=0x%04x, &sIx=0x%04x", ((SPH&0x7)<<8)|SPL, &servoData.servoIx );
         #endif
         if ( angleArg < 0) angleArg = 0;
         if ( angleArg <= 255) {
@@ -1229,24 +1272,22 @@ void Servo8::write(int angleArg)
             newpos = angleArg * TICS_PER_MICROSECOND * SPEED_RES;
             angle = map( angleArg, min16*16, max16*16, 0, 180 );  // angle in degrees
         }
-        if ( servoData[servoIndex].soll < 0 ) {
+        if ( servoData.soll < 0 ) {
             // Serial.println( "first write");
             // this is the first pulse to be created after attach
-            servoData[servoIndex].on = true;
+            servoData.on = true;
             lastPos = newpos;
             noInterrupts();
-            servoData[servoIndex].soll= newpos ; // .ist - value is still -1 (invalid) -> will jump to .soll immediately
+            servoData.soll= newpos ; // .ist - value is still -1 (invalid) -> will jump to .soll immediately
             interrupts();
-			DB_PRINT( "FirstWrite: Ix=%d,%d Soll=%d", servoIndex, this->servoIndex, servoData[servoIndex].soll );
             
         }
-        else if ( newpos != servoData[servoIndex].soll ) {
+        else if ( newpos != servoData.soll ) {
             // position has changed, store old position, set new position
-            lastPos = servoData[servoIndex].soll;
+            lastPos = servoData.soll;
             noInterrupts();
-            servoData[servoIndex].soll= newpos ;
+            servoData.soll= newpos ;
             interrupts();
-			DB_PRINT( "NextWrite: Ix= %d,%d Soll=%d, On=%d", servoIndex, this->servoIndex, servoData[servoIndex].soll, servoData[servoIndex].on );
         }
     }
 }
@@ -1259,14 +1300,13 @@ void Servo8::setSpeed( int speed, bool compatibility ) {
 
 void Servo8::setSpeed( int speed ) {
     // Set increment value for movement to new angle
-    // ToDo: Set compatibility mode for Version 0.8 end earlier
     if ( pin > 0 ) { // only if servo is attached
         if ( speedV08 ) speed *= SPEED_RES;
         noInterrupts();
         if ( speed == 0 )
-            servoData[servoIndex].inc = 2000*SPEED_RES;  // means immiediate movement
+            servoData.inc = 2000*SPEED_RES;  // means immiediate movement
         else
-            servoData[servoIndex].inc = speed;
+            servoData.inc = speed;
         interrupts();
     }
 }
@@ -1276,7 +1316,7 @@ uint8_t Servo8::read() {
     int value;
     if ( pin == 0 ) return -1; // Servo not attached
     noInterrupts();
-    value = servoData[servoIndex].ist;
+    value = servoData.ist;
     interrupts();
     return map( value/TICS_PER_MICROSECOND/SPEED_RES, min16*16, max16*16, 0, 180 );
 }
@@ -1286,7 +1326,7 @@ int Servo8::readMicroseconds() {
     int value;
     if ( pin == 0 ) return -1; // Servo not attached
     noInterrupts();
-    value = servoData[servoIndex].ist;
+    value = servoData.ist;
     interrupts();
     return value/TICS_PER_MICROSECOND/SPEED_RES;   
 
@@ -1296,9 +1336,9 @@ uint8_t Servo8::moving() {
     // return how much still to move (percentage)
     if ( pin == 0 ) return 0; // Servo not attached
     long total , remaining;
-    total = abs( lastPos - servoData[servoIndex].soll );
-    noInterrupts(); // disable interrupt, because integer servoData[servoIndex].ist is changed in interrupt
-    remaining = abs( servoData[servoIndex].soll - servoData[servoIndex].ist );
+    total = abs( lastPos - servoData.soll );
+    noInterrupts(); // disable interrupt, because integer servoData.ist is changed in interrupt
+    remaining = abs( servoData.soll - servoData.ist );
     interrupts();  // allow interrupts again
     if ( remaining == 0 ) return 0;
     return ( remaining * 100 ) /  total +1;
@@ -1315,32 +1355,67 @@ uint8_t Servo8::attached()
 // Version with Software PWM
 
 SoftLed::SoftLed() {
+    ledValid = LEDVALID;            // Flag 'object created'
     ledIx = ledCount++;
-        if ( ledIx < MAX_LEDS ) {
-        ledData[ledIx].speed = 0;       // defines rising/falling timer
-        ledData[ledIx].aStep = 0 ;      // actual PWM step
-        ledData[ledIx].state = OFF ;    // initialize to off
-        ledData[ledIx].setpoint = OFF ; // initialize to off
-        ledType = LINEAR;
-    }
+    ledData.speed    = 0;           // defines rising/falling timer
+    ledData.aStep    = 0 ;          // actual PWM step
+    ledData.aCycle   = 0;           // actual cycle ( =length of PWM pule )
+    ledData.stpCnt   = 0;           // counter for PWM cycles on same step (for low speed)
+    ledData.actPulse = false;       // PWM pulse is active
+    ledData.state    = NOTATTACHED; // initialize 
+    setpoint = OFF ;                // initialize to off
+    ledType = LINEAR;
+    ledData.nextLedDataP = NULL;    // don't put in ISR chain
+    ledData.invFlg = false;
 }
 
-uint8_t SoftLed::attach(uint8_t pinArg){
-    // Led-Ausgang mit Softstart. 
-    if ( ledIx >= MAX_LEDS ) return false;
-    pinMode( pinArg, OUTPUT );
-    DB_PRINT( "Led attached, ledCount = %d", ledCount );
-    ledSpeed = 1;                   // defines rising/falling timer
-    ledData[ledIx].aStep = 0 ;      // actual PWM step
-    ledData[ledIx].state = OFF ;    // initialize to off
-    ledData[ledIx].setpoint = OFF ; // initialize to off
+void SoftLed::mount( uint8_t stateVal ) {
+    // mount softLed to ISR chain ( if not already in )
+    // new active Softleds are always inserted at the beginning of the chain
+    // only leds in the ISR chain are processed in ISR
+    noInterrupts();
+    SET_TP2;
+    // check if it's not already active (mounted)
+    // Leds must not be mounted twice!
+    if ( ledData.state < ACTIVE ) {
+        // write backward reference into the existing first entry 
+        // only if the chain is not empty
+        if ( ledRootP ) ledRootP->backLedDataPP = &ledData.nextLedDataP;
+        CLR_TP2;
+        ledData.nextLedDataP = ledRootP;
+        ledRootP = &ledData;
+        ledData.backLedDataPP = &ledRootP;
+        SET_TP2;
+    }
+    ledData.state = stateVal;
+    CLR_TP2;
+    interrupts();
+}   
+    
 
+uint8_t SoftLed::attach(uint8_t pinArg, uint8_t invArg ){
+    // Led-Ausgang mit Softstart. 
+    if ( ledValid != LEDVALID ) return false; // this is not a valid instance
+    
+    ledData.invFlg  = invArg;
+    pinMode( pinArg, OUTPUT );
+    DB_PRINT( "Led attached, ledIx = 0x%x, Count = %d", ledIx, ledCount );
+    ledData.state   = STATE_OFF ;   // initialize 
+    ledSpeed        = 1;            // defines rising/falling timer
+    ledData.aStep   = 0 ;           // actual PWM step
+    if ( ledData.invFlg ) { 
+        digitalWrite( pinArg, HIGH );
+    } else {
+        digitalWrite( pinArg, LOW );
+    }
+    
     #ifdef FAST_PORTWRT
-    ledData[ledIx].portPin.Adr = (byte *) pgm_read_word_near(&port_to_output_PGM[pgm_read_byte_near(&digital_pin_to_port_PGM[pinArg])]);
-    ledData[ledIx].portPin.Mask = pgm_read_byte_near(&digital_pin_to_bit_mask_PGM[pinArg]);
+    ledData.portPin.Adr = (byte *) pgm_read_word_near(&port_to_output_PGM[pgm_read_byte_near(&digital_pin_to_port_PGM[pinArg])]);
+    ledData.portPin.Mask = pgm_read_byte_near(&digital_pin_to_bit_mask_PGM[pinArg]);
     #else
-    ledData[ledIx].pin=pinArg ;      // Pin-Nbr 
+    ledData.pin=pinArg ;      // Pin-Nbr 
     #endif
+    
     if ( !timerInitialized ) seizeTimer1();
     // enable compareB- interrupt
     #if defined(__AVR_ATmega8__)|| defined(__AVR_ATmega128__)
@@ -1350,91 +1425,94 @@ uint8_t SoftLed::attach(uint8_t pinArg){
     #elif defined __STM32F1__
         timer_cc_enable(MT_TIMER, STEP_CHN);
     #endif
-  
 
     return true;
 }
 
 void SoftLed::on(){
-    if ( ledIx >= MAX_LEDS ) return;
+    if ( ledValid != LEDVALID ) return;  // this is not a valid instance
+    uint8_t stateT;
     // Don't do anything if its already ON 
-    if ( ledData[ledIx].setpoint != ON  ) {
-        SET_TP4;
-        ledData[ledIx].setpoint=ON ;
-        ledData[ledIx].aStep = 0;
-        ledData[ledIx].stpCnt = 0; 
+    if ( setpoint != ON  ) {
+        setpoint        = ON ;
+        ledData.aStep   = 0;
+        ledData.stpCnt  = 0; 
         if ( ledType == LINEAR ) {
-            ledData[ledIx].state = INCLIN;
-            ledData[ledIx].speed = ledSpeed;
-            ledData[ledIx].aCycle = 1;
+            stateT          = INCLIN;
+            ledData.speed   = ledSpeed;
+            ledData.aCycle  = 1;
         } else { // is bulb simulation
-            SET_TP4;
-            ledData[ledIx].state = INCFAST;
-            ledData[ledIx].speed = ledSpeed==1? -1 : ledSpeed / 3;
-            CLR_TP4;
-            if ( ledData[ledIx].speed <= 0 ) {
-                ledData[ledIx].state = INCSLOW;
-                ledData[ledIx].stpCnt = 1;
+            stateT          = INCFAST;
+            ledData.speed   = ledSpeed==1? -1 : ledSpeed / 3;
+            if ( ledData.speed <= 0 ) {
+                stateT      = INCSLOW;
+                ledData.stpCnt = 1;
             }
-            ledData[ledIx].aCycle = iSteps[0];
+            ledData.aCycle  = iSteps[0];
         }
-        CLR_TP4;
+        mount(stateT);
     }
+    DB_PRINT( "Led %d On, state=%d", ledIx, ledData.state);
 }
 
 void SoftLed::off(){
-    if ( ledIx >= MAX_LEDS ) return;
+    if ( ledValid != LEDVALID ) return; // this is not a valid instance
+    uint8_t stateT;
     // Dont do anything if its already OFF 
-    if ( ledData[ledIx].setpoint != OFF ) {
-        SET_TP3;
-        ledData[ledIx].setpoint=OFF ;
-        ledData[ledIx].aStep = 0;
-        ledData[ledIx].stpCnt = 0; 
+    if ( setpoint != OFF ) {
+        //SET_TP3;
+        setpoint            = OFF;
+        ledData.aStep       = 0;
+        ledData.stpCnt      = 0; 
         if ( ledType == LINEAR ) {
-            ledData[ledIx].state = DECLIN;
-            ledData[ledIx].speed = ledSpeed;
-            ledData[ledIx].aCycle = LED_CYCLE_MAX-1;
+            stateT          = DECLIN;
+            ledData.speed   = ledSpeed;
+            ledData.aCycle  = LED_CYCLE_MAX-1;
         } else { // is bulb simulation
-            CLR_TP3;
-            ledData[ledIx].state = DECFAST;
-            ledData[ledIx].speed = ledSpeed==1? -1 : ledSpeed / 3;
-            SET_TP3;
-            if ( ledData[ledIx].speed <= 0 ) {
-                ledData[ledIx].state = DECSLOW;
-                ledData[ledIx].stpCnt = 1;
+            //CLR_TP3;
+            stateT = DECFAST;
+            ledData.speed = ledSpeed==1? -1 : ledSpeed / 3;
+            //SET_TP3;
+            if ( ledData.speed <= 0 ) {
+                stateT          = DECSLOW;
+                ledData.stpCnt  = 1;
             }
-            ledData[ledIx].aCycle = LED_CYCLE_MAX + 1 - iSteps[0];
+            ledData.aCycle = LED_CYCLE_MAX + 1 - iSteps[0];
         }
-        CLR_TP3;
+        //CLR_TP3;
+        mount(stateT);
     }
+    DB_PRINT( "Led %d Off, state=%d", ledIx, ledData.state);
 }
 
 void SoftLed::toggle( void ) {
-    if ( ledIx >= MAX_LEDS ) return;
-    if ( ledData[ledIx].setpoint == ON  ) off();
+    if ( ledValid != LEDVALID ) return; // this is not a valid instance
+    if ( setpoint == ON  ) off();
     else on();
 }
 
-void SoftLed::write( uint8_t setpoint, uint8_t ledPar ){
+void SoftLed::write( uint8_t setpntVal, uint8_t ledPar ){
+    if ( ledValid != LEDVALID ) return; // this is not a valid instance
     ledType = ledPar;
-    write( setpoint ) ;
+    write( setpntVal ) ;
 }
 
-void SoftLed::write( uint8_t setpoint ){
-    if ( ledIx >= MAX_LEDS ) return;
-    if ( setpoint == ON ) on(); else off();
-    #ifdef debug1
+void SoftLed::write( uint8_t setpntVal ){
+    DB_PRINT( "LedWrite ix= %d, valid= 0x%x, sp=%d, lT=%d", ledIx, ledValid, setpntVal, ledType );
+    if ( ledValid != LEDVALID ) return; // this is not a valid instance
+    if ( setpntVal == ON ) on(); else off();
+    #ifdef debug
     // im Debugmode hier die Led-Daten ausgeben
     DB_PRINT( "LedData[%d]\n\speed=%d, Type=%d, aStep=%d, stpCnt=%d, state=%d, setpoint= %d",
-            ledIx, ledSpeed, ledType, ledData[ledIx].aStep, ledData[ledIx].stpCnt, ledData[ledIx].state
-                    , ledData[ledIx].setpoint);
+            ledValid, ledSpeed, ledType, ledData.aStep, ledData.stpCnt, ledData.state
+                    , setpoint);
     //DB_PRINT( "ON=%d, NextCyc=%d, CycleCnt=%d, StepIx=%d, NextStep=%d", 
     //         ON, ledNextCyc, ledCycleCnt, ledStepIx, ledNextStep);
     #endif
 }
 
 void SoftLed::riseTime( int riseTime ) {
-    if ( ledIx >= MAX_LEDS ) return;
+    if ( ledValid != LEDVALID ) return;
     // length of startphase in ms (min 20ms, max 1200ms )
     // the real risetime is only a rough approximate to this time
     // risetime is computed to a 'speed' Value with 1 beeing the slowest 
