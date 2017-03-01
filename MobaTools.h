@@ -365,11 +365,12 @@ class EggTimer
 {
   public:
     EggTimer();
-    void setTime(long);
+    void setTime( unsigned long);
     bool running();
 
   private:
-    long timervalue;
+    unsigned long timervalue;
+    unsigned long startvalue;
 };
 #endif
 

@@ -25,7 +25,7 @@
 // Taster auf LOW (=0) geht. 
 const int tasterPin1 = 2;    //Taster1 Pin 2
 const int tasterPin2 = 3;    //Taster2  Pin 3
-const int servoPin =  9;  // Anschluß für den Servo möglich sind 9 oder 10
+const int servoPin =  9;  // Anschluß für den Servo
 // bei Werten, die sich im Programm nie verändern, sollte immer 'const' vorangestellt
 // werden
 
@@ -37,7 +37,7 @@ void setup() {
     pinMode(tasterPin1, INPUT_PULLUP); // so ist kein externer pullup Widerstand am 
     pinMode(tasterPin2, INPUT_PULLUP); // Taster erforderlich
     
-    meinServo.attach(servoPin); //Servo an Pin 12
+    meinServo.attach(servoPin); //Servo an Pin 9
     meinServo.setSpeed( 5 );    // Verfahrgeschwindigkeit einstellen
 }
 

@@ -1530,18 +1530,20 @@ void SoftLed::riseTime( int riseTime ) {
 
 ////////////////////////////////////////////////////////////////////////////
 // Class EggTimer - Timerverwaltung für Zeitverzögerungen in der Loop-Schleife
-
-void EggTimer::setTime(  long wert ) {
-    timervalue = millis() + wert;
+// 
+void EggTimer::setTime(  unsigned long wert ) {
+    timervalue =  wert;
+    startvalue = millis();
 }
 
 bool EggTimer::running() {
-    return ( timervalue >= millis() );
+    return ( (millis() - startvalue) < timervalue );
 }
 
 EggTimer::EggTimer()
 {
-    timervalue = millis();
+    startvalue = millis();
+    timervalue = 0;
 }
 
 
