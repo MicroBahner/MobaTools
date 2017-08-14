@@ -338,7 +338,7 @@ void ISR_Stepper(void)
                 SET_TP1;
                 // loop over led-objects
                 // yes it's ugly, but because of performance reasons this is done a little bit assembler like
-                static void * const pwm0tab[]  { &&pwm0end,&&pwm0end,&&pwm0end,         // NOTATTACHED, STATE_OFF, STATE_ON
+                static const void * pwm0tab[]  { &&pwm0end,&&pwm0end,&&pwm0end,         // NOTATTACHED, STATE_OFF, STATE_ON
                             &&incfast0,&&decfast0,&&incslow0,&&decslow0,&&inclin0,&&declin0 };
                 goto  *pwm0tab[ledDataP->state] ;
                   incfast0:
@@ -1531,19 +1531,24 @@ void SoftLed::riseTime( int riseTime ) {
 ////////////////////////////////////////////////////////////////////////////
 // Class EggTimer - Timerverwaltung für Zeitverzögerungen in der Loop-Schleife
 // 
-void EggTimer::setTime(  unsigned long wert ) {
-    timervalue =  wert;
-    startvalue = millis();
+void EggTimer::setTime(  long wert ) {
+    endtime =  (long) millis() + ( (long)wert>0?wert:1 );
+    active = true;
 }
 
 bool EggTimer::running() {
-    return ( (millis() - startvalue) < timervalue );
+    if ( active ) active =  ( endtime - (long)millis() > 0 );
+    return active;
 }
 
+long EggTimer::getTime() {
+    // return remaining time
+    if ( running() ) return endtime - (long)millis();
+    else return 0;
+}
 EggTimer::EggTimer()
 {
-    startvalue = millis();
-    timervalue = 0;
+    active = false;
 }
 
 

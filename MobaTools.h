@@ -183,7 +183,7 @@ typedef union { // used output channels as bit and uint8_t
 typedef struct servoData_t {
   struct servoData_t* prevServoDataP;
   uint8_t servoIx;      // Servo number
-  int soll = -1;        // Position, die der Servo anfahren soll ( in Tics )
+  int soll;             // Position, die der Servo anfahren soll ( in Tics ). -1: not initialized
   volatile int ist;     // Position, die der Servo derzeit einnimt ( in Tics )
   int inc;              // Schrittweite je Zyklus um Ist an Soll anzugleichen
   uint8_t offcnt;       // counter to switch off pulses if length doesn't change
@@ -217,7 +217,7 @@ const uint8_t iSteps[] = {9, 16 ,23 ,29, 35,41, 45, 49, 53, 56, 59, 62, 64, 66, 
 typedef struct ledData_t {            // global led values ( used in IRQ )
   struct ledData_t*   nextLedDataP;   // chaining the active Leds
   struct ledData_t**  backLedDataPP;    // adress of pointer, that points to this led (backwards reference)
-  int8_t speed = 0;         // > 0 : steps per cycle ( more steps = more speed )
+  int8_t speed;             // > 0 : steps per cycle ( more steps = more speed )
                             // < 0 : cycles per step ( more cycles = less speed )
                             // 0: led is inactive (not attached)
     // uint8_t invert=false;   // false: ON ist HIGH, true: ON is LOW
@@ -365,12 +365,13 @@ class EggTimer
 {
   public:
     EggTimer();
-    void setTime( unsigned long);
+    void setTime( long);
     bool running();
+    long getTime();
 
   private:
-    unsigned long timervalue;
-    unsigned long startvalue;
+    bool active;
+    long endtime;
 };
 #endif
 
