@@ -4,6 +4,11 @@
    (C) 03-2017 fpm fpm@mnet-online.de
    
   History:
+  V0.91 08-2017
+        Enhanced EggTimer Class. Additional method 'getTime'
+        Uses only 5 byte Ram per Instance.
+        No Problems with rollover of millis and if the methods are called very rarely
+        ( less than once every 25 days )
   V0.9  03-2017
         Better resolution for the 'speed' paramter (programm starts in compatibility mode
         preparations for porting to STM32F1 platform
