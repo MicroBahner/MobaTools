@@ -1294,6 +1294,7 @@ void Servo8::write(int angleArg)
             servoData.soll= newpos ;
             interrupts();
         }
+        servoData.offcnt = OFF_COUNT;   // auf jeden Fall wieder Pulse ausgeben
     }
 }
 
