@@ -4,6 +4,7 @@
    (C) 03-2017 fpm fpm@mnet-online.de
    
   History:
+  V0.93b 11-2017 Use of Timer 3 if available ( on AtMega32u4 and AtMega2560 )
   V0.91 08-2017
         Enhanced EggTimer Class. Additional method 'getTime'
         Uses only 5 byte Ram per Instance.
@@ -193,10 +194,10 @@ static uint8_t ledCycleCnt = 0;    // count IRQ cycles within PWM cycle
 // global functions / Interrupts
 
 
-// ---------- OCR1B Compare Interrupt used for stepper motor and Softleds ----------------
+// ---------- OCRxB Compare Interrupt used for stepper motor and Softleds ----------------
 #pragma GCC optimize "Os"
 #ifdef __AVR_MEGA__
-ISR ( TIMER1_COMPB_vect)
+ISR ( TIMERx_COMPB_vect)
 #elif defined __STM32F1__
 void ISR_Stepper(void)
 #endif
@@ -498,9 +499,9 @@ void ISR_Stepper(void)
      noInterrupts(); // when manipulating 16bit Timerregisters IRQ must be disabled
     // compute next IRQ-Time in us, not in tics, so we don't need long
     #ifdef __AVR_MEGA__
-    tmp = ( OCR1B / TICS_PER_MICROSECOND + nextCycle * CYCLETIME );
+    tmp = ( OCRxB / TICS_PER_MICROSECOND + nextCycle * CYCLETIME );
     if ( tmp > 20000 ) tmp = tmp - 20000;
-    OCR1B = tmp * TICS_PER_MICROSECOND;
+    OCRxB = tmp * TICS_PER_MICROSECOND;
     #elif defined __STM32F1__
     tmp = ( timer_get_compare(MT_TIMER, STEP_CHN) / TICS_PER_MICROSECOND + nextCycle * CYCLETIME );
     if ( tmp > 20000 ) tmp = tmp - 20000;
@@ -533,14 +534,14 @@ void __irq_spi2(void) {// STM32
 #endif
 }
 #ifdef FIXED_POSITION_SERVO_PULSES
-// ---------- OCR1A Compare Interrupt used for servo motor ----------------
+// ---------- OCRxA Compare Interrupt used for servo motor ----------------
 // Positions of servopulses within 20ms cycle are fixed -  8 servos
 #define PULSESTEP ( 40000 / MAX_SERVOS )
 #ifdef __AVR_MEGA__
-ISR ( TIMER1_COMPA_vect) {
+ISR ( TIMERx_COMPA_vect) {
 #elif defined __STM32F1__
 void ISR_Servo( void) {
-    uint16_t OCR1A;
+    uint16_t OCRxA;
 #endif
     // Timer1 Compare A, used for servo motor
     SET_TP1; // Oszimessung Dauer der ISR-Routine
@@ -555,12 +556,12 @@ void ISR_Servo( void) {
         // Set next startpoint of servopulse
         if ( (pulseP = pulseP->prevServoDataP) == NULL ) {
             // Start over
-            OCR1A = FIRST_PULSE;
+            OCRxA = FIRST_PULSE;
             pulseP = lastServoDataP;
         } else {
             // The pointerchain comes from the end of the servos, but servoIx is incremented starting
             // from the first servo. Pulses must be sorted in ascending order.
-            OCR1A = FIRST_PULSE + (servoCount-1-pulseP->servoIx) * PULSESTEP;
+            OCRxA = FIRST_PULSE + (servoCount-1-pulseP->servoIx) * PULSESTEP;
         }
     } else {
         // look for next pulse to start
@@ -568,10 +569,10 @@ void ISR_Servo( void) {
             // no pulse to output, switch to next startpoint
             if ( (pulseP = pulseP->prevServoDataP) == NULL ) {
                 // Start over
-                OCR1A = FIRST_PULSE;
+                OCRxA = FIRST_PULSE;
                 pulseP = lastServoDataP;
             } else {
-                OCR1A = FIRST_PULSE + (servoCount-1-pulseP->servoIx) * PULSESTEP;
+                OCRxA = FIRST_PULSE + (servoCount-1-pulseP->servoIx) * PULSESTEP;
             }
         } else { // found pulse to output
             if ( pulseP->ist == pulseP->soll ) {
@@ -587,7 +588,7 @@ void ISR_Servo( void) {
                 pulseP->ist -= pulseP->inc;
                 if ( pulseP->ist < pulseP->soll ) pulseP->ist = pulseP->soll;
             } 
-            OCR1A = (pulseP->ist/SPEED_RES) + GET_COUNT - 4; // compensate for computing time
+            OCRxA = (pulseP->ist/SPEED_RES) + GET_COUNT - 4; // compensate for computing time
             if ( pulseP->on && (pulseP->offcnt+pulseP->noAutoff) > 0 ) {
                 CLR_TP1;
                 #ifdef FAST_PORTWRT
@@ -601,7 +602,7 @@ void ISR_Servo( void) {
         } 
     } //end of 'pulse ON'
     #ifdef __STM32F1__
-    timer_set_compare(MT_TIMER,  SERVO_CHN, OCR1A);
+    timer_set_compare(MT_TIMER,  SERVO_CHN, OCRxA);
     #endif 
     CLR_TP1; // Oszimessung Dauer der ISR-Routine
 }
@@ -643,12 +644,12 @@ static bool searchNextPulse() {
     } 
 } //end of 'searchNextPulse'
 
-// ---------- OCR1A Compare Interrupt used for servo motor ----------------
+// ---------- OCRxA Compare Interrupt used for servo motor ----------------
 #ifdef __AVR_MEGA__
-ISR ( TIMER1_COMPA_vect) {
+ISR ( TIMERx_COMPA_vect) {
 #elif defined __STM32F1__
 void ISR_Servo( void) {
-    uint16_t OCR1A;
+    uint16_t OCRxA;
 #endif
     // Timer1 Compare A, used for servo motor
     if ( IrqType == POFF ) { // Pulse OFF time
@@ -669,13 +670,13 @@ void ISR_Servo( void) {
             word tmpTCNT1 = GET_COUNT + MARGINTICS/2;
             interrupts();
             //CLR_TP3 ;
-            OCR1A = max ( ((long)activePulseOff + (long) MARGINTICS - (long) nextPulseLength), ( tmpTCNT1 ) );
+            OCRxA = max ( ((long)activePulseOff + (long) MARGINTICS - (long) nextPulseLength), ( tmpTCNT1 ) );
         } else {
             // we are at the end, no need to start another pulse in this cycle
             if ( activePulseOff ) {
                 // there is still a running pulse to stop
                 //SET_TP1; // Oszimessung Dauer der ISR-Routine
-                OCR1A = activePulseOff;
+                OCRxA = activePulseOff;
                 IrqType = POFF;
                 stopPulseP = activePulseP;
                 activePulseOff = 0;
@@ -683,7 +684,7 @@ void ISR_Servo( void) {
             } else { // was last pulse, start over
                 pulseP = lastServoDataP;
                 nextPulseLength = 0;
-                OCR1A = FIRST_PULSE;
+                OCRxA = FIRST_PULSE;
             }
         }
     } else { // Pulse ON - time
@@ -707,7 +708,7 @@ void ISR_Servo( void) {
             // the 'nextPulse' we have started now, is from now on the 'activePulse', the running activPulse is now the
             // pulse to stop next.
             stopPulseP = activePulseP; // because there was a 'nextPulse' there is also an 'activPulse' which is the next to stop
-            OCR1A = activePulseOff;
+            OCRxA = activePulseOff;
             activePulseP = nextPulseP;
             activePulseOff = activePulseP->ist/SPEED_RES + tmpTCNT1; // end of actually started pulse
             nextPulseLength = 0;
@@ -742,10 +743,10 @@ void ISR_Servo( void) {
                     pulseP = pulseP->prevServoDataP;
                     //CLR_TP4;
                     // set Starttime for 2. pulse in sequence
-                    OCR1A = max ( ((long)activePulseOff + (long) MARGINTICS - (long) nextPulseLength), ( tmpTCNT1 + MARGINTICS/2 ) );
+                    OCRxA = max ( ((long)activePulseOff + (long) MARGINTICS - (long) nextPulseLength), ( tmpTCNT1 + MARGINTICS/2 ) );
                 } else {
                     // no next pulse, there is only one pulse
-                    OCR1A = activePulseOff;
+                    OCRxA = activePulseOff;
                     activePulseOff = 0;
                     stopPulseP = activePulseP;
                     IrqType = POFF;
@@ -766,7 +767,7 @@ void ISR_Servo( void) {
                 // there wasn't any pulse, restart
                 pulseP = lastServoDataP;
                 nextPulseLength = 0;
-                OCR1A = FIRST_PULSE;
+                OCRxA = FIRST_PULSE;
             } else {
                 // is last pulse, don't start a new one
                 IrqType = POFF;
@@ -775,7 +776,7 @@ void ISR_Servo( void) {
        
     } //end of 'pulse ON'
     #ifdef __STM32F1__
-    timer_set_compare(MT_TIMER,  SERVO_CHN, OCR1A);
+    timer_set_compare(MT_TIMER,  SERVO_CHN, OCRxA);
     #endif 
     //CLR_TP1; CLR_TP3; // Oszimessung Dauer der ISR-Routine
 }
@@ -790,14 +791,14 @@ static void seizeTimer1()
     uint8_t oldSREG = SREG;
     cli();
     
-    TCCR1A =0; /* CTC Mode, ICR1 is TOP */
-    TCCR1B = _BV(WGM13) | _BV(WGM12) /* CTC Mode, ICR1 is TOP */
+    TCCRxA =0; /* CTC Mode, ICRx is TOP */
+    TCCRxB = _BV(WGMx3) | _BV(WGMx2) /* CTC Mode, ICRx is TOP */
   | _BV(CS11) /* div 8 clock prescaler */
   ;
-    ICR1 = 20000 * TICS_PER_MICROSECOND;  // timer periode is 20000us 
-    OCR1A = FIRST_PULSE;
-    OCR1B = 400;
-    // Serial.print( " Timer initialized " ); Serial.println( TIMSK1, HEX );
+    ICRx = 20000 * TICS_PER_MICROSECOND;  // timer periode is 20000us 
+    OCRxA = FIRST_PULSE;
+    OCRxB = 400;
+    // Serial.print( " Timer initialized " ); Serial.println( TIMSKx, HEX );
     SREG = oldSREG;  // undo cli() 
 #elif defined __STM32F1__
     timer_init( MT_TIMER );
@@ -1015,9 +1016,9 @@ uint8_t Stepper4::attach( byte outArg, byte pins[] ) {
         stepperData[stepperIx].activ = 1;
         // enable compareB- interrupt
         #if defined(__AVR_ATmega8__)|| defined(__AVR_ATmega128__)
-            TIMSK |= ( _BV(OCIE1B) );    // enable compare interrupts
+            TIMSK |= ( _BV(OCIExB) );    // enable compare interrupts
         #elif defined __AVR_MEGA__
-            TIMSK1 |= _BV(OCIE1B) ; 
+            TIMSKx |= _BV(OCIExB) ; 
         #elif defined __STM32F1__
             timer_cc_enable(MT_TIMER, STEP_CHN);
         #endif
@@ -1234,9 +1235,9 @@ uint8_t Servo8::attach( int pinArg, int pmin, int pmax, bool autoOff ) {
     if ( !timerInitialized) seizeTimer1();
     // enable compare-A interrupt
     #if defined(__AVR_ATmega8__)|| defined(__AVR_ATmega128__)
-    TIMSK |=  _BV(OCIE1A);   
+    TIMSK |=  _BV(OCIExA);   
     #elif defined __AVR_MEGA__
-    TIMSK1 |=  _BV(OCIE1A) ; 
+    TIMSKx |=  _BV(OCIExA) ; 
     #elif defined __STM32F1__
         timer_cc_enable(MT_TIMER, SERVO_CHN);
     #endif
@@ -1425,9 +1426,9 @@ uint8_t SoftLed::attach(uint8_t pinArg, uint8_t invArg ){
     if ( !timerInitialized ) seizeTimer1();
     // enable compareB- interrupt
     #if defined(__AVR_ATmega8__)|| defined(__AVR_ATmega128__)
-        TIMSK |= ( _BV(OCIE1B) );    // enable compare interrupts
+        TIMSK |= ( _BV(OCIExB) );    // enable compare interrupts
     #elif defined __AVR_MEGA__
-        TIMSK1 |= _BV(OCIE1B) ; 
+        TIMSKx |= _BV(OCIExB) ; 
     #elif defined __STM32F1__
         timer_cc_enable(MT_TIMER, STEP_CHN);
     #endif
