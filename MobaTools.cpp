@@ -1,10 +1,10 @@
 
 /*
-  MobaTools V0.9
-   (C) 03-2017 fpm fpm@mnet-online.de
+  MobaTools V1.0
+   (C) 11-2017 fpm fpm@mnet-online.de
    
   History:
-  V0.93b 11-2017 Use of Timer 3 if available ( on AtMega32u4 and AtMega2560 )
+  V1.0  11-2017 Use of Timer 3 if available ( on AtMega32u4 and AtMega2560 )
   V0.91 08-2017
         Enhanced EggTimer Class. Additional method 'getTime'
         Uses only 5 byte Ram per Instance.
@@ -149,6 +149,51 @@
     #define DB_PRINT ;
 #endif
 
+// select timer to use
+#ifdef __AVR_MEGA__
+    // defines only for ATMega
+    #ifdef TCNT3
+        // Timer 3 is available, use it
+        // #warning "Timer 3 used"
+        #define TCNTx       TCNT3
+        #define GET_COUNT   TCNT3
+        #define TIMERx_COMPB_vect TIMER3_COMPB_vect
+        #define TIMERx_COMPA_vect TIMER3_COMPA_vect
+        #define OCRxB      OCR3B
+        #define OCRxA      OCR3A
+        #define TCCRxA     TCCR3A
+        #define TCCRxB     TCCR3B
+        #define WGMx3      WGM33
+        #define WGMx2      WGM32
+        #define ICRx       ICR3
+        #define OCIExA     OCIE3A
+        #define OCIExB     OCIE3B
+        #define TIMSKx     TIMSK3
+    #else
+        // Timer 1 benutzen
+        #define TCNTx       TCNT1
+        #define GET_COUNT   TCNT1
+        #define TIMERx_COMPB_vect TIMER1_COMPB_vect
+        #define TIMERx_COMPA_vect TIMER1_COMPA_vect
+        #define OCRxB      OCR1B
+        #define OCRxA      OCR1A
+        #define TCCRxA     TCCR1A
+        #define TCCRxB     TCCR1B
+        #define WGMx3      WGM13
+        #define WGMx2      WGM12
+        #define ICRx       ICR1
+        #define OCIExA     OCIE1A
+        #define OCIExB     OCIE1B
+        #define TIMSKx     TIMSK1
+    #endif    
+        
+#elif defined __STM32F1__
+    //defines only for STM32
+    #define MT_TIMER TIMER4     // Timer used by MobaTools
+    #define STEP_CHN    2       // OCR channel for Stepper and Leds
+    #define SERVO_CHN   1       // OCR channel for Servos
+    #define GET_COUNT timer_get_count(MT_TIMER)
+#endif
 
 // constants
 static const int stepPattern[8] = {0b0011, 0b0010, 0b0110, 0b0100, 0b1100, 0b1000, 0b1001,0b0001 };
