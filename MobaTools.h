@@ -249,7 +249,7 @@ class Stepper4
   private:
     uint8_t stepperIx;              // Index in Structure
     int stepsRev;                   // steps per full rotation
-    int stepsToMove;                // from last point
+    long stepsToMove;                // from last point
     uint8_t stepMode;               // FULLSTEP or HALFSTEP
     uint8_t minCycSteps;            // minimum time between 2 steps without ramp
                                     // ramp starts with this speed if wanted speed ist faster
