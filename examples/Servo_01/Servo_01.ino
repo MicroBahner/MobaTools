@@ -26,14 +26,14 @@ const int servoPin =  9;  // Anschluß für den Servo
 // werden
 
 
-int tasterStatus1, tasterStatus2;
+bool tasterStatus1, tasterStatus2;
 Servo8 meinServo;
 
 void setup() {
     pinMode(tasterPin1, INPUT_PULLUP); // so ist kein externer pullup Widerstand am 
     pinMode(tasterPin2, INPUT_PULLUP); // Taster erforderlich
     
-    meinServo.attach(servoPin); //Servo an Pin 12
+    meinServo.attach(servoPin); //Servo an Pin 9
     meinServo.setSpeed( 5 );    // Verfahrgeschwindigkeit einstellen
 }
 

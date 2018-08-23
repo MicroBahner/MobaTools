@@ -115,7 +115,7 @@
 #ifdef FIXED_POSITION_SERVO_PULSES
     #define MAX_SERVOS  8
 #else
-    #define OVLMARGIN           180     // Overlap margin ( Overlap is MINPULSEWIDTH - OVLMARGIN )
+    #define OVLMARGIN           280     // Overlap margin ( Overlap is MINPULSEWIDTH - OVLMARGIN )
     #define OVL_TICS       ( ( MINPULSEWIDTH - OVLMARGIN ) * TICS_PER_MICROSECOND )
     #define MARGINTICS      ( OVLMARGIN * TICS_PER_MICROSECOND )
     #define MAX_SERVOS  16  
@@ -321,8 +321,8 @@ class Servo8
     uint8_t read();          // current position in degrees (0...180)
     int   readMicroseconds();// current pulsewidth in microseconds
     uint8_t attached();
-    void setMinimumPulse(uint16_t);  // pulse length for 0 degrees in microseconds, 540uS default
-    void setMaximumPulse(uint16_t);  // pulse length for 180 degrees in microseconds, 2400uS default
+    void setMinimumPulse(uint16_t);  // pulse length for 0 degrees in microseconds, 700uS default
+    void setMaximumPulse(uint16_t);  // pulse length for 180 degrees in microseconds, 2300uS default
 };
 
 //////////////////////////////////////////////////////////////////////////////////////////////

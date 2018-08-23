@@ -205,10 +205,10 @@ static uint8_t spiInitialized = false;
 // Variables for servos
 static servoData_t* lastServoDataP = NULL; //start of ServoData-chain
 static byte servoCount = 0;
-static servoData_t* pulseP = 0;         // pulse Ptr in IRQ
-static servoData_t* activePulseP = 0;   // Ptr to pulse to stop
-static servoData_t* stopPulseP = 0;     // Ptr to Pulse whose stop time is already in OCR1
-static servoData_t* nextPulseP = 0;
+static servoData_t* pulseP = NULL;         // pulse Ptr in IRQ
+static servoData_t* activePulseP = NULL;   // Ptr to pulse to stop
+static servoData_t* stopPulseP = NULL;     // Ptr to Pulse whose stop time is already in OCR1
+static servoData_t* nextPulseP = NULL;
 static enum { PON, POFF } IrqType = PON; // Cycle starts with 'pulse on'
 static word activePulseOff = 0;     // OCR-value of pulse end 
 static word nextPulseLength = 0;
@@ -454,7 +454,7 @@ void ISR_Stepper(void)
                         ledDataP->actPulse = true;
                     }
                 pwm0end: // end of 'switch'
-                CLR_TP1;
+                ;//CLR_TP1;
             } // end of led loop
         } else { // is switchofftime within PWM cycle
             for ( ledDataP=ledRootP; ledDataP!=NULL; ledDataP = ledDataP->nextLedDataP ) {
@@ -530,7 +530,7 @@ void ISR_Stepper(void)
                 CLR_TP4;
             }
         }
-        CLR_TP1;
+        //CLR_TP1;
      } // end of softleds 
     CLR_TP3;
     nextCycle = min( nextCycle, ( ledNextCyc-ledCycleCnt ) );
@@ -589,8 +589,8 @@ void ISR_Servo( void) {
     uint16_t OCRxA;
 #endif
     // Timer1 Compare A, used for servo motor
-    SET_TP1; // Oszimessung Dauer der ISR-Routine
     if ( IrqType == POFF ) {
+        SET_TP1; // Oszimessung Dauer der ISR-Routine OFF
         IrqType = PON ; // it's always alternating
         // switch off previous started pulse
         #ifdef FAST_PORTWRT
@@ -608,7 +608,9 @@ void ISR_Servo( void) {
             // from the first servo. Pulses must be sorted in ascending order.
             OCRxA = FIRST_PULSE + (servoCount-1-pulseP->servoIx) * PULSESTEP;
         }
+        CLR_TP1; // Oszimessung Dauer der ISR-Routine OFF
     } else {
+        SET_TP2; // Oszimessung Dauer der ISR-Routine ON
         // look for next pulse to start
         if ( pulseP->soll < 0 ) {
             // no pulse to output, switch to next startpoint
@@ -645,11 +647,11 @@ void ISR_Servo( void) {
             }
             IrqType = POFF;
         } 
+        CLR_TP2; // Oszimessung Dauer der ISR-Routine ON
     } //end of 'pulse ON'
     #ifdef __STM32F1__
     timer_set_compare(MT_TIMER,  SERVO_CHN, OCRxA);
     #endif 
-    CLR_TP1; // Oszimessung Dauer der ISR-Routine
 }
 
 #else // create overlapping servo pulses
@@ -698,6 +700,7 @@ void ISR_Servo( void) {
 #endif
     // Timer1 Compare A, used for servo motor
     if ( IrqType == POFF ) { // Pulse OFF time
+        SET_TP1; // Oszimessung Dauer der ISR-Routine OFF
         //SET_TP3; // Oszimessung Dauer der ISR-Routine
         IrqType = PON ; // it's (nearly) always alternating
         // switch off previous started pulse
@@ -732,8 +735,10 @@ void ISR_Servo( void) {
                 OCRxA = FIRST_PULSE;
             }
         }
+        CLR_TP1; // Oszimessung Dauer der ISR-Routine OFF
     } else { // Pulse ON - time
-        //SET_TP1; // Oszimessung Dauer der ISR-Routine
+        SET_TP2; // Oszimessung Dauer der ISR-Routine ON
+        if ( pulseP == lastServoDataP ) SET_TP3;
         // look for next pulse to start
         // do we know the next pulse already?
         if ( nextPulseLength > 0 ) {
@@ -818,7 +823,7 @@ void ISR_Servo( void) {
                 IrqType = POFF;
             }
         }
-       
+        CLR_TP2; CLR_TP3; // Oszimessung Dauer der ISR-Routine ON
     } //end of 'pulse ON'
     #ifdef __STM32F1__
     timer_set_compare(MT_TIMER,  SERVO_CHN, OCRxA);
@@ -1278,15 +1283,21 @@ uint8_t Servo8::attach( int pinArg, int pmin, int pmax, bool autoOff ) {
     digitalWrite(pin,LOW);
 
     if ( !timerInitialized) seizeTimer1();
+    // initialize servochain pointer if not done already
+    noInterrupts();
+    if ( pulseP == NULL ) pulseP = lastServoDataP;
+    interrupts();
+    
     // enable compare-A interrupt
     #if defined(__AVR_ATmega8__)|| defined(__AVR_ATmega128__)
     TIMSK |=  _BV(OCIExA);   
     #elif defined __AVR_MEGA__
+    DB_PRINT( "IniOCR: %d", OCRxA );
     TIMSKx |=  _BV(OCIExA) ; 
+    DB_PRINT( "AttOCR: %d", OCRxA );
     #elif defined __STM32F1__
         timer_cc_enable(MT_TIMER, SERVO_CHN);
     #endif
-
     return 1;
 }
 
@@ -1304,7 +1315,9 @@ void Servo8::write(int angleArg)
     // values between 0 and 180 are interpreted as degrees,
     // values between MINPULSEWIDTH and MAXPULSEWIDTH are interpreted as microseconds
     static int newpos;
-	//DB_PRINT( "Write: angleArg=%d, Soll=%d", angleArg, servoData.soll );
+    #ifdef __AVR_MEGA__
+	DB_PRINT( "Write: angleArg=%d, Soll=%d, OCR=%u", angleArg, servoData.soll, OCRxA );
+    #endif
     if ( pin > 0 ) { // only if servo is attached
         //Serial.print( "Pin:" );Serial.print(pin);Serial.print("Wert:");Serial.println(angleArg);
         #ifdef __AVR_MEGA__
