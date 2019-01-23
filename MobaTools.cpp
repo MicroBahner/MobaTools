@@ -1221,9 +1221,10 @@ void Stepper4::stop() {
 // Class-specific Variables
 
 
-#define NO_ANGLE (0xff)
+const byte NO_ANGLE = 0xff;
+const byte NO_PIN = 0xff;
 
-Servo8::Servo8() : pin(0),angle(NO_ANGLE),min16(1000/16),max16(2000/16)
+Servo8::Servo8() : pin(NO_PIN),angle(NO_ANGLE),min16(1000/16),max16(2000/16)
 {   servoData.servoIx = servoCount++;
     servoData.soll = -1;    // = not initialized
     noInterrupts();
@@ -1257,7 +1258,7 @@ uint8_t Servo8::attach(int pinArg, int pmin, int pmax ) {
 
 uint8_t Servo8::attach( int pinArg, int pmin, int pmax, bool autoOff ) {
     // return false if already attached or too many servos
-    if ( pin != 0 ||  servoData.servoIx >= MAX_SERVOS ) return 0;
+    if ( pin != NO_PIN ||  servoData.servoIx >= MAX_SERVOS ) return 0;
     // set pulselength for angle 0 and 180
     if ( pmin >= MINPULSEWIDTH && pmin <= MAXPULSEWIDTH) min16 = pmin/16;
     if ( pmax >= MINPULSEWIDTH && pmax <= MAXPULSEWIDTH ) max16 = pmax/16;
@@ -1292,9 +1293,9 @@ uint8_t Servo8::attach( int pinArg, int pmin, int pmax, bool autoOff ) {
     #if defined(__AVR_ATmega8__)|| defined(__AVR_ATmega128__)
     TIMSK |=  _BV(OCIExA);   
     #elif defined __AVR_MEGA__
-    DB_PRINT( "IniOCR: %d", OCRxA );
+    //DB_PRINT( "IniOCR: %d", OCRxA );
     TIMSKx |=  _BV(OCIExA) ; 
-    DB_PRINT( "AttOCR: %d", OCRxA );
+    //DB_PRINT( "AttOCR: %d", OCRxA );
     #elif defined __STM32F1__
         timer_cc_enable(MT_TIMER, SERVO_CHN);
     #endif
@@ -1306,8 +1307,8 @@ void Servo8::detach()
     servoData.on = false;  
     servoData.soll = -1;  
     servoData.ist = -1;  
-    servoData.pin = 0;  
-    pin = 0;
+    servoData.pin = NO_PIN;  
+    pin = NO_PIN;
 }
 
 void Servo8::write(int angleArg)
@@ -1316,9 +1317,9 @@ void Servo8::write(int angleArg)
     // values between MINPULSEWIDTH and MAXPULSEWIDTH are interpreted as microseconds
     static int newpos;
     #ifdef __AVR_MEGA__
-	DB_PRINT( "Write: angleArg=%d, Soll=%d, OCR=%u", angleArg, servoData.soll, OCRxA );
+	//DB_PRINT( "Write: angleArg=%d, Soll=%d, OCR=%u", angleArg, servoData.soll, OCRxA );
     #endif
-    if ( pin > 0 ) { // only if servo is attached
+    if ( pin != NO_PIN ) { // only if servo is attached
         //Serial.print( "Pin:" );Serial.print(pin);Serial.print("Wert:");Serial.println(angleArg);
         #ifdef __AVR_MEGA__
 		//DB_PRINT( "Stack=0x%04x, &sIx=0x%04x", ((SPH&0x7)<<8)|SPL, &servoData.servoIx );
@@ -1365,7 +1366,7 @@ void Servo8::setSpeed( int speed, bool compatibility ) {
 
 void Servo8::setSpeed( int speed ) {
     // Set increment value for movement to new angle
-    if ( pin > 0 ) { // only if servo is attached
+    if ( pin != NO_PIN ) { // only if servo is attached
         if ( speedV08 ) speed *= SPEED_RES;
         noInterrupts();
         if ( speed == 0 )
@@ -1379,7 +1380,7 @@ void Servo8::setSpeed( int speed ) {
 uint8_t Servo8::read() {
     // get position in degrees
     int value;
-    if ( pin == 0 ) return -1; // Servo not attached
+    if ( pin == NO_PIN ) return -1; // Servo not attached
     noInterrupts();
     value = servoData.ist;
     interrupts();
@@ -1389,7 +1390,7 @@ uint8_t Servo8::read() {
 int Servo8::readMicroseconds() {
     // get position in microseconds
     int value;
-    if ( pin == 0 ) return -1; // Servo not attached
+    if ( pin == NO_PIN ) return -1; // Servo not attached
     noInterrupts();
     value = servoData.ist;
     interrupts();
@@ -1399,7 +1400,7 @@ int Servo8::readMicroseconds() {
 
 uint8_t Servo8::moving() {
     // return how much still to move (percentage)
-    if ( pin == 0 ) return 0; // Servo not attached
+    if ( pin == NO_PIN ) return 0; // Servo not attached
     long total , remaining;
     total = abs( lastPos - servoData.soll );
     noInterrupts(); // disable interrupt, because integer servoData.ist is changed in interrupt
@@ -1410,7 +1411,7 @@ uint8_t Servo8::moving() {
 }
 uint8_t Servo8::attached()
 {
-    return ( pin > 0 );
+    return ( pin != NO_PIN );
 }
 
 
@@ -1464,7 +1465,7 @@ uint8_t SoftLed::attach(uint8_t pinArg, uint8_t invArg ){
     
     ledData.invFlg  = invArg;
     pinMode( pinArg, OUTPUT );
-    DB_PRINT( "Led attached, ledIx = 0x%x, Count = %d", ledIx, ledCount );
+    //DB_PRINT( "Led attached, ledIx = 0x%x, Count = %d", ledIx, ledCount );
     ledData.state   = STATE_OFF ;   // initialize 
     ledSpeed        = 1;            // defines rising/falling timer
     ledData.aStep   = 0 ;           // actual PWM step
@@ -1517,7 +1518,7 @@ void SoftLed::on(){
         }
         mount(stateT);
     }
-    DB_PRINT( "Led %d On, state=%d", ledIx, ledData.state);
+    //DB_PRINT( "Led %d On, state=%d", ledIx, ledData.state);
 }
 
 void SoftLed::off(){
@@ -1547,7 +1548,7 @@ void SoftLed::off(){
         //CLR_TP3;
         mount(stateT);
     }
-    DB_PRINT( "Led %d Off, state=%d", ledIx, ledData.state);
+    //DB_PRINT( "Led %d Off, state=%d", ledIx, ledData.state);
 }
 
 void SoftLed::toggle( void ) {
@@ -1563,12 +1564,12 @@ void SoftLed::write( uint8_t setpntVal, uint8_t ledPar ){
 }
 
 void SoftLed::write( uint8_t setpntVal ){
-    DB_PRINT( "LedWrite ix= %d, valid= 0x%x, sp=%d, lT=%d", ledIx, ledValid, setpntVal, ledType );
+    //DB_PRINT( "LedWrite ix= %d, valid= 0x%x, sp=%d, lT=%d", ledIx, ledValid, setpntVal, ledType );
     if ( ledValid != LEDVALID ) return; // this is not a valid instance
     if ( setpntVal == ON ) on(); else off();
     #ifdef debug
     // im Debugmode hier die Led-Daten ausgeben
-    DB_PRINT( "LedData[%d]\n\speed=%d, Type=%d, aStep=%d, stpCnt=%d, state=%d, setpoint= %d",
+    //DB_PRINT( "LedData[%d]\n\speed=%d, Type=%d, aStep=%d, stpCnt=%d, state=%d, setpoint= %d",
             ledValid, ledSpeed, ledType, ledData.aStep, ledData.stpCnt, ledData.state
                     , setpoint);
     //DB_PRINT( "ON=%d, NextCyc=%d, CycleCnt=%d, StepIx=%d, NextStep=%d", 
@@ -1590,7 +1591,7 @@ void SoftLed::riseTime( int riseTime ) {
     if ( riseTime >= riseMax ) riseTime = riseMax;
     int tmp = ( (riseMax  *10) / ( riseTime  ) +5 ) /10;
     ledSpeed = tmp;
-    DB_PRINT( "ledSpeed[%d] = %d ( risetime=%d, riseMax=%d )", ledIx, ledSpeed, riseTime, riseMax );
+    //DB_PRINT( "ledSpeed[%d] = %d ( risetime=%d, riseMax=%d )", ledIx, ledSpeed, riseTime, riseMax );
 }
 
 ////////////////////////////////////////////////////////////////////////////

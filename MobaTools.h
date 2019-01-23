@@ -179,7 +179,9 @@ typedef union { // used output channels as bit and uint8_t
 // global servo data ( used in ISR )
 typedef struct servoData_t {
   struct servoData_t* prevServoDataP;
-  uint8_t servoIx;      // Servo number
+  uint8_t servoIx :6 ;  // Servo number
+  uint8_t on   :1 ;     // True: create pulse
+  uint8_t noAutoff :1;  // don't switch pulses off automatically
   int soll;             // Position, die der Servo anfahren soll ( in Tics ). -1: not initialized
   volatile int ist;     // Position, die der Servo derzeit einnimt ( in Tics )
   int inc;              // Schrittweite je Zyklus um Ist an Soll anzugleichen
@@ -188,9 +190,7 @@ typedef struct servoData_t {
   uint8_t* portAdr;     // port adress related to pin number
   uint8_t  bitMask;     // bitmask related to pin number
   #endif
-  uint8_t pin  :6 ;     // pin 
-  uint8_t on   :1 ;     // True: create pulse
-  uint8_t noAutoff :1;  // don't switch pulses off automatically
+  uint8_t pin     ;     // pin 
 } servoData_t ;
 
 //////////////////////////////////////////////////////////////////////////////////
