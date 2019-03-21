@@ -3,10 +3,10 @@
 /*
   MobaTools.h - a library for model railroaders
   Author: fpm, fpm@mnet-mail.de
-  Copyright (c) 2017 All right reserved.
+  Copyright (c) 2019 All right reserved.
 
   MobaTools V1.0
-   (C) 11-2017 fpm fpm@mnet-online.de
+   (C) 02-2019 fpm fpm@mnet-online.de
    
   History:
   V1.0  11-2017 Use of Timer 3 if available ( on AtMega32u4 and AtMega2560 )
