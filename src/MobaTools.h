@@ -9,6 +9,7 @@
    (C) 02-2019 fpm fpm@mnet-online.de
    
   History:
+  V1.1  Anfahr- und Bremsrampe für die Stepper
   V1.0  11-2017 Use of Timer 3 if available ( on AtMega32u4 and AtMega2560 )
   V0.9  03-2017
         Better resolution for the 'speed' servo-paramter (programm starts in compatibility mode)
@@ -105,6 +106,7 @@
 #define CYCLETIME   200     // Irq-periode in us. Step time is an integer multiple
                             // of this value
 #define CYCLETICS   CYCLETIME*TICS_PER_MICROSECOND
+#define RAMPOFFSET  3       // startvaue of rampcounter
 
 // defines for soft-leds
 #define MAX_LEDS    16     // Soft On/Off defined for compatibility reasons. There is no fixed limit anymore.
@@ -140,14 +142,24 @@ typedef struct {    // portaddress and bitmask for direkt pin set/reset
 
 /////////////////////////////////////////////////////////////////////////////////
 // global stepper data ( used in ISR )
+enum rampStats_t:byte { NORAMP, RAMPSTART, RAMPACCEL, CRUISING, RAMPDECEL, STOPPED };
 typedef struct {
   volatile long stepCnt;        // nmbr of steps to take
+  long stepCntStop;             // stepcounter value at which the stop-Ramp must be started
+  rampStats_t rampState;        // State of acceleration/deceleration
   volatile int8_t patternIx;    // Pattern-Index of actual Step (0-7)
   int8_t patternIxInc;          // halfstep: +/-1, fullstep: +/-2, A4988 +3/-3/
                                 // sign defines direction
-  uint16_t cycSteps;            // nbr of IRQ cycles per step ( speed of motor )
-  uint16_t rCycSteps;           // nbr of IRQ cycles per step during start/stop ramp
-  uint16_t rStepDec;            // count of steps until decrementing cycle ( during start ramp )
+  uint16_t tCycSteps;           // nbr of IRQ cycles per step ( target value of motorspeed  )
+  uint16_t tCycRemain;          // Remainder of division when computing tCycSteps
+  uint16_t aCycSteps;           // nbr of IRQ cycles per step ( actual motorspeed  )
+  //uint16_t sCycSteps;           // nbr of IRQ cycles per step for first Step after Stop ( ramp start )
+  //uint16_t stepsToStop;         // steps until stop when decelerating     
+  //uint16_t stepsRampLen;        // length of ramp . '0' means without ramp
+  uint16_t cyctXramplen;        // precompiled  tCycSteps*rampLen*RAMPOFFSET
+  uint16_t stepsInRamp;         // stepcounter within ramp ( counting from stop: incrementing in startramp, decrementing in stopramp
+                                // The counter starts with RAMPOFFSET 
+  //uint16_t rStepDec;            // count of steps until decrementing cycle ( during start ramp )
   volatile uint16_t cycCnt;     // counting cycles until cycStep
   volatile long stepsFromZero;  // distance from last reference point ( always as steps in HALFSTEP mode )
                                 // in FULLSTEP mode this is twice the real step number
@@ -192,7 +204,7 @@ typedef struct servoData_t {
   #endif
   uint8_t pin     ;     // pin 
 } servoData_t ;
-
+#if 1 // Constants for softleds
 //////////////////////////////////////////////////////////////////////////////////
 // global data for softleds ( used in ISR )
 // the PWM pulses are created together with stepper pulses
@@ -210,7 +222,7 @@ const uint8_t iSteps[] = {9, 16 ,23 ,29, 35,41, 45, 49, 53, 56, 59, 62, 64, 66, 
 #define LED_CYCLE_MAX   (iSteps[LED_STEP_MAX])
 #define LED_PWMTIME     (iSteps[LED_STEP_MAX] / 5)  // PWM refreshrate in ms
                                         // todo: dies gilt nur bei einer CYCLETIME von 200us (derzeit default)
-
+#endif
 typedef struct ledData_t {            // global led values ( used in IRQ )
   struct ledData_t*   nextLedDataP;   // chaining the active Leds
   struct ledData_t**  backLedDataPP;    // adress of pointer, that points to this led (backwards reference)
@@ -249,11 +261,13 @@ class Stepper4
   private:
     uint8_t stepperIx;              // Index in Structure
     int stepsRev;                   // steps per full rotation
+    uint16_t _stepSpeed10;          // speed in steps/10sec
+    int16_t _stepRampLen;          // Length of ramp in steps
     long stepsToMove;                // from last point
     uint8_t stepMode;               // FULLSTEP or HALFSTEP
-    uint8_t minCycSteps;            // minimum time between 2 steps without ramp
+    //uint8_t minCycSteps;            // minimum time between 2 steps without ramp
                                     // ramp starts with this speed if wanted speed ist faster
-    uint8_t minrCycSteps;           // absolute minimum time between 2 steps even with ramp
+    //uint8_t minrCycSteps;           // absolute minimum time between 2 steps even with ramp
     static outUsed_t outputsUsed;
     long getSFZ();                  // get step-distance from last reference point
     void initialize(int,uint8_t,uint8_t);
@@ -276,6 +290,10 @@ class Stepper4
 	void writeSteps( long stepPos );// Go to position stepPos steps from zeropoint
     void setZero();                 // actual position is set as 0 angle (zeropoint)
     int setSpeed(int rpm10 );       // Set movement speed, rpm*10
+    void setSpeedSteps( uint16_t speed10 ); // set speed withput changing ramp
+    void setSpeedSteps( uint16_t speed10, uint16_t rampLen ); // set speed and ramp
+    void setRampLen( uint16_t rampLen ); // set new ramplen in steps without changing speed
+    //int setAcceleration(int rpm10Ps ); // Set Acceleration in rpm*10 per second ( 0=no acceleration ramp )
     void doSteps(long count);       // rotate count steps. May be positive or negative
                                     // angle is updated internally, so the next call to 'write'
                                     // will move to the correct angle

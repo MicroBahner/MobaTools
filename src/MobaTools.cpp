@@ -269,7 +269,7 @@ void ISR_Stepper(void)
         if ( stepperData[i].activ && stepperData[i].stepCnt > 0 ) {
             // only active motors
             stepperData[i].cycCnt+=cyclesLastIRQ;
-            if ( stepperData[i].cycCnt >= stepperData[i].cycSteps ) {
+            if ( stepperData[i].cycCnt >= stepperData[i].aCycSteps ) {
                 // Do one step
                 stepperData[i].cycCnt = 0 ;
                 // update position for absolute positioning
@@ -357,8 +357,72 @@ void ISR_Stepper(void)
                     // should never be reached
                     break;
                 }
-            }
-            nextCycle = min ( nextCycle, stepperData[i].cycSteps-stepperData[i].cycCnt );
+                #ifdef RAMP_STEP_BASED // compute nexte steplength
+                // computing time to next step ( if in ramp )
+                    // ramp state machine
+                switch ( stepperData[i].rampState ) {
+                  case RAMPSTART:
+                    // Ramp starts from beginning ( motor is stopped )
+                    stepperData[i].aCycSteps = stepperData[i].sCycSteps;
+                    //stepperData[i].stepsInRamp = RAMPOFFSET;
+                    rampInc = 1;
+                    stepperData[i].rampState = RAMPACCEL;
+                    break;
+                  case  RAMPACCEL:
+                    // we are accelerating the motor
+                    stepperData[i].stepsInRamp ++;
+                    // do we have to start the decelaration
+                    if ( stepperData[i].stepCnt == stepperData[i].stepCntStop ) {
+                        stepperData[i].stepsInRamp = stepperData[i].stepCntStop+1;
+                        stepperData[i].rampState = RAMPDECEL;
+                    }
+                    // did we reach end of the ramp?
+                    //if (stepperData[i].stepsInRamp >= stepperData[i].stepCntStop ) {
+                    if (stepperData[i].aCycSteps <= stepperData[i].tCycSteps ) {
+                        stepperData[i].aCycSteps = stepperData[i].tCycSteps;
+                        stepperData[i].rampState = CRUISING;
+                    } else {
+                        //stepperData[i].aCycSteps = 50000 / (sqrt16I( 10*stepperData[i].stepsInRamp) * stepperData[i].sqrt20Accel );
+                        //stepperData[i].aCycSteps -= stepperData[i].aCycSteps / 30;
+                        stepperData[i].aCycSteps = stepperData[i].cyctXramplen / ((stepperData[i].stepsInRamp)) ;
+                    }
+                    break;
+
+                  case CRUISING:
+                    // We are at targetspeed
+                    // do we have to start the decelaration
+                    if ( stepperData[i].stepCnt == stepperData[i].stepCntStop ) {
+                        stepperData[i].stepsInRamp = stepperData[i].stepCntStop;
+                        stepperData[i].rampState = RAMPDECEL;
+                    }
+                    break;
+
+                  case RAMPDECEL:
+                    // we are stopping the motor
+                    stepperData[i].stepsInRamp --;
+                    if ( stepperData[i].stepsInRamp > 0 ) {
+                        //Rampenende noch nicht erreicht
+                        //stepperData[i].aCycSteps = 50000 / (sqrt16I( 10*stepperData[i].stepsInRamp) * stepperData[i].sqrt20Accel );
+                        stepperData[i].aCycSteps = 50000 / (10*(stepperData[i].stepsInRamp+3)) ;
+                    } else { 
+                        // letzter Step
+                        stepperData[i].aCycSteps = stepperData[i].sCycSteps;
+                    }
+                    break;
+
+                  case STOPPED:
+                    // do nothing
+                    break;
+                  case NORAMP:
+                    // Mode without ramp
+                    stepperData[i].aCycSteps = stepperData[i].tCycSteps;
+                    break;
+                    
+                } // End of ramp-statemachine
+
+                #endif
+            } // End of do one step
+            nextCycle = min ( nextCycle, stepperData[i].aCycSteps-stepperData[i].cycCnt );
         } // end of 'if stepper active'
     } // end of stepper-loop
     
@@ -942,10 +1006,13 @@ void Stepper4::initialize ( int steps360, uint8_t mode, uint8_t minStepTime ) {
         stepperData[stepperIx].stepCnt = 0;         // don't move
         stepMode = mode;
         stepperData[stepperIx].patternIx = 0;
-        stepperData[stepperIx].patternIxInc = mode;    // positive direction
-        minCycSteps = minStepTime*1000/CYCLETIME; // minStepTime in ms, cycletime in us
-        stepperData[stepperIx].cycSteps = 2;        // set to maximum speed, 1 Step every 2 Irq's
+        stepperData[stepperIx].patternIxInc = mode;         // positive direction
+        //minCycSteps = minStepTime*1000/CYCLETIME;         // minStepTime in ms, cycletime in us
+        stepperData[stepperIx].aCycSteps = MIN_STEPTIME/CYCLETIME; // set to maximum speed, 1 Step every 4 Irq's ( 800µs )
+        stepperData[stepperIx].tCycSteps = stepperData[stepperIx].aCycSteps; 
+        stepperData[stepperIx].tCycRemain = 0;              // ToDo: work with remainder when cruising
         stepperData[stepperIx].stepsFromZero = 0;
+        stepperData[stepperIx].rampState = NOACCEL;     // initialize with no acceleration  
         stepperData[stepperIx].activ = 0;
         stepperData[stepperIx].endless = 0;
         stepperData[stepperIx].output = NO_OUTPUT;          // unknown
@@ -1091,10 +1158,90 @@ int Stepper4::setSpeed( int rpm10 ) {
     // Set speed in rpm*10. Step time is computed internally based on CYCLETIME and
     // steps per full rotation (stepsRev)
     if ( stepMode == NOSTEP ) return 0; // Invalid object
-    stepperData[stepperIx].cycSteps = (((60L*10L*1000000L / CYCLETIME )*10 / stepsRev/ rpm10) +5)/10;
-    return stepperData[stepperIx].cycSteps;
+    stepperData[stepperIx].aCycSteps = (((60L*10L*1000000L / CYCLETIME )*10 / stepsRev/ rpm10) +5)/10;
+    return stepperData[stepperIx].aCycSteps;
+}
+
+void Stepper4::setSpeedSteps( uint16_t speed10 ) {
+    // Speed in steps per sec * 10
+    setSpeedSteps( speed10, stepperData[stepperIx].stepsRampLen ) );
+    // Rampenlänge in Steps ( entsprechend aktueller Beschleunigung )
+    //stepperData.stepsToStop = (long)_stepSpeed10 * _stepSpeed10 / 200 / _stepAccel ;
+}
+
+void Stepper4::setRampLen( uint16_t rampSteps ) {
+    // set length of ramp ( from stop to actual target speed ) in steps
+    setSpeedSteps( _stepSpeed10, rampSteps ));
+}
+
+void Stepper4::setSpeedSteps( uint16_t speed10, int16_t rampLen ) {
+    // Set speed and length of ramp to reach speed ( from stop )
+    _stepRampLen = abs(rampLen);    // negative values are invalid
+    _stepSpeed10 = min( 1000000L / MINSTEPTIME * 10, speed10 );
+    _setRampValues();       // compute all values for actual ramp
+}
+
+uint16_t Stepper4::_setRampValues() {
+    // compute target steplength and check weather speed and ramp fit together: 
+    stepperData[stepperIx].tCycSteps = ( 1000000L * 10  / _stepSpeed10 ) / CYCLETIME; 
+    stepperData[stepperIx].tCycRemain = ( 1000000L * 10  / _stepSpeed10 ) % CYCLETIME; 
+    // tcyc * (rapmlen+3) must be less then 65000, otherwise ramplen is adjusted accordingly
+    if ( ((long)stepperData.[stepperIx]tCycSteps * ( _stepRampLen + RAMPOFFSET ) ) > 65000L ) {
+        // adjust ramplen
+        _stepRampLen = 65000/stepperData.[stepperIx]tCycSteps - RAMPOFFSET;
+        if( _stepRampLen < 0 ) _stepRampLen = 0
+    }
+    // recompute all relevant rampvalues according to actual speed and ramplength
+    if ( _stepRampLen = 0 ) {
+        // without ramp
+        stepperData[stepperIx].rampState = NORAMP;
+        stepperData[stepperIx].aCycSteps = stepperData[stepperIx].tCycSteps;
+        stepperData[stepperIx].stepCntStop = 0;
+    } else{
+        //with ramp
+        // lock IRQ, because we use variables that are changed in IRQ
+        noInterrupts()
+        if ( stepperData[stepperIx].stepCnt == 0 ) {
+            // stepper is stopped
+            stepperData[stepperIx].rampState = RAMPSTART;
+            stepperData[stepperIx].stepsInRamp = RAMPOFFSET;
+            
+        } else {
+            // stepper is running
+            // ToDo!!
+        }
+    }
+    
     
 }
+
+void Stepper4::doSteps( long stepValue ) {
+    // rotate stepValue steps
+    if ( stepMode == NOSTEP ) return ; // Invalid object
+    //Serial.print( "doSteps: " ); Serial.println( stepValue );
+    stepsToMove = stepValue;
+    //DB_PRINT( " stepsToMove: %d ",stepsToMove );
+    if ( stepValue > 0 ) stepperData[stepperIx].patternIxInc = abs( stepperData[stepperIx].patternIxInc );
+    else stepperData[stepperIx].patternIxInc = -abs( stepperData[stepperIx].patternIxInc );
+    
+    long tmp = abs(stepsToMove);
+    if ( _stepRampLen > 0 ) {
+        // stepping with ramp
+        if ( _stepRampLen > tmp<<1 ) {
+            // we cannot go the whole ramp
+            tmp = stepsToMove/2;    // start stop ramp after half way
+        } else {
+            tmp = _stepRamLen;
+        }
+    
+    noInterrupts();
+    stepperData[stepperIx].stepCnt = abs(stepsToMove);
+    stepperData[stepperIx].stepCntStop = tmp;
+    stepperData[stepperIx].rampState = RAMPSTART;
+    stepperData[stepperIx].stepsInRamp = RAMPOFFSET;
+    interrupts();
+}
+
 
 void Stepper4::setZero() {
     // set reference point for absolute positioning
@@ -1150,18 +1297,6 @@ long Stepper4::readSteps()
     return  getSFZ();
 }
 
-void Stepper4::doSteps( long stepValue ) {
-    // rotate stepValue steps
-    if ( stepMode == NOSTEP ) return ; // Invalid object
-    //Serial.print( "doSteps: " ); Serial.println( stepValue );
-    stepsToMove = stepValue;
-    //DB_PRINT( " stepsToMove: %d ",stepsToMove );
-    if ( stepValue > 0 ) stepperData[stepperIx].patternIxInc = abs( stepperData[stepperIx].patternIxInc );
-    else stepperData[stepperIx].patternIxInc = -abs( stepperData[stepperIx].patternIxInc );
-    noInterrupts();
-    stepperData[stepperIx].stepCnt = abs(stepsToMove);
-    interrupts();
-}
 
 
 uint8_t Stepper4::moving() {
@@ -1169,7 +1304,7 @@ uint8_t Stepper4::moving() {
     int tmp;
     if ( stepMode == NOSTEP ) return 0; // Invalid object
     //Serial.print( stepperData[stepperIx].stepCnt ); Serial.print(" "); 
-    //Serial.println( stepperData[stepperIx].cycSteps );
+    //Serial.println( stepperData[stepperIx].aCycSteps );
     if ( stepsToMove == 0 ) {
         tmp = 0;        // there was nothing to move
     } else {
