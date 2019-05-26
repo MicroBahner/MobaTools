@@ -271,6 +271,7 @@ class Stepper4
     static outUsed_t outputsUsed;
     long getSFZ();                  // get step-distance from last reference point
     void initialize(int,uint8_t,uint8_t);
+    uint16_t  _setRampValues();
   public:
     Stepper4(int steps);            // steps per 360 degree in FULLSTEP mode
     Stepper4(int steps, uint8_t mode ); 
@@ -291,7 +292,7 @@ class Stepper4
     void setZero();                 // actual position is set as 0 angle (zeropoint)
     int setSpeed(int rpm10 );       // Set movement speed, rpm*10
     void setSpeedSteps( uint16_t speed10 ); // set speed withput changing ramp
-    void setSpeedSteps( uint16_t speed10, uint16_t rampLen ); // set speed and ramp
+    void setSpeedSteps( uint16_t speed10, int16_t rampLen ); // set speed and ramp
     void setRampLen( uint16_t rampLen ); // set new ramplen in steps without changing speed
     //int setAcceleration(int rpm10Ps ); // Set Acceleration in rpm*10 per second ( 0=no acceleration ramp )
     void doSteps(long count);       // rotate count steps. May be positive or negative
