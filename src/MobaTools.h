@@ -143,7 +143,8 @@ typedef struct {    // portaddress and bitmask for direkt pin set/reset
 /////////////////////////////////////////////////////////////////////////////////
 // global stepper data ( used in ISR )
 enum rampStats_t:byte { NORAMP, RAMPSTART, RAMPACCEL, CRUISING, RAMPDECEL, STOPPED };
-typedef struct {
+typedef struct stepperData_t {
+  struct stepperData_t *nextStepperDataP;    // chain pointer
   volatile long stepCnt;        // nmbr of steps to take
   long stepCntStop;             // stepcounter value at which the stop-Ramp must be started
   rampStats_t rampState;        // State of acceleration/deceleration
@@ -204,7 +205,7 @@ typedef struct servoData_t {
   #endif
   uint8_t pin     ;     // pin 
 } servoData_t ;
-#if 1 // Constants for softleds
+#if 1 // Constants and variables for softleds
 //////////////////////////////////////////////////////////////////////////////////
 // global data for softleds ( used in ISR )
 // the PWM pulses are created together with stepper pulses
@@ -222,7 +223,6 @@ const uint8_t iSteps[] = {9, 16 ,23 ,29, 35,41, 45, 49, 53, 56, 59, 62, 64, 66, 
 #define LED_CYCLE_MAX   (iSteps[LED_STEP_MAX])
 #define LED_PWMTIME     (iSteps[LED_STEP_MAX] / 5)  // PWM refreshrate in ms
                                         // todo: dies gilt nur bei einer CYCLETIME von 200us (derzeit default)
-#endif
 typedef struct ledData_t {            // global led values ( used in IRQ )
   struct ledData_t*   nextLedDataP;   // chaining the active Leds
   struct ledData_t**  backLedDataPP;    // adress of pointer, that points to this led (backwards reference)
@@ -253,12 +253,14 @@ typedef struct ledData_t {            // global led values ( used in IRQ )
   uint8_t pin;                 // Outputpins as Arduino numbers
   #endif
 } ledData_t;
+#endif
 
 
 //////////////////////////////////////////////////////////////////////////////
 class Stepper4
 {
   private:
+    stepperData_t _stepperData;      // Variables that are used in IRQ
     uint8_t stepperIx;              // Index in Structure
     int stepsRev;                   // steps per full rotation
     uint16_t _stepSpeed10;          // speed in steps/10sec
