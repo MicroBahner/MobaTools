@@ -106,7 +106,7 @@
 #define CYCLETIME   200     // Irq-periode in us. Step time is an integer multiple
                             // of this value
 #define CYCLETICS   CYCLETIME*TICS_PER_MICROSECOND
-#define RAMPOFFSET  3       // startvaue of rampcounter
+#define RAMPOFFSET  16       // startvaue of rampcounter
 
 // defines for soft-leds
 #define MAX_LEDS    16     // Soft On/Off defined for compatibility reasons. There is no fixed limit anymore.

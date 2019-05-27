@@ -218,7 +218,6 @@ static bool speedV08 = true;    // Compatibility-Flag for speed method
 
 // Variables for stepper motors
 static stepperData_t *stepperRootP = NULL;    // start of stepper data chain ( NULL if no stepper object )
-static stepperData_t *stepperDataP = NULL;         // actual stepper data in IRQ
 static uint8_t spiData[2]; // step pattern to be output on SPI
                             // low nibble of spiData[0] is SPI_1
                             // high nibble of spiData[1] is SPI_4
@@ -239,9 +238,11 @@ static uint8_t ledCycleCnt = 0;    // count IRQ cycles within PWM cycle
 
 // global functions / Interrupts
 
-
+// ToDo: disabel/enable OCRB-Interrupt only
+#define _noStepIRQ noInterrupts
+#define _stepIRQ     interrupts
 // ---------- OCRxB Compare Interrupt used for stepper motor and Softleds ----------------
-#pragma GCC optimize "Os"
+#pragma GCC optimize "O3"
 #ifdef __AVR_MEGA__
 ISR ( TIMERx_COMPB_vect)
 #elif defined __STM32F1__
@@ -249,6 +250,7 @@ void ISR_Stepper(void)
 #endif
 { // Timer1 Compare B, used for stepper motor, starts every CYCLETIME us
     // 26-09-15 An Interrupt is only created at timeslices, where data is to output
+    stepperData_t *stepperDataP;         // actual stepper data in IRQ
     uint8_t i, spiChanged, changedPins, bitNr;
     uint16_t tmp;
     uint8_t nextCycle = 20000  / CYCLETIME ;// min ist one cycle per Timeroverflow
@@ -259,63 +261,69 @@ void ISR_Stepper(void)
     // ---------------Stepper motors ---------------------------------------------
     while ( stepperDataP != NULL ) {
         // für maximal 4 Motore
-        if ( stepperDataP->output == A4988_PINS ) {
+        /*if ( stepperDataP->output == A4988_PINS ) {
             // reset step pulse - pulse is max one cycle lenght
             #ifdef FAST_PORTWRT
             *stepperDataP->portPins[0].Adr &= ~stepperDataP->portPins[0].Mask;
             #else
             digitalWrite( stepperDataP->pins[0], LOW );
             #endif
-        }
+        }*/
         if ( stepperDataP->activ && stepperDataP->stepCnt > 0 ) {
             // only active motors
             //SET_TP2;
             stepperDataP->cycCnt+=cyclesLastIRQ;
             if ( stepperDataP->cycCnt >= stepperDataP->aCycSteps ) {
                 // Do one step
-                //SET_TP2;
+                CLR_TP1;
                 stepperDataP->cycCnt = 0 ;
                 // update position for absolute positioning
                 stepperDataP->stepsFromZero += stepperDataP->patternIxInc;
                 
                 if ( !stepperDataP->endless ) --stepperDataP->stepCnt;
                 // sign of patternIxInc defines direction
-                stepperDataP->patternIx += stepperDataP->patternIxInc;
+                /*stepperDataP->patternIx += stepperDataP->patternIxInc;
                 if ( stepperDataP->patternIx > 7 ) stepperDataP->patternIx = 0;
-                if ( stepperDataP->patternIx < 0 ) stepperDataP->patternIx += 8;
+                if ( stepperDataP->patternIx < 0 ) stepperDataP->patternIx += 8;*/
+                //#define _patIx stepperDataP->patternIx
+                int8_t _patIx;
+                _patIx = stepperDataP->patternIx + stepperDataP->patternIxInc;
+                if ( _patIx > 7 ) _patIx = 0;
+                if ( _patIx < 0 ) _patIx += 8;SET_TP1;
+                stepperDataP->patternIx = _patIx;
                 
                 // store pattern data
                 switch ( stepperDataP->output ) {
                   #ifdef __AVR_MEGA__
                   case PIN4_7:
-                    PORTD = (PORTD & 0x0f) | ( stepPattern[ stepperDataP->patternIx ] <<4 );   
+                    PORTD = (PORTD & 0x0f) | ( stepPattern[ _patIx ] <<4 );   
                     break;
                   case PIN8_11:
-                    PORTB = (PORTB & 0xf0) | ( stepPattern[ stepperDataP->patternIx ] );   
+                    PORTB = (PORTB & 0xf0) | ( stepPattern[ _patIx ] );   
                     break;
                   #endif
                   case SPI_1:
-                    spiData[0] = (spiData[0] & 0xf0) | ( stepPattern[ stepperDataP->patternIx ] );
+                    spiData[0] = (spiData[0] & 0xf0) | ( stepPattern[ _patIx ] );
                     spiChanged = true;                    
                     break;
                   case SPI_2:
-                    spiData[0] = (spiData[0] & 0x0f) | ( stepPattern[ stepperDataP->patternIx ] <<4 );
+                    spiData[0] = (spiData[0] & 0x0f) | ( stepPattern[ _patIx ] <<4 );
                     spiChanged = true;
                     break;
                   case SPI_3:
-                    spiData[1] = (spiData[1] & 0xf0) | ( stepPattern[ stepperDataP->patternIx ] );   
+                    spiData[1] = (spiData[1] & 0xf0) | ( stepPattern[ _patIx ] );   
                     spiChanged = true;
                     break;
                   case SPI_4:
-                    spiData[1] = (spiData[1] & 0x0f) | ( stepPattern[ stepperDataP->patternIx ] <<4 );
+                    spiData[1] = (spiData[1] & 0x0f) | ( stepPattern[ _patIx ] <<4 );
                     spiChanged = true;
                     break;
                   case SINGLE_PINS : // Outpins are individually defined
-                    changedPins = stepPattern[ stepperDataP->patternIx ] ^ stepperDataP->lastPattern;
+                    changedPins = stepPattern[ _patIx ] ^ stepperDataP->lastPattern;
                     for ( bitNr = 0; bitNr < 4; bitNr++ ) {
                         if ( changedPins & (1<<bitNr ) ) {
                             // bit Changed, write to pin
-                            if ( stepPattern[ stepperDataP->patternIx ] & (1<<bitNr) ) {
+                            if ( stepPattern[ _patIx ] & (1<<bitNr) ) {
                                 #ifdef FAST_PORTWRT
                                 *stepperDataP->portPins[bitNr].Adr |= stepperDataP->portPins[bitNr].Mask;
                                 #else
@@ -330,10 +338,11 @@ void ISR_Stepper(void)
                             }
                         }
                     }
-                    stepperDataP->lastPattern = stepPattern[ stepperDataP->patternIx ];
+                    stepperDataP->lastPattern = stepPattern[ _patIx ];
                     break;
                   case A4988_PINS : // output step-pulse and direction
                     // direction first
+                    CLR_TP1;
                     if ( stepperDataP->patternIxInc > 0 ) {
                         // turn forward 
                         #ifdef FAST_PORTWRT
@@ -360,6 +369,7 @@ void ISR_Stepper(void)
                     // should never be reached
                     break;
                 }
+                SET_TP1;
                 #if 1 // compute nexte steplength
                     //CLR_TP2;
                 // computing time to next step ( if in ramp )
@@ -406,7 +416,7 @@ void ISR_Stepper(void)
             nextCycle = min ( nextCycle, stepperDataP->aCycSteps-stepperDataP->cycCnt );
         } // end of 'if stepper active AND moving'
         if ( stepperDataP->output == A4988_PINS ) {
-            // reset step pulse - pulse is max one cycle lenght
+            // reset step pulse
             #ifdef FAST_PORTWRT
             *stepperDataP->portPins[0].Adr &= ~stepperDataP->portPins[0].Mask;
             #else
@@ -889,6 +899,7 @@ void ISR_Servo( void) {
 #endif // VARIABLE_POSITION_SERVO_PULSES
 
 // ------------ end of Interruptroutines ------------------------------
+#pragma GCC optimize "Os"
 
 static void seizeTimer1()
 {
@@ -1338,10 +1349,23 @@ void Stepper4::rotate(int8_t direction) {
     if ( stepMode == NOSTEP ) return; // Invalid object
     
 	if (direction == 0 ) {
-        // identical to 'stop'
-		stop();
+        if ( _stepRampLen == 0 ) {
+            // no ramp, identical to 'stop'
+            stop();
+        } else {
+            // start decelerating
+            _noStepIRQ();
+            if ( _stepperData.stepCnt > _stepperData.stepCntStop ) {
+                _stepperData.endless = false;
+                _stepperData.stepCnt = _stepRampLen+1;
+                _stepperData.stepCntStop = _stepRampLen;
+                _stepperData.rampState = RAMPDECEL;
+                _stepperData.stepsInRamp = _stepRampLen+RAMPOFFSET;
+            }
+            _stepIRQ();
+        }
 	} else {
-		noInterrupts();
+		_noStepIRQ();
 		_stepperData.endless = true;
 		_stepperData.stepCnt = 1;
 		if ( direction > 0 ) {
@@ -1351,7 +1375,13 @@ void Stepper4::rotate(int8_t direction) {
             _stepperData.patternIxInc = -abs( _stepperData.patternIxInc );
             stepsToMove = -1;
          }
-		interrupts();
+         // Starting a ramp?
+         if ( _stepRampLen > 0 ) {
+            _stepperData.stepCntStop = 0; 
+            _stepperData.rampState = RAMPACCEL;
+            _stepperData.stepsInRamp = RAMPOFFSET;
+         }
+		_stepIRQ();
 	}
 }
 
