@@ -147,6 +147,10 @@ typedef struct stepperData_t {
   struct stepperData_t *nextStepperDataP;    // chain pointer
   volatile long stepCnt;        // nmbr of steps to take
   long stepCntStop;             // stepcounter value at which the stop-Ramp must be started
+  
+  long stepCnt2;                // nmbr of steps to take after reverse
+  long stepCntStop2;            // stepcounter value at which the stop-Ramp must be started after automatic reverse
+  
   rampStats_t rampState;        // State of acceleration/deceleration
   volatile int8_t patternIx;    // Pattern-Index of actual Step (0-7)
   int8_t patternIxInc;          // halfstep: +/-1, fullstep: +/-2, A4988 +3/-3/
@@ -154,6 +158,7 @@ typedef struct stepperData_t {
   uint16_t tCycSteps;           // nbr of IRQ cycles per step ( target value of motorspeed  )
   uint16_t tCycRemain;          // Remainder of division when computing tCycSteps
   uint16_t aCycSteps;           // nbr of IRQ cycles per step ( actual motorspeed  )
+  uint16_t aCycRemain;          // Remainder of division when computing aCycSteps
   //uint16_t sCycSteps;           // nbr of IRQ cycles per step for first Step after Stop ( ramp start )
   //uint16_t stepsToStop;         // steps until stop when decelerating     
   //uint16_t stepsRampLen;        // length of ramp . '0' means without ramp
@@ -166,7 +171,7 @@ typedef struct stepperData_t {
                                 // in FULLSTEP mode this is twice the real step number
   uint8_t output  :6 ;             // PORTB(pin8-11), PORTD (pin4-7), SPI0,SPI1,SPI2,SPI3, SINGLE_PINS, A4988_PINS
   uint8_t activ :1;  
-  uint8_t endless :1;              // turn endless
+  //uint8_t endless :1;              // turn endless
   #ifdef FAST_PORTWRT
   portBits_t portPins[4];       // Outputpins as Portaddress and Bitmask for faster writing
   #else
@@ -272,6 +277,7 @@ class Stepper4
     //uint8_t minrCycSteps;           // absolute minimum time between 2 steps even with ramp
     static outUsed_t outputsUsed;
     long getSFZ();                  // get step-distance from last reference point
+    bool _chkRunning();             // check if stepper is running
     void initialize(int,uint8_t,uint8_t);
     uint16_t  _setRampValues();
   public:

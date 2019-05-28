@@ -45,13 +45,17 @@ write	KEYWORD2
 attach	KEYWORD2
 detach	KEYWORD2
 write	KEYWORD2
+writeSteps	KEYWORD2
 setZero	KEYWORD2
 setSpeed	KEYWORD2
+setSpeedSteps	KEYWORD2
+setRampLen	KEYWORD2
 doSteps	KEYWORD2
 rotate	KEYWORD2
 stop	KEYWORD2
 moving	KEYWORD2
 read	KEYWORD2
+readSteps	KEYWORD2
 attached	KEYWORD2
 
 #######################################
