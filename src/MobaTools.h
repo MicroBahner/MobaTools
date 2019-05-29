@@ -112,6 +112,7 @@
 #define MAX_LEDS    16     // Soft On/Off defined for compatibility reasons. There is no fixed limit anymore.
 
 // defines for servos
+#define WITHSERVO
     #define MINPULSEWIDTH   700     // don't make it shorter
     #define MAXPULSEWIDTH   2300    // don't make it longer
 #ifdef FIXED_POSITION_SERVO_PULSES
@@ -133,6 +134,8 @@
                             // Only when computing the next interrupt time the values are divided by this value again to get
                             // the real 'timer tics'
 
+// Defines for Softleds
+#define WITHSOFTLED
 ///////////////////////////////////////////////////////////////////////////////////////////////
 // 
 typedef struct {    // portaddress and bitmask for direkt pin set/reset
@@ -210,7 +213,7 @@ typedef struct servoData_t {
   #endif
   uint8_t pin     ;     // pin 
 } servoData_t ;
-#if 1 // Constants and variables for softleds
+#ifdef WITHSOFTLED // Constants and variables for softleds
 //////////////////////////////////////////////////////////////////////////////////
 // global data for softleds ( used in ISR )
 // the PWM pulses are created together with stepper pulses

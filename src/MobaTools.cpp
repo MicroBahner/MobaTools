@@ -229,7 +229,7 @@ static uint8_t cyclesLastIRQ = 1;  // cycles since last IRQ
 // variables for softLeds
 static ledData_t* ledRootP = NULL; //start of ledData-chain
 static byte ledCount = 0;
-static uint8_t ledNextCyc = 1;     // next Cycle that is relevant for leds
+static uint8_t ledNextCyc = 20000  / CYCLETIME;     // next Cycle that is relevant for leds
 static uint8_t ledCycleCnt = 0;    // count IRQ cycles within PWM cycle
 //static uint8_t  ledStepIx = 0;      // Stepcounter for Leds ( Index in Array isteps , 0: start of pwm-Cycle )
 //static uint8_t  ledNextStep = 0;    // next step needed for softleds
@@ -239,8 +239,29 @@ static uint8_t ledCycleCnt = 0;    // count IRQ cycles within PWM cycle
 // global functions / Interrupts
 
 // ToDo: disabel/enable OCRB-Interrupt only
-#define _noStepIRQ noInterrupts
+//#define _noStepIRQ noInterrupts
 #define _stepIRQ     interrupts
+void  _noStepIRQ() {
+        #if defined(__AVR_ATmega8__)|| defined(__AVR_ATmega128__)
+            TIMSK &= ~( _BV(OCIExB) );    // enable compare interrupts
+        #elif defined __AVR_MEGA__
+            TIMSKx &= ~_BV(OCIExB) ; 
+        #elif defined __STM32F1__
+            //timer_cc_enable(MT_TIMER, STEP_CHN);
+            noInterrupts;
+        #endif
+}
+void  _StepIRQ() {
+        #if defined(__AVR_ATmega8__)|| defined(__AVR_ATmega128__)
+            TIMSK |= ( _BV(OCIExB) );    // enable compare interrupts
+        #elif defined __AVR_MEGA__
+            TIMSKx |= _BV(OCIExB) ; 
+        #elif defined __STM32F1__
+            //timer_cc_enable(MT_TIMER, STEP_CHN);
+            interrupts();
+        #endif
+}
+
 // ---------- OCRxB Compare Interrupt used for stepper motor and Softleds ----------------
 #pragma GCC optimize "O3"
 #ifdef __AVR_MEGA__
@@ -370,7 +391,9 @@ void ISR_Stepper(void)
                 }
                 SET_TP1;
                 if ( --stepperDataP->stepCnt == 0 ) {
-                    // this was the last step. check if we have to start another movement
+                    // this was the last step. ToDo: check if we have to start another movement
+                    stepperDataP->aCycSteps = 20000;    // no more Interrupts for this stepper needed
+                    stepperDataP->rampState = STOPPED;
                     ;
                 } else { 
                     // compute nexte steplength
@@ -405,16 +428,12 @@ void ISR_Stepper(void)
                         // we are stopping the motor
                         stepperDataP->aCycSteps = stepperDataP->cyctXramplen / stepperDataP->stepsInRamp ;
                         stepperDataP->stepsInRamp --;
-                        //did we reach the end of ramp?
-                        /*if ( stepperDataP->stepsInRamp < RAMPOFFSET )
-                            stepperDataP->rampState = NORAMP;*/
                         SET_TP1;
                         break;
 
-                    case STOPPED:
                     case CRUISING:
                     case NORAMP:
-                        // Not in ramp, mode without ramp, targetspeed reached or stopped
+                        // Not in ramp, targetspeed reached
                         CLR_TP1; CLR_TP2;
                         stepperDataP->aCycSteps = stepperDataP->tCycSteps;
                         stepperDataP->aCycRemain += stepperDataP->tCycRemain;
@@ -425,6 +444,10 @@ void ISR_Stepper(void)
                         SET_TP1;
                         break;
                         
+                    case STOPPED:
+                        //stopped
+                        SET_TP1;
+                        break;
                     } // End of ramp-statemachine
                     //SET_TP2;
                     
@@ -644,8 +667,8 @@ void ISR_Stepper(void)
 // ---------- SPI interupt used for output stepper motor data -------------
 extern "C" {
 #ifdef __AVR_MEGA__
-ISR ( SPI_STC_vect )
-{   // output step-pattern on SPI, set SS when ready
+ISR ( SPI_STC_vect ) { 
+    // output step-pattern on SPI, set SS when ready
     if ( spiByteCount++ == 0 ) {
         // end of shifting out high Byte, shift out low Byte
         SPDR = spiData[0];
@@ -1029,17 +1052,17 @@ void Stepper4::initialize ( int steps360, uint8_t mode, uint8_t minStepTime ) {
         _stepperData.patternIx = 0;
         _stepperData.patternIxInc = mode;         // positive direction
         //minCycSteps = minStepTime*1000/CYCLETIME;         // minStepTime in ms, cycletime in us
-        _stepperData.aCycSteps = MIN_STEPTIME/CYCLETIME; // set to maximum speed, 1 Step every 4 Irq's ( 800µs )
+        _stepperData.aCycSteps = 20000; //MIN_STEPTIME/CYCLETIME; // set to maximum speed, 1 Step every 4 Irq's ( 800µs )
         _stepperData.tCycSteps = _stepperData.aCycSteps; 
-        _stepperData.tCycRemain = 0;              // ToDo: work with remainder when cruising
+        _stepperData.tCycRemain = 0;                // work with remainder when cruising
         _stepperData.stepsFromZero = 0;
-        _stepperData.rampState = NORAMP;     // initialize with no acceleration  
+        _stepperData.rampState = STOPPED;
         _stepperData.stepCntStop = 0;
-        _stepRampLen                     = 0;
+        _stepRampLen             = 0;               // initialize with no acceleration  
         _stepperData.activ = 0;
         _stepperData.output = NO_OUTPUT;          // unknown
         _stepperData.nextStepperDataP = NULL;
-        // add to chain
+        // add at end of chain
         stepperData_t **tmpPP = &stepperRootP;
         while ( *tmpPP != NULL ) tmpPP = &((*tmpPP)->nextStepperDataP);
         *tmpPP = &_stepperData;
@@ -1058,11 +1081,12 @@ long Stepper4::getSFZ() {
 
 bool Stepper4::_chkRunning() {
     // is the stepper moving?
-    bool tmp;
+    /*bool tmp;
     _noStepIRQ();
     tmp = _stepperData.stepCnt != 0;
     _stepIRQ();
-    return tmp;
+    return tmp;*/
+    return ( _stepperData.rampState != STOPPED );
 }
 
 // public functions -------------------
@@ -1181,8 +1205,7 @@ uint8_t Stepper4::attach( byte outArg, byte pins[] ) {
     return attachOK;
 }
 
-void Stepper4::detach()
-{   // no more moving, detach from output
+void Stepper4::detach() {   // no more moving, detach from output
     if ( stepMode == NOSTEP ) return ; // Invalid object
     
     _stepperData.output = 0;
@@ -1237,25 +1260,26 @@ uint16_t Stepper4::_setRampValues() {
         _stepperData.cyctXramplen = tmp;
     }
     // recompute all relevant rampvalues according to actual speed and ramplength
+    // ToDo: recompute according to actual stepper state ( if it is not in STOPPED state )
     if ( _stepRampLen == 0 ) {
         // without ramp
-        _stepperData.rampState = NORAMP;
+        //_stepperData.rampState = NORAMP;
         _stepperData.aCycSteps = _stepperData.tCycSteps;
         _stepperData.stepCntStop = 0;
     } else{
         //with ramp
         // lock IRQ, because we use variables that are changed in IRQ
-        noInterrupts();
-        if ( _stepperData.stepCnt == 0 ) {
-            // stepper is stopped
-            _stepperData.rampState = RAMPACCEL;
-            _stepperData.stepsInRamp = RAMPOFFSET;
+        if ( _stepperData.rampState == STOPPED ) {
+            // stepper is stopped, nothing to do
+            //_stepperData.rampState = RAMPACCEL;
+            //_stepperData.stepsInRamp = RAMPOFFSET;
             
         } else {
+        noInterrupts();
             // stepper is running
             // ToDo!!
-        }
         interrupts();
+        }
     }
     DB_PRINT( "RampValues:, Spd=%d, rmpLen=%d, tcyc=%d, trest=%d, acyc=%d", _stepSpeed10, _stepRampLen,
                     _stepperData.tCycSteps, _stepperData.tCycRemain, _stepperData.aCycSteps );
@@ -1264,6 +1288,15 @@ uint16_t Stepper4::_setRampValues() {
 
 void Stepper4::doSteps( long stepValue ) {
     // rotate stepValue steps
+    // compute IRQ relevant Values locally befor storing in structure
+    long stepCnt;                 // nmbr of steps to take
+    long stepCntStop;             // stepcounter value at which the stop-Ramp must be started
+    long stepCnt2;                // nmbr of steps to take after reverse
+    long stepCntStop2;            // stepcounter value at which the stop-Ramp must be started after automatic reverse
+    rampStats_t rampState;        // State of acceleration/deceleration
+    int8_t patternIxInc;          // halfstep: +/-1, fullstep: +/-2, A4988 +3/-3/
+    uint16_t aCycSteps;           // nbr of IRQ cycles per step ( actual motorspeed  )
+    
     if ( stepMode == NOSTEP ) return ; // Invalid object
     //Serial.print( "doSteps: " ); Serial.println( stepValue );
     if ( stepValue == 0 ) return;   // no step to do
@@ -1272,8 +1305,7 @@ void Stepper4::doSteps( long stepValue ) {
     stepsToMove = stepValue;
     //DB_PRINT( " stepsToMove: %d ",stepsToMove );
     
-    long tmp = abs(stepsToMove);
-    rampStats_t tmpState = RAMPACCEL;
+    stepCntStop = abs(stepsToMove);
     if ( _stepRampLen > 0 ) {
         // stepping with ramp
         // is the stepper moving?
@@ -1287,11 +1319,12 @@ void Stepper4::doSteps( long stepValue ) {
                     
                     break;
                   case RAMPDECEL:
-                    // we are decelerating
+                    // we are decelerating                                                                                                                                                                                                                                                               
                     
                     break;
                   case CRUISING:
-                  
+                    rampState = CRUISING;
+                    // compute new start of dec ramp
                     break;
                 }
                 
@@ -1300,25 +1333,33 @@ void Stepper4::doSteps( long stepValue ) {
             }
         } else {
             // stepper does not move -> start a new move
-            if ( _stepRampLen > tmp/2 ) {
+            if ( _stepRampLen > stepCntStop/2 ) {
                 // we cannot go the whole ramp
-                tmp = ((tmp+1)/2-1);    // start stop ramp after half way
+                stepCntStop = ((stepCntStop+1)/2-1);    // start stop ramp after half way
             } else {
-                tmp = _stepRampLen-1;
+                stepCntStop = _stepRampLen-1;
             }
+            rampState = RAMPACCEL;
+
         }
     } else {
         // no ramp
-        tmp = 0;        // no start of decelerating ramp
-        tmpState = NORAMP;
+        stepCntStop = 0;        // no start of decelerating ramp
+        rampState = NORAMP;
     }
+    if ( stepValue > 0 ) patternIxInc = abs( _stepperData.patternIxInc );
+    else     patternIxInc = -abs( _stepperData.patternIxInc );
+    
     noInterrupts();
-    if ( stepValue > 0 ) _stepperData.patternIxInc = abs( _stepperData.patternIxInc );
-    else _stepperData.patternIxInc = -abs( _stepperData.patternIxInc );
+    _stepperData.patternIxInc = patternIxInc;
     _stepperData.stepCnt = abs(stepsToMove);
-    _stepperData.stepCntStop = tmp;
-    _stepperData.rampState = tmpState;
-    _stepperData.stepsInRamp = RAMPOFFSET;
+    _stepperData.cycCnt         = 0;            // start with the next IRQ
+    _stepperData.aCycSteps      = 0;   
+    _stepperData.aCycRemain     = 0;   
+    _stepperData.stepCntStop    = stepCntStop;  // = 0 if no ramp
+    _stepperData.rampState      = rampState;
+    _stepperData.stepsInRamp    = RAMPOFFSET;
+    _stepperData.rampState      = rampState;
     interrupts();
     DB_PRINT( "StepValues:, sCnt=%ld, sStop=%ld, sMove=%ld, aCyc=%d", _stepperData.stepCnt, _stepperData.stepCntStop, stepsToMove, _stepperData.aCycSteps );
     
@@ -1445,7 +1486,7 @@ void Stepper4::stop() {
 // --------- Class Servo8 ---------------------------------
 // Class-specific Variables
 
-
+#ifdef WITHSERVO
 const byte NO_ANGLE = 0xff;
 const byte NO_PIN = 0xff;
 
@@ -1638,13 +1679,13 @@ uint8_t Servo8::attached()
 {
     return ( pin != NO_PIN );
 }
-
+#endif
 
 
 /////////////////////////////////////////////////////////////////////////////
 //Class SoftLed - for Led with soft on / soft off ---------------------------
 // Version with Software PWM
-
+#ifdef WITHSOFTLED
 SoftLed::SoftLed() {
     ledValid = LEDVALID;            // Flag 'object created'
     ledIx = ledCount++;
@@ -1818,7 +1859,7 @@ void SoftLed::riseTime( int riseTime ) {
     ledSpeed = tmp;
     //DB_PRINT( "ledSpeed[%d] = %d ( risetime=%d, riseMax=%d )", ledIx, ledSpeed, riseTime, riseMax );
 }
-
+#endif
 ////////////////////////////////////////////////////////////////////////////
 // Class EggTimer - Timerverwaltung für Zeitverzögerungen in der Loop-Schleife
 // 
