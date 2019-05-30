@@ -145,7 +145,7 @@ typedef struct {    // portaddress and bitmask for direkt pin set/reset
 
 /////////////////////////////////////////////////////////////////////////////////
 // global stepper data ( used in ISR )
-enum rampStats_t:byte { NORAMP, RAMPSTART, RAMPACCEL, CRUISING, STARTDECEL, RAMPDECEL, STOPPED };
+enum rampStats_t:byte { INACTIVE, STOPPED, NORAMP, RAMPSTART, RAMPACCEL, CRUISING, STARTDECEL, RAMPDECEL  };
 typedef struct stepperData_t {
   struct stepperData_t *nextStepperDataP;    // chain pointer
   volatile long stepCnt;        // nmbr of steps to take
