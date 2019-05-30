@@ -145,11 +145,11 @@ typedef struct {    // portaddress and bitmask for direkt pin set/reset
 
 /////////////////////////////////////////////////////////////////////////////////
 // global stepper data ( used in ISR )
-enum rampStats_t:byte { NORAMP, RAMPSTART, RAMPACCEL, CRUISING, RAMPDECEL, STOPPED };
+enum rampStats_t:byte { NORAMP, RAMPSTART, RAMPACCEL, CRUISING, STARTDECEL, RAMPDECEL, STOPPED };
 typedef struct stepperData_t {
   struct stepperData_t *nextStepperDataP;    // chain pointer
   volatile long stepCnt;        // nmbr of steps to take
-  long stepCntStop;             // stepcounter value at which the stop-Ramp must be started
+  int16_t stepRampLen;          // Length of ramp in steps
   
   long stepCnt2;                // nmbr of steps to take after reverse
   long stepCntStop2;            // stepcounter value at which the stop-Ramp must be started after automatic reverse
@@ -272,7 +272,6 @@ class Stepper4
     uint8_t stepperIx;              // Index in Structure
     int stepsRev;                   // steps per full rotation
     uint16_t _stepSpeed10;          // speed in steps/10sec
-    int16_t _stepRampLen;          // Length of ramp in steps
     long stepsToMove;                // from last point
     uint8_t stepMode;               // FULLSTEP or HALFSTEP
     //uint8_t minCycSteps;            // minimum time between 2 steps without ramp
