@@ -20,6 +20,9 @@
 		Allow nested Interrupts with the servos. This allows more precise other
         interrupts e.g. for NmraDCC Library.
 		A4988 stepper driver IC is supported (needs only 2 ports: step and direction)
+        
+  V1.1 05-2019
+        stepper now supports ramps (accelerating, decelerating )
 
   This library is free software; you can redistribute it and/or
   modify it under the terms of the GNU General Public
@@ -42,7 +45,7 @@
 
 // Debug-Ports
 #define debugTP
-//#define debugPrint
+#define debugPrint
 #ifdef debugTP 
     #if defined(__AVR_ATmega1280__) || defined(__AVR_ATmega2560__)
         #define MODE_TP1 DDRF |= (1<<2) //pinA2
@@ -290,7 +293,8 @@ void ISR_Stepper(void)
             digitalWrite( stepperDataP->pins[0], LOW );
             #endif
         }*/
-        if ( stepperDataP->activ && stepperDataP->stepCnt > 0 ) {
+        //if ( stepperDataP->activ && stepperDataP->stepCnt > 0 ) {
+        if ( stepperDataP->rampState != STOPPED ) {
             // only active motors
             //SET_TP2;
             stepperDataP->cycCnt+=cyclesLastIRQ;
@@ -390,6 +394,7 @@ void ISR_Stepper(void)
                     break;
                 }
                 SET_TP1;
+                // ------------------ check if last step -----------------------------------
                 if ( --stepperDataP->stepCnt == 0 ) {
                     // this was the last step.
                     if (stepperDataP->stepCnt2 > 0 ) { // check if we have to start a movement backwards
@@ -404,14 +409,20 @@ void ISR_Stepper(void)
                         CLR_TP2;
                     }
                 }
-                // compute nexte steplength
+                // --------------- compute nexte steplength ------------------------------------
                 //CLR_TP2;
                 // ramp state machine
                 switch ( stepperDataP->rampState ) {
                   case  RAMPACCEL:
                     // we are accelerating the motor
                     CLR_TP1; SET_TP2;
-                    stepperDataP->aCycSteps = stepperDataP->cyctXramplen / (stepperDataP->stepsInRamp + RAMPOFFSET) ;
+                    if (stepperDataP->stepsInRamp > stepperDataP->stepRampLen ) {
+                        // we reached the end of the ramp
+                        stepperDataP->aCycSteps = stepperDataP->tCycSteps;
+                        stepperDataP->aCycRemain = 0;
+                        stepperDataP->rampState = CRUISING;
+                    } else 
+                        stepperDataP->aCycSteps = stepperDataP->cyctXramplen / (stepperDataP->stepsInRamp + RAMPOFFSET) +1;
                     // do we have to start deceleration ( remeining steps < steps in ramp so far )
                     // Ramp must be same length in accelerating and decelerating!
                     if ( stepperDataP->stepCnt <= (long)( stepperDataP->stepsInRamp  ) ) {
@@ -419,11 +430,6 @@ void ISR_Stepper(void)
                         stepperDataP->rampState = STARTDECEL;
                         //DB_PRINT( "scnt=%ld, sIR=%u\n\r", stepperDataP->stepCnt, stepperDataP->stepsInRamp );
                         SET_TP2;
-                    } else if (stepperDataP->aCycSteps <= stepperDataP->tCycSteps ) {
-                        // did we reach end of the ramp?
-                        stepperDataP->aCycSteps = stepperDataP->tCycSteps;
-                        stepperDataP->aCycRemain = 0;
-                        stepperDataP->rampState = CRUISING;
                     } else {
                         // still in ramp
                         stepperDataP->stepsInRamp ++;
@@ -443,8 +449,7 @@ void ISR_Stepper(void)
                         //DB_PRINT( "scnt=%ld, sIR=%u\n\r", stepperDataP->stepCnt, stepperDataP->stepsInRamp );
                         SET_TP2;
                     }
-                    //stepperDataP->stepsInRamp --;
-                    stepperDataP->aCycSteps = stepperDataP->cyctXramplen / ( --stepperDataP->stepsInRamp + RAMPOFFSET ) ;
+                    stepperDataP->aCycSteps = stepperDataP->cyctXramplen / ( --stepperDataP->stepsInRamp + RAMPOFFSET ) +1 ;
                     SET_TP1;
                     break;
 
@@ -458,7 +463,7 @@ void ISR_Stepper(void)
                         stepperDataP->aCycRemain -= CYCLETIME;
                         stepperDataP->aCycSteps++;
                     }
-                    // do we have to start the decelaration
+                    // do we have to start the deceleration
                     if ( stepperDataP->stepCnt <= stepperDataP->stepRampLen ) {
                         // in mode without ramp ( stepRampLen = 0 ) , this can never be true
                         stepperDataP->rampState = STARTDECEL;
@@ -1231,6 +1236,7 @@ void Stepper4::detach() {   // no more moving, detach from output
     
     _stepperData.output = 0;
     _stepperData.activ = 0;
+    _stepperData.rampState = STOPPED;
     
 }
 
@@ -1308,13 +1314,15 @@ uint16_t Stepper4::_setRampValues() {
 
 void Stepper4::doSteps( long stepValue ) {
     // rotate stepValue steps
-    // compute IRQ relevant Values locally befor storing in structure
+    // if the motor is already moving, this is counted from the actual position.
+    // This means in ramp mode the motor may go beyond the desired position and than turn backwards 
+    // to reach the targetposition ( stepValue steps away from actual position ) .
+
     long stepCnt;                 // nmbr of steps to take
     int8_t patternIxInc;
     
     if ( stepMode == NOSTEP ) return ; // Invalid object
     //Serial.print( "doSteps: " ); Serial.println( stepValue );
-    if ( stepValue == 0 ) return;   // no step to do
     
     stepsToMove = stepValue;
     stepCnt = abs(stepValue);
@@ -1389,19 +1397,21 @@ void Stepper4::doSteps( long stepValue ) {
             }
         } else {
             // stepper does not move -> start a new move
-            if ( stepValue > 0 ) patternIxInc = abs( _stepperData.patternIxInc );
-            else     patternIxInc = -abs( _stepperData.patternIxInc );
-            
-            _noStepIRQ();
-            _stepperData.patternIxInc   = patternIxInc;
-            _stepperData.cycCnt         = 0;            // start with the next IRQ
-            _stepperData.aCycSteps      = 0;
-            _stepperData.aCycRemain     = 0;   
-            _stepperData.rampState      = RAMPACCEL;
-            _stepperData.stepsInRamp    = 0;
-            _stepperData.stepCnt        = abs(stepsToMove);
-            _stepIRQ();
-
+            if ( stepValue != 0 ) {
+                // we must move
+                if ( stepValue > 0 ) patternIxInc = abs( _stepperData.patternIxInc );
+                else     patternIxInc = -abs( _stepperData.patternIxInc );
+                
+                _noStepIRQ();
+                _stepperData.patternIxInc   = patternIxInc;
+                _stepperData.cycCnt         = 0;            // start with the next IRQ
+                _stepperData.aCycSteps      = 0;
+                _stepperData.aCycRemain     = 0;   
+                _stepperData.rampState      = RAMPACCEL;
+                _stepperData.stepsInRamp    = 0;
+                _stepperData.stepCnt        = abs(stepsToMove);
+                _stepIRQ();
+            }
         }
     } else {
         // no ramp
@@ -1411,8 +1421,8 @@ void Stepper4::doSteps( long stepValue ) {
         _stepperData.patternIxInc = patternIxInc;
         _stepperData.stepCnt = abs(stepsToMove);
         _stepperData.cycCnt         = 0;            // start with the next IRQ
-        _stepperData.aCycSteps      = 0;
-        _stepperData.aCycRemain     = 0;   
+        _stepperData.aCycSteps      = _stepperData.tCycSteps;
+        _stepperData.aCycRemain     = _stepperData.tCycRemain;   
         _stepperData.rampState      = NORAMP;
         _stepIRQ();
     }
