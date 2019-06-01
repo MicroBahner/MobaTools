@@ -145,30 +145,21 @@ typedef struct {    // portaddress and bitmask for direkt pin set/reset
 
 /////////////////////////////////////////////////////////////////////////////////
 // global stepper data ( used in ISR )
-enum rampStats_t:byte { INACTIVE, STOPPED, NORAMP, RAMPSTART, RAMPACCEL, CRUISING, STARTDECEL, RAMPDECEL  };
+enum rampStats_t:byte { INACTIVE, STOPPED, RAMPSTART, RAMPACCEL, CRUISING, STARTDECEL, RAMPDECEL  };
 typedef struct stepperData_t {
   struct stepperData_t *nextStepperDataP;    // chain pointer
   volatile long stepCnt;        // nmbr of steps to take
-  int16_t stepRampLen;          // Length of ramp in steps
-  
-  long stepCnt2;                // nmbr of steps to take after reverse
-  long stepCntStop2;            // stepcounter value at which the stop-Ramp must be started after automatic reverse
-  
-  rampStats_t rampState;        // State of acceleration/deceleration
+  long stepCnt2;                // nmbr of steps to take after automatic reverse
   volatile int8_t patternIx;    // Pattern-Index of actual Step (0-7)
-  int8_t patternIxInc;          // halfstep: +/-1, fullstep: +/-2, A4988 +3/-3/
-                                // sign defines direction
+  int8_t   patternIxInc;        // halfstep: +/-1, fullstep: +/-2, A4988 +1/-1  the sign defines direction
   uint16_t tCycSteps;           // nbr of IRQ cycles per step ( target value of motorspeed  )
   uint16_t tCycRemain;          // Remainder of division when computing tCycSteps
   uint16_t aCycSteps;           // nbr of IRQ cycles per step ( actual motorspeed  )
-  uint16_t aCycRemain;          // Remainder of division when computing aCycSteps
-  //uint16_t sCycSteps;           // nbr of IRQ cycles per step for first Step after Stop ( ramp start )
-  //uint16_t stepsToStop;         // steps until stop when decelerating     
-  //uint16_t stepsRampLen;        // length of ramp . '0' means without ramp
+  uint16_t aCycRemain;          // accumulate tCycRemain when cruising
   uint16_t cyctXramplen;        // precompiled  tCycSteps*rampLen*RAMPOFFSET
+  int16_t  stepRampLen;         // Length of ramp in steps
   uint16_t stepsInRamp;         // stepcounter within ramp ( counting from stop: incrementing in startramp, decrementing in stopramp
-                                // The counter starts with RAMPOFFSET 
-  //uint16_t rStepDec;            // count of steps until decrementing cycle ( during start ramp )
+  rampStats_t rampState;        // State of acceleration/deceleration
   volatile uint16_t cycCnt;     // counting cycles until cycStep
   volatile long stepsFromZero;  // distance from last reference point ( always as steps in HALFSTEP mode )
                                 // in FULLSTEP mode this is twice the real step number
@@ -269,7 +260,7 @@ class Stepper4
 {
   private:
     stepperData_t _stepperData;      // Variables that are used in IRQ
-    uint8_t stepperIx;              // Index in Structure
+    uint8_t stepperIx;              // Objectnumber ( 0 ... MAX_STEPPER )
     int stepsRev;                   // steps per full rotation
     uint16_t _stepSpeed10;          // speed in steps/10sec
     long stepsToMove;                // from last point
@@ -301,9 +292,9 @@ class Stepper4
 	void writeSteps( long stepPos );// Go to position stepPos steps from zeropoint
     void setZero();                 // actual position is set as 0 angle (zeropoint)
     int setSpeed(int rpm10 );       // Set movement speed, rpm*10
-    void setSpeedSteps( uint16_t speed10 ); // set speed withput changing ramp
-    void setSpeedSteps( uint16_t speed10, int16_t rampLen ); // set speed and ramp
-    void setRampLen( uint16_t rampLen ); // set new ramplen in steps without changing speed
+    uint16_t setSpeedSteps( uint16_t speed10 ); // set speed withput changing ramp, returns ramp length
+    uint16_t setSpeedSteps( uint16_t speed10, int16_t rampLen ); // set speed and ramp, returns ramp length
+    uint16_t setRampLen( uint16_t rampLen ); // set new ramplen in steps without changing speed
     //int setAcceleration(int rpm10Ps ); // Set Acceleration in rpm*10 per second ( 0=no acceleration ramp )
     void doSteps(long count);       // rotate count steps. May be positive or negative
                                     // angle is updated internally, so the next call to 'write'
