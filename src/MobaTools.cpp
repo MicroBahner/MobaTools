@@ -1318,7 +1318,7 @@ uint16_t Stepper4::_setRampValues() {
     _stepperData.tCycRemain = tCycRemain;
     _stepperData.cyctXramplen = cyctXramplen;
     _stepperData.stepRampLen = stepRampLen;
-    _stepIRQ;
+    _stepIRQ();
     
     if ( _stepperData.stepRampLen == 0 ) {
         // without ramp
@@ -1458,7 +1458,7 @@ void Stepper4::doSteps( long stepValue ) {
         _stepIRQ();
     }
     
-    DB_PRINT( "StepValues:, sCnt=%ld, sMove=%ld, aCyc=%d", _stepperData.stepCnt, stepsToMove, _stepperData.aCycSteps );
+    DB_PRINT( "StepValues:, sCnt=%ld, sCnt2=%ld, sMove=%ld, aCyc=%d", _stepperData.stepCnt, _stepperData.stepCnt2, stepsToMove, _stepperData.aCycSteps );
     
 }
 
@@ -1572,9 +1572,9 @@ void Stepper4::rotate(int8_t direction) {
             _stepIRQ();
         }
 	} else if (direction > 0 ) { // ToDo: Grenzwerte sauber berechnen
-        doSteps(  2147483647L );
+        doSteps(  2147483646L - _stepperData.stepRampLen );
 	} else {
-        doSteps( -2147483647L );
+        doSteps( -2147483646L + _stepperData.stepRampLen);
     }
 }
 
