@@ -59,6 +59,7 @@
 #ifdef __STM32F1__
 #include <libmaple/timer.h>
 #include <libmaple/spi.h>
+#include <libmaple/nvic.h>
 #endif
 
 
@@ -99,13 +100,14 @@
     //defines only for STM32
     #define TICS_PER_MICROSECOND (clockCyclesPerMicrosecond() / 36 ) // prescaler is 36 = 0.5us
 #endif
-
+#define TIMERPERIODE    20000   // Timer Overflow in µs
+#define TIMER_OVL_TICS  ( TIMERPERIODE*TICS_PER_MICROSECOND )
 // defines for the stepper motor
-#define MAX_STEPPER  4    // 
+#define MAX_STEPPER  6    // 
 #define MIN_STEPTIME 800  // minimum steptime between 2 steps
 #define CYCLETIME   200     // Irq-periode in us. Step time is an integer multiple
                             // of this value
-#define CYCLETICS   CYCLETIME*TICS_PER_MICROSECOND
+#define CYCLETICS   (CYCLETIME*TICS_PER_MICROSECOND)
 #define RAMPOFFSET  16       // startvaue of rampcounter
 
 // defines for soft-leds

@@ -152,6 +152,20 @@
     
 #endif
 
+// switch off TP2, TP3 temporary
+    /*#undef  MODE_TP3
+    #undef  SET_TP3 
+    #undef  CLR_TP3 
+    #define MODE_TP3 
+    #define SET_TP3 
+    #define CLR_TP3 */
+    #undef  MODE_TP2 
+    #undef  SET_TP2 
+    #undef  CLR_TP2 
+    #define MODE_TP2 
+    #define SET_TP2 
+    #define CLR_TP2 
+
 #ifdef debugPrint
     #define DB_PRINT( x, ... ) { sprintf_P( dbgBuf, PSTR( x ), ##__VA_ARGS__ ) ; Serial.println( dbgBuf ); }
     static char dbgBuf[80];
@@ -203,6 +217,8 @@
     #define STEP_CHN    2       // OCR channel for Stepper and Leds
     #define SERVO_CHN   1       // OCR channel for Servos
     #define GET_COUNT timer_get_count(MT_TIMER)
+    
+    //#define USE_SPI2          // Use SPI1 if not defined
 #endif
 
 // constants
@@ -239,7 +255,7 @@ static uint8_t cyclesLastIRQ = 1;  // cycles since last IRQ
 // variables for softLeds
 static ledData_t* ledRootP = NULL; //start of ledData-chain
 static byte ledCount = 0;
-static uint8_t ledNextCyc = 20000  / CYCLETIME;     // next Cycle that is relevant for leds
+static uint8_t ledNextCyc = TIMERPERIODE  / CYCLETIME;     // next Cycle that is relevant for leds
 static uint8_t ledCycleCnt = 0;    // count IRQ cycles within PWM cycle
 //static uint8_t  ledStepIx = 0;      // Stepcounter for Leds ( Index in Array isteps , 0: start of pwm-Cycle )
 //static uint8_t  ledNextStep = 0;    // next step needed for softleds
@@ -275,20 +291,21 @@ void  _stepIRQ() {
 // ---------- OCRxB Compare Interrupt used for stepper motor and Softleds ----------------
 #pragma GCC optimize "O3"
 #ifdef __AVR_MEGA__
-ISR ( TIMERx_COMPB_vect)
+ISR ( TIMERx_COMPB_vect) {
 #elif defined __STM32F1__
-void ISR_Stepper(void)
+void ISR_Stepper(void) {
 #endif
-{ // Timer1 Compare B, used for stepper motor, starts every CYCLETIME us
+  // Timer1 Compare B, used for stepper motor, starts every CYCLETIME us
     // 26-09-15 An Interrupt is only created at timeslices, where data is to output
     stepperData_t *stepperDataP;         // actual stepper data in IRQ
     uint8_t i, spiChanged, changedPins, bitNr;
     uint16_t tmp;
-    uint8_t nextCycle = 20000  / CYCLETIME ;// min ist one cycle per Timeroverflow
+    uint8_t nextCycle = TIMERPERIODE  / CYCLETIME ;// min ist one cycle per Timeroverflow
     SET_TP1;SET_TP4; // Oszimessung Dauer der ISR-Routine
     spiChanged = false;
-    _noStepIRQ();    // protect against interrupting itself
+    #ifdef __AVR_MEGA__
     interrupts(); // allow nested interrupts, because this IRQ may take long
+    #endif
     stepperDataP = stepperRootP;
     // ---------------Stepper motors ---------------------------------------------
     while ( stepperDataP != NULL ) {
@@ -417,7 +434,7 @@ void ISR_Stepper(void)
                         stepperDataP->stepCnt2 = 0;
                         stepperDataP->rampState = RAMPACCEL;
                     } else {    
-                        stepperDataP->aCycSteps = 20000;    // no more Interrupts for this stepper needed
+                        stepperDataP->aCycSteps = TIMERPERIODE;    // no more Interrupts for this stepper needed
                         stepperDataP->rampState = STOPPED;
                         CLR_TP2;
                     }
@@ -517,8 +534,13 @@ void ISR_Stepper(void)
         spiByteCount = 0;
         SPDR = spiData[1];
         #elif defined __STM32F1__
+        #ifdef USE_SPI2
         digitalWrite(BOARD_SPI2_NSS_PIN,LOW);
         spi_tx_reg(SPI2, (spiData[1]<<8) + spiData[0] );
+        #else
+        digitalWrite(BOARD_SPI1_NSS_PIN,LOW);
+        spi_tx_reg(SPI1, (spiData[1]<<8) + spiData[0] );
+        #endif
         #endif
     }
     //CLR_TP2;
@@ -530,7 +552,7 @@ void ISR_Stepper(void)
     //SET_TP3;
     if ( ledCycleCnt >= ledNextCyc ) {
         // this IRQ is relevant for softleds
-        SET_TP3;
+        //SET_TP3;
         ledNextCyc = LED_CYCLE_MAX; // there must be atleast one IRQ per PWM Cycle
         if ( ledCycleCnt >= LED_CYCLE_MAX ) {
             // start of a new PWM Cycle - switch all leds with rising/falling state to on
@@ -680,7 +702,7 @@ void ISR_Stepper(void)
                 //CLR_TP4;
             }
         }
-        CLR_TP3;
+        //CLR_TP3;
      } // end of softleds 
     //CLR_TP3;
     nextCycle = min( nextCycle, ( ledNextCyc-ledCycleCnt ) );
@@ -692,18 +714,38 @@ void ISR_Stepper(void)
     cyclesLastIRQ = nextCycle;
     // set compareregister to next interrupt time;
      noInterrupts(); // when manipulating 16bit Timerregisters IRQ must be disabled
+     CLR_TP1;
     // compute next IRQ-Time in us, not in tics, so we don't need long
     #ifdef __AVR_MEGA__
-    tmp = ( OCRxB / TICS_PER_MICROSECOND + nextCycle * CYCLETIME );
-    if ( tmp > 20000 ) tmp = tmp - 20000;
-    OCRxB = tmp * TICS_PER_MICROSECOND;
+    if ( nextCycle == 1 )  {
+        // this is timecritical, was IRQ time longer then CYCELTIME?
+        // compute length of current IRQ ( which startet at OCRxB )
+        // we assume a max. runtime of 1000 Tics ( = 500µs , what nevver should happen )
+        tmp = GET_COUNT - OCRxB ;
+        if ( tmp > 1000 ) tmp += TIMER_OVL_TICS; // there was a timer overflow
+        if ( tmp > (CYCLETICS-10) ) {
+            // runtime was too long, next IRQ mus be started immediatly
+            SET_TP3;
+            tmp = GET_COUNT+10; 
+        } else {
+            tmp = OCRxB + CYCLETICS;
+        }
+        OCRxB = ( tmp > TIMER_OVL_TICS ) ? tmp -= TIMER_OVL_TICS : tmp ;
+        CLR_TP3;
+    } else {
+        // time till next IRQ is more then one cycletime
+        // compute next IRQ-Time in us, not in tics, so we don't need long
+        tmp = ( OCRxB / TICS_PER_MICROSECOND + nextCycle * CYCLETIME );
+        if ( tmp > TIMERPERIODE ) tmp = tmp - TIMERPERIODE;
+        OCRxB = tmp * TICS_PER_MICROSECOND;
+    }
     #elif defined __STM32F1__
     tmp = ( timer_get_compare(MT_TIMER, STEP_CHN) / TICS_PER_MICROSECOND + nextCycle * CYCLETIME );
-    if ( tmp > 20000 ) tmp = tmp - 20000;
+    if ( tmp > TIMERPERIODE ) tmp = tmp - TIMERPERIODE;
     timer_set_compare( MT_TIMER, STEP_CHN, tmp * TICS_PER_MICROSECOND) ;
     #endif
+    SET_TP1;
     interrupts();
-    _stepIRQ();
     CLR_TP1; CLR_TP4; // Oszimessung Dauer der ISR-Routine
 }
 // ---------- SPI interupt used for output stepper motor data -------------
@@ -723,10 +765,17 @@ ISR ( SPI_STC_vect ) {
     //CLR_TP3;
 }
 #elif defined __STM32F1__
+    #ifdef USE_SPI2
 void __irq_spi2(void) {// STM32
     static int rxData;
     rxData = spi_rx_reg(SPI2);            // Get dummy data (Clear RXNE-Flag)
     digitalWrite(BOARD_SPI2_NSS_PIN,HIGH);
+    #else
+void __irq_spi1(void) {// STM32
+    static int rxData;
+    rxData = spi_rx_reg(SPI1);            // Get dummy data (Clear RXNE-Flag)
+    digitalWrite(BOARD_SPI1_NSS_PIN,HIGH);
+    #endif
 }
 #endif
 }
@@ -997,7 +1046,7 @@ static void seizeTimer1() {
     TCCRxB = _BV(WGMx3) | _BV(WGMx2) /* CTC Mode, ICRx is TOP */
   | _BV(CS11) /* div 8 clock prescaler */
   ;
-    ICRx = 20000 * TICS_PER_MICROSECOND;  // timer periode is 20000us 
+    ICRx = TIMERPERIODE * TICS_PER_MICROSECOND;  // timer periode is 20000us 
     OCRxA = FIRST_PULSE;
     OCRxB = 400;
     // Serial.print( " Timer initialized " ); Serial.println( TIMSKx, HEX );
@@ -1005,15 +1054,22 @@ static void seizeTimer1() {
 #elif defined __STM32F1__
     timer_init( MT_TIMER );
     timer_pause(MT_TIMER);
+    // IRQ-Priorität von timer 4 interrupt auf lowest (15) setzen
+    nvic_irq_set_priority ( NVIC_TIMER4, 15); // Timer 4 - stmduino sets all priorities to lowest level
+                                              // To be sure we set it here agai. These long lasting IRQ's 
+                                              // MUST be lowest priority
+    /*nvic_irq_set_priority ( NVIC_EXTI0, 8); // DCC-Input IRQ must be able to interrupt other long low priority IRQ's
+    nvic_irq_set_priority(NVIC_SYSTICK, 0); // Systic must be able to interrupt DCC-IRQ to get correct micros() values
+    */
     timer_oc_set_mode( MT_TIMER, SERVO_CHN, TIMER_OC_MODE_FROZEN, 0 );  // comparison between output compare register and counter 
                                                                 //has no effect on the outputs
     timer_oc_set_mode( MT_TIMER, STEP_CHN, TIMER_OC_MODE_FROZEN, 0 );
     timer_set_prescaler(MT_TIMER, 36-1 );    // = 0.5µs Tics at 72MHz
-    timer_set_reload(MT_TIMER, 20000 * TICS_PER_MICROSECOND );
+    timer_set_reload(MT_TIMER, TIMERPERIODE * TICS_PER_MICROSECOND );
+    timer_set_compare(MT_TIMER, STEP_CHN, 400 );
+    timer_attach_interrupt(MT_TIMER, TIMER_CC2_INTERRUPT, (voidFuncPtr)ISR_Stepper );
     timer_set_compare(MT_TIMER, SERVO_CHN, FIRST_PULSE );
     timer_attach_interrupt(MT_TIMER, TIMER_CC1_INTERRUPT, ISR_Servo );
-    timer_set_compare(MT_TIMER, STEP_CHN, 400 );
-    timer_attach_interrupt(MT_TIMER, TIMER_CC2_INTERRUPT, ISR_Stepper );
     timer_resume(MT_TIMER);
 #endif
     timerInitialized = true;  
@@ -1044,7 +1100,7 @@ static void initSPI() {
     SREG = oldSREG;  // undo cli() 
     
 #elif defined __STM32F1__
-    // use SPI 2 interface
+    #ifdef USE_SPI2// use SPI 2 interface
     spi_init(SPI2);
     spi_config_gpios(SPI2, 1,  // initialize as master
                      PIN_MAP[BOARD_SPI2_NSS_PIN].gpio_device, PIN_MAP[BOARD_SPI2_NSS_PIN].gpio_bit,        
@@ -1053,10 +1109,25 @@ static void initSPI() {
                      PIN_MAP[BOARD_SPI2_MOSI_PIN].gpio_bit);
 
     uint32 flags = (SPI_FRAME_MSB | SPI_CR1_DFF_16_BIT | SPI_SW_SLAVE | SPI_SOFT_SS);
-    spi_master_enable(SPI2, (spi_baud_rate)SPI_BAUD_PCLK_DIV_16, (spi_mode)SPI_MODE_0, flags);
+    spi_master_enable(SPI2, (spi_baud_rate)SPI_BAUD_PCLK_DIV_64, (spi_mode)SPI_MODE_0, flags);
     spi_irq_enable(SPI2, SPI_RXNE_INTERRUPT);
     pinMode( BOARD_SPI2_NSS_PIN, OUTPUT);
     digitalWrite( BOARD_SPI2_NSS_PIN, LOW );
+
+    #else// use SPI 1 interface
+    spi_init(SPI1);
+    spi_config_gpios(SPI1, 1,  // initialize as master
+                     PIN_MAP[BOARD_SPI1_NSS_PIN].gpio_device, PIN_MAP[BOARD_SPI1_NSS_PIN].gpio_bit,        
+                     PIN_MAP[BOARD_SPI1_SCK_PIN].gpio_device, PIN_MAP[BOARD_SPI1_SCK_PIN].gpio_bit,
+                     PIN_MAP[BOARD_SPI1_MISO_PIN].gpio_bit,
+                     PIN_MAP[BOARD_SPI1_MOSI_PIN].gpio_bit);
+
+    uint32 flags = (SPI_FRAME_MSB | SPI_CR1_DFF_16_BIT | SPI_SW_SLAVE | SPI_SOFT_SS);
+    spi_master_enable(SPI1, (spi_baud_rate)SPI_BAUD_PCLK_DIV_64, (spi_mode)SPI_MODE_0, flags);
+    spi_irq_enable(SPI1, SPI_RXNE_INTERRUPT);
+    pinMode( BOARD_SPI1_NSS_PIN, OUTPUT);
+    digitalWrite( BOARD_SPI1_NSS_PIN, LOW );
+    #endif
 
 #endif
     spiInitialized = true;  
@@ -1094,7 +1165,7 @@ void Stepper4::initialize ( int steps360, uint8_t mode, uint8_t minStepTime ) {
     _stepperData.patternIx = 0;
     _stepperData.patternIxInc = mode;         // positive direction
     //minCycSteps = minStepTime*1000/CYCLETIME;         // minStepTime in ms, cycletime in us
-    _stepperData.aCycSteps = 20000; //MIN_STEPTIME/CYCLETIME; 
+    _stepperData.aCycSteps = TIMERPERIODE; //MIN_STEPTIME/CYCLETIME; 
     _stepperData.tCycSteps = _stepperData.aCycSteps; 
     _stepperData.tCycRemain = 0;                // work with remainder when cruising
     _stepperData.stepsFromZero = 0;
