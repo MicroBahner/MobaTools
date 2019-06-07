@@ -40,138 +40,14 @@
   Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 */
 
-#include "MobaTools.h"
+#include <MobaTools.h>
 #include <avr/interrupt.h>
 #include <Arduino.h>
 
 // Debug-Ports
 //#define debugTP
 //#define debugPrint
-#ifdef debugTP 
-    #if defined(__AVR_ATmega1280__) || defined(__AVR_ATmega2560__)
-        #define MODE_TP1 DDRF |= (1<<2) //pinA2
-        #define SET_TP1 PORTF |= (1<<2)
-        #define CLR_TP1 PORTF &= ~(1<<2)
-        #define MODE_TP2 DDRF |= (1<<3) //pinA3
-        #define SET_TP2 PORTF |= (1<<3)
-        #define CLR_TP2 PORTF &= ~(1<<3)
-        #define MODE_TP3 DDRF |= (1<<4) //pinA4 
-        #define SET_TP3 PORTF |= (1<<4) 
-        #define CLR_TP3 PORTF &= ~(1<<4) 
-        #define MODE_TP4 DDRF |= (1<<5) //pinA5 
-        #define SET_TP4 PORTF |= (1<<5) 
-        #define CLR_TP4 PORTF &= ~(1<<5) 
-    #elif defined(__AVR_ATmega32U4__)
-        #define MODE_TP1 DDRF |= (1<<4) //A3
-        #define SET_TP1 PORTF |= (1<<4)
-        #define CLR_TP1 PORTF &= ~(1<<4)
-        #define MODE_TP2 DDRF |= (1<<5) //A2
-        #define SET_TP2 PORTF |= (1<<5)
-        #define CLR_TP2 PORTF &= ~(1<<5)
-        #define MODE_TP3 DDRD |= (1<<3) //D1
-        #define SET_TP3 PORTD |= (1<<3)
-        #define CLR_TP3 PORTD &= ~(1<<3)
-        #define MODE_TP4 DDRD |= (1<<2) //D0
-        #define SET_TP4 PORTD |= (1<<2)
-        #define CLR_TP4 PORTD &= ~(1<<2)
-        /*#define MODE_TP3 
-        #define SET_TP3 
-        #define CLR_TP3 
-        #define MODE_TP4 
-        #define SET_TP4 
-        #define CLR_TP4 */
-    #elif defined(__AVR_ATmega328P__) 
-        #define MODE_TP1 DDRC |= (1<<1) //A1
-        #define SET_TP1 PORTC |= (1<<1)
-        #define CLR_TP1 PORTC &= ~(1<<1)
-        #define MODE_TP2 DDRC |= (1<<2) // A2
-        #define SET_TP2 PORTC |= (1<<2)
-        #define CLR_TP2 PORTC &= ~(1<<2)
-        #define MODE_TP3 DDRC |= (1<<3) //A3
-        #define SET_TP3 PORTC |= (1<<3) 
-        #define CLR_TP3 PORTC &= ~(1<<3) 
-        #define MODE_TP4 DDRC |= (1<<4) //A4 
-        #define SET_TP4 PORTC |= (1<<4) 
-        #define CLR_TP4 PORTC &= ~(1<<4) 
-    #elif defined(__AVR_ATmega128__) ||defined(__AVR_ATmega1281__)||defined(__AVR_ATmega2561__)
-    #elif defined (__SAM3X8E__)
-        // Arduino Due
-        #define MODE_TP1 pinMode( A1,OUTPUT )   // A1= PA24
-        #define SET_TP1  REG_PIOA_SODR = (1<<24)
-        #define CLR_TP1  REG_PIOA_CODR = (1<<24)
-        #define MODE_TP2 pinMode( A2,OUTPUT )   // A2= PA23
-        #define SET_TP2  REG_PIOA_SODR = (1<<23)
-        #define CLR_TP2  REG_PIOA_CODR = (1<<23)
-        #define MODE_TP3 pinMode( A3,OUTPUT )   // A3 = PA22
-        #define SET_TP3  REG_PIOA_SODR = (1<<22)
-        #define CLR_TP3  REG_PIOA_CODR = (1<<22)
-        #define MODE_TP4 pinMode( A4,OUTPUT )   // A4 = PA6
-        #define SET_TP4  REG_PIOA_SODR = (1<<6)
-        #define CLR_TP4  REG_PIOA_CODR = (1<<6)
-    #elif defined (__STM32F1__)
-        // STM32F103... ( SPI2-Pins! pin 31-28 maple mini )
-        #define MODE_TP1 pinMode( PB12,OUTPUT )   // TP1= PB12
-        #define SET_TP1  gpio_write_bit( GPIOB,12, HIGH );
-        #define CLR_TP1  gpio_write_bit( GPIOB,12, LOW );
-        #define MODE_TP2 pinMode( PB13,OUTPUT )   // TP2= PB13
-        #define SET_TP2  gpio_write_bit( GPIOB,13, HIGH );
-        #define CLR_TP2  gpio_write_bit( GPIOB,13, LOW );
-        #define MODE_TP3 pinMode( PB14,OUTPUT )   // TP3 = PB14
-        #define SET_TP3  gpio_write_bit( GPIOB,14, HIGH );
-        #define CLR_TP3  gpio_write_bit( GPIOB,14, LOW );
-        #define MODE_TP4 pinMode( PB15,OUTPUT )   // TP4 = PB15
-        #define SET_TP4  gpio_write_bit( GPIOB,15, HIGH );
-        #define CLR_TP4  gpio_write_bit( GPIOB,15, LOW );
-    #else
-        #define MODE_TP1 DDRC |= (1<<3) //A3
-        #define SET_TP1 PORTC |= (1<<3)
-        #define CLR_TP1 PORTC &= ~(1<<3)
-        #define MODE_TP2 DDRC |= (1<<2) // A2
-        #define SET_TP2 PORTC |= (1<<2)
-        #define CLR_TP2 PORTC &= ~(1<<2)
-        #define MODE_TP3 
-        #define SET_TP3 
-        #define CLR_TP3 
-        #define MODE_TP4 
-        #define SET_TP4 
-        #define CLR_TP4 
-    #endif 
-#else
-    #define MODE_TP1 
-    #define SET_TP1 
-    #define CLR_TP1 
-    #define MODE_TP2 
-    #define SET_TP2 
-    #define CLR_TP2 
-    #define MODE_TP3 
-    #define SET_TP3 
-    #define CLR_TP3 
-    #define MODE_TP4 
-    #define SET_TP4 
-    #define CLR_TP4 
-    
-#endif
-
-// switch off TP2, TP3 temporary
-    /*#undef  MODE_TP3
-    #undef  SET_TP3 
-    #undef  CLR_TP3 
-    #define MODE_TP3 
-    #define SET_TP3 
-    #define CLR_TP3 */
-    #undef  MODE_TP2 
-    #undef  SET_TP2 
-    #undef  CLR_TP2 
-    #define MODE_TP2 
-    #define SET_TP2 
-    #define CLR_TP2 
-
-#ifdef debugPrint
-    #define DB_PRINT( x, ... ) { sprintf_P( dbgBuf, PSTR( x ), ##__VA_ARGS__ ) ; Serial.println( dbgBuf ); }
-    static char dbgBuf[80];
-#else
-    #define DB_PRINT ;
-#endif
+#include <MoToDbg.h>
 
 // select timer to use
 #ifdef __AVR_MEGA__
@@ -267,7 +143,7 @@ static uint8_t ledCycleCnt = 0;    // count IRQ cycles within PWM cycle
 // ToDo: disabel/enable OCRB-Interrupt only
 //#define _noStepIRQ noInterrupts
 //#define _stepIRQ     interrupts
-void  _noStepIRQ() {
+inline void _noStepIRQ() {
         #if defined(__AVR_ATmega8__)|| defined(__AVR_ATmega128__)
             TIMSK &= ~( _BV(OCIExB) );    // enable compare interrupts
         #elif defined __AVR_MEGA__
@@ -277,7 +153,7 @@ void  _noStepIRQ() {
             noInterrupts;
         #endif
 }
-void  _stepIRQ() {
+inline void  _stepIRQ() {
         #if defined(__AVR_ATmega8__)|| defined(__AVR_ATmega128__)
             TIMSK |= ( _BV(OCIExB) );    // enable compare interrupts
         #elif defined __AVR_MEGA__
@@ -745,7 +621,7 @@ void ISR_Stepper(void) {
     timer_set_compare( MT_TIMER, STEP_CHN, tmp * TICS_PER_MICROSECOND) ;
     #endif
     SET_TP1;
-    interrupts();
+    //interrupts();
     CLR_TP1; CLR_TP4; // Oszimessung Dauer der ISR-Routine
 }
 // ---------- SPI interupt used for output stepper motor data -------------
@@ -809,7 +685,7 @@ void ISR_Servo( void) {
             // from the first servo. Pulses must be sorted in ascending order.
             OCRxA = FIRST_PULSE + (servoCount-1-pulseP->servoIx) * PULSESTEP;
         }
-        CLR_TP1; // Oszimessung Dauer der ISR-Routine OFF
+        //CLR_TP1; // Oszimessung Dauer der ISR-Routine OFF
     } else {
         SET_TP2; // Oszimessung Dauer der ISR-Routine ON
         // look for next pulse to start
@@ -838,13 +714,13 @@ void ISR_Servo( void) {
             } 
             OCRxA = (pulseP->ist/SPEED_RES) + GET_COUNT - 4; // compensate for computing time
             if ( pulseP->on && (pulseP->offcnt+pulseP->noAutoff) > 0 ) {
-                CLR_TP1;
+                //CLR_TP1;
                 #ifdef FAST_PORTWRT
                 *pulseP->portAdr |= pulseP->bitMask;
                 #else
                 digitalWrite( pulseP->pin, HIGH );
                 #endif
-                SET_TP1;
+                //SET_TP1;
             }
             IrqType = POFF;
         } 
@@ -860,6 +736,7 @@ void ISR_Servo( void) {
 // 27.9.15 with variable overlap, depending on length of next pulse: 16 Servos
 // 2.1.16 Enable interrupts after timecritical path (e.g. starting/stopping servo pulses)
 //        so other timecritical tasks can interrupt (nested interrupts)
+// 6.6.19 Because stepper IRQ now can last very long, it is disabled during servo IRQ
 static bool searchNextPulse() {
     //SET_TP2;
    while ( pulseP != NULL && pulseP->soll < 0 ) {
@@ -899,9 +776,10 @@ ISR ( TIMERx_COMPA_vect) {
 void ISR_Servo( void) {
     uint16_t OCRxA;
 #endif
+    SET_SV3;
     // Timer1 Compare A, used for servo motor
     if ( IrqType == POFF ) { // Pulse OFF time
-        SET_TP1; // Oszimessung Dauer der ISR-Routine OFF
+        //SET_TP1; // Oszimessung Dauer der ISR-Routine OFF
         //SET_TP3; // Oszimessung Dauer der ISR-Routine
         IrqType = PON ; // it's (nearly) always alternating
         // switch off previous started pulse
@@ -917,6 +795,7 @@ void ISR_Servo( void) {
             // lay after endtime of runningpuls + safetymargin (it may be necessary to start
             // another pulse between these 2 ends)
             word tmpTCNT1 = GET_COUNT + MARGINTICS/2;
+            _noStepIRQ();   // Stepper IRQ may be too long to interrupt
             interrupts();
             //CLR_TP3 ;
             OCRxA = max ( ((long)activePulseOff + (long) MARGINTICS - (long) nextPulseLength), ( tmpTCNT1 ) );
@@ -936,9 +815,9 @@ void ISR_Servo( void) {
                 OCRxA = FIRST_PULSE;
             }
         }
-        CLR_TP1; // Oszimessung Dauer der ISR-Routine OFF
+        //CLR_TP1; // Oszimessung Dauer der ISR-Routine OFF
     } else { // Pulse ON - time
-        SET_TP2; // Oszimessung Dauer der ISR-Routine ON
+        //SET_TP2; // Oszimessung Dauer der ISR-Routine ON
         //if ( pulseP == lastServoDataP ) SET_TP3;
         // look for next pulse to start
         // do we know the next pulse already?
@@ -954,6 +833,7 @@ void ISR_Servo( void) {
                 digitalWrite( nextPulseP->pin, HIGH );
                 #endif
             }
+            _noStepIRQ(); // Stepper ISR may be too long to interrupt
             interrupts(); // the following isn't time critical, so allow nested interrupts
             //SET_TP3;
             // the 'nextPulse' we have started now, is from now on the 'activePulse', the running activPulse is now the
@@ -980,6 +860,7 @@ void ISR_Servo( void) {
                     #endif
                 }
                 word tmpTCNT1 = GET_COUNT;
+                _noStepIRQ(); // Stepper ISR may be too long to interrupt
                 interrupts(); // the following isn't time critical, so allow nested interrupts
                 //SET_TP3;
                 // look for second pulse
@@ -1030,6 +911,9 @@ void ISR_Servo( void) {
     timer_set_compare(MT_TIMER,  SERVO_CHN, OCRxA);
     #endif 
     //CLR_TP1; CLR_TP3; // Oszimessung Dauer der ISR-Routine
+    _stepIRQ(); // allow Stepper IRQ again
+
+    CLR_SV3;
 }
 
 #endif // VARIABLE_POSITION_SERVO_PULSES

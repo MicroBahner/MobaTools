@@ -102,6 +102,8 @@
 #endif
 #define TIMERPERIODE    20000   // Timer Overflow in µs
 #define TIMER_OVL_TICS  ( TIMERPERIODE*TICS_PER_MICROSECOND )
+
+
 // defines for the stepper motor
 #define MAX_STEPPER  6    // 
 #define MIN_STEPTIME 800  // minimum steptime between 2 steps
