@@ -130,7 +130,7 @@
     #define CLR_TP2 
     #define MODE_TP3 
     #define SET_TP3 
-    #define CLR_TP3 
+    #define CLR_TP3
     #define MODE_TP4 
     #define SET_TP4 
     #define CLR_TP4 
@@ -141,6 +141,14 @@
     #define CLR_SV4 
 
 #endif
+        //#define MODE_TP3 pinMode( PB14,OUTPUT )   // TP3 = PB14
+        //#define SET_SV3  gpio_write_bit( GPIOB,14, HIGH )
+        //#define CLR_SV3  gpio_write_bit( GPIOB,14, LOW )
+        //#define MODE_TP4 pinMode( PB15,OUTPUT )   // TP4 = PB15
+        //#define TOG_TP4  gpio_toggle_bit( GPIOB,15)
+        //#define TOG_TP2  gpio_toggle_bit( GPIOB,13)
+        #define TOG_TP4
+        #define TOG_TP2
 
 
 #ifdef debugPrint

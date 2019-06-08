@@ -173,6 +173,7 @@ void ISR_Stepper(void) {
 #endif
   // Timer1 Compare B, used for stepper motor, starts every CYCLETIME us
     // 26-09-15 An Interrupt is only created at timeslices, where data is to output
+    TOG_TP4;
     stepperData_t *stepperDataP;         // actual stepper data in IRQ
     uint8_t i, spiChanged, changedPins, bitNr;
     uint16_t tmp;
@@ -623,6 +624,7 @@ void ISR_Stepper(void) {
     SET_TP1;
     //interrupts();
     CLR_TP1; CLR_TP4; // Oszimessung Dauer der ISR-Routine
+    TOG_TP4;
 }
 // ---------- SPI interupt used for output stepper motor data -------------
 extern "C" {
@@ -769,7 +771,7 @@ static bool searchNextPulse() {
     } 
 } //end of 'searchNextPulse'
 
-// ---------- OCRxA Compare Interrupt used for servo motor ----------------
+// ---------- OCRxA Compare Interrupt used for servo motor (overlapping pulses) ----------------
 #ifdef __AVR_MEGA__
 ISR ( TIMERx_COMPA_vect) {
 #elif defined __STM32F1__
@@ -795,8 +797,10 @@ void ISR_Servo( void) {
             // lay after endtime of runningpuls + safetymargin (it may be necessary to start
             // another pulse between these 2 ends)
             word tmpTCNT1 = GET_COUNT + MARGINTICS/2;
+            #ifdef __AVR_MEGA__
             _noStepIRQ();   // Stepper IRQ may be too long to interrupt
             interrupts();
+            #endif
             //CLR_TP3 ;
             OCRxA = max ( ((long)activePulseOff + (long) MARGINTICS - (long) nextPulseLength), ( tmpTCNT1 ) );
         } else {
@@ -833,8 +837,10 @@ void ISR_Servo( void) {
                 digitalWrite( nextPulseP->pin, HIGH );
                 #endif
             }
+            #ifdef __AVR_MEGA__
             _noStepIRQ(); // Stepper ISR may be too long to interrupt
             interrupts(); // the following isn't time critical, so allow nested interrupts
+            #endif
             //SET_TP3;
             // the 'nextPulse' we have started now, is from now on the 'activePulse', the running activPulse is now the
             // pulse to stop next.
@@ -849,6 +855,7 @@ void ISR_Servo( void) {
             // found a pulse
             if ( activePulseOff == 0 ) {
                 // it is the first pulse in the sequence, start it
+                TOG_TP2;
                 activePulseP = pulseP; 
                 activePulseOff = pulseP->ist/SPEED_RES + GET_COUNT - 4; // compensate for computing time
                 if ( pulseP->on && (pulseP->offcnt+pulseP->noAutoff) > 0 ) {
@@ -860,8 +867,10 @@ void ISR_Servo( void) {
                     #endif
                 }
                 word tmpTCNT1 = GET_COUNT;
+                #ifdef __AVR_MEGA__
                 _noStepIRQ(); // Stepper ISR may be too long to interrupt
                 interrupts(); // the following isn't time critical, so allow nested interrupts
+                #endif
                 //SET_TP3;
                 // look for second pulse
                 //SET_TP4;
@@ -875,7 +884,7 @@ void ISR_Servo( void) {
                     pulseP = pulseP->prevServoDataP;
                     //CLR_TP4;
                     // set Starttime for 2. pulse in sequence
-                    OCRxA = max ( ((long)activePulseOff + (long) MARGINTICS - (long) nextPulseLength), ( tmpTCNT1 + MARGINTICS/2 ) );
+                    OCRxA = max ( ((long)activePulseOff + (long) MARGINTICS - (long) nextPulseLength), ( (long)tmpTCNT1 + MARGINTICS/2 ) );
                 } else {
                     // no next pulse, there is only one pulse
                     OCRxA = activePulseOff;
@@ -883,6 +892,7 @@ void ISR_Servo( void) {
                     stopPulseP = activePulseP;
                     IrqType = POFF;
                 }
+                TOG_TP2;
             } else {
                 // its a pulse in sequence, so this is the 'nextPulse'
                 nextPulseLength = pulseP->ist/SPEED_RES;
@@ -911,8 +921,9 @@ void ISR_Servo( void) {
     timer_set_compare(MT_TIMER,  SERVO_CHN, OCRxA);
     #endif 
     //CLR_TP1; CLR_TP3; // Oszimessung Dauer der ISR-Routine
+    #ifdef __AVR_MEGA__
     _stepIRQ(); // allow Stepper IRQ again
-
+    #endif
     CLR_SV3;
 }
 
