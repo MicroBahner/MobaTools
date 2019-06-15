@@ -149,7 +149,7 @@ typedef struct {    // portaddress and bitmask for direkt pin set/reset
 
 /////////////////////////////////////////////////////////////////////////////////
 // global stepper data ( used in ISR )
-enum rampStats_t:byte { INACTIVE, STOPPED, RAMPSTART, RAMPACCEL, CRUISING, STARTDECEL, RAMPDECEL  };
+enum rampStats_t:byte { INACTIVE, STOPPED, RAMPSTART, RAMPACCEL, CRUISING, STARTDECEL, RAMPDECEL, SPEEDDECEL  };
 typedef struct stepperData_t {
   struct stepperData_t *nextStepperDataP;    // chain pointer
   volatile long stepCnt;        // nmbr of steps to take
@@ -157,11 +157,14 @@ typedef struct stepperData_t {
   volatile int8_t patternIx;    // Pattern-Index of actual Step (0-7)
   int8_t   patternIxInc;        // halfstep: +/-1, fullstep: +/-2, A4988 +1/-1  the sign defines direction
   uint16_t tCycSteps;           // nbr of IRQ cycles per step ( target value of motorspeed  )
+  uint16_t tCycSteps2;          // to be used after speedchange
   uint16_t tCycRemain;          // Remainder of division when computing tCycSteps
   uint16_t aCycSteps;           // nbr of IRQ cycles per step ( actual motorspeed  )
   uint16_t aCycRemain;          // accumulate tCycRemain when cruising
   uint16_t cyctXramplen;        // precompiled  tCycSteps*rampLen*RAMPOFFSET
+  uint16_t cyctXramplen2;       // to be used after speedchange
   int16_t  stepRampLen;         // Length of ramp in steps
+  int16_t  stepRampLen2;        // Length of ramp in steps
   uint16_t stepsInRamp;         // stepcounter within ramp ( counting from stop: incrementing in startramp, decrementing in stopramp
   rampStats_t rampState;        // State of acceleration/deceleration
   volatile uint16_t cycCnt;     // counting cycles until cycStep

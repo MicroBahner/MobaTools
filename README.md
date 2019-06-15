@@ -22,6 +22,7 @@ Allows easy nonblocking timedelays in sketches.
 
 
 The library uses Timer1 for all classes. V1.0: from this version on, timer 3 is used instead of timer 1 if available.
+On the STM32F1 platform, timer 4 is used.
 
 There is no special function that has to be
 called in the loop frequently. You can even use the delay() function in the loop while

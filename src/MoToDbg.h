@@ -1,3 +1,6 @@
+//#define debugTP
+//#define debugPrint
+
 #ifdef debugTP 
     #if defined(__AVR_ATmega1280__) || defined(__AVR_ATmega2560__)
         #define MODE_TP1 DDRF |= (1<<2) //pinA2
@@ -154,7 +157,10 @@
 #ifdef debugPrint
     #define DB_PRINT( x, ... ) { sprintf_P( dbgBuf, PSTR( x ), ##__VA_ARGS__ ) ; Serial.println( dbgBuf ); }
     static char dbgBuf[80];
+    
+
+     const char *rsC[] = { "INACTIVE", "STOPPED", "RAMPSTART", "RAMPACCEL", "CRUISING", "STARTDECEL", "RAMPDECEL", "SPEEDDECEL" };    
 #else
-    #define DB_PRINT ;
+    #define DB_PRINT( x, ... ) ;
 #endif
 
