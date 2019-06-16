@@ -1315,6 +1315,18 @@ uint16_t Stepper4::setSpeedSteps( uint16_t speed10, int16_t rampLen ) {
           case RAMPSTART:
           case RAMPACCEL: //
             // we are accelerating, are we already faster than the new targetspeed?
+            if ( aCycSteps < tCycSteps ) {
+                // we are faster, go to decelerating
+                storeFlg = false;
+                //_stepperData.stepsInRamp = stepRampLen = _stepperData.stepRampLen;
+                _stepperData.rampState = SPEEDDECEL;
+            } else {
+                // accelerate to new target speed
+                stepsInRamp = ( cyctXramplen / aCycSteps );
+                if ( stepsInRamp < RAMPOFFSET ) stepsInRamp = 0; else stepsInRamp -= RAMPOFFSET;
+                _stepperData.rampState = RAMPACCEL;
+                _stepperData.stepsInRamp = stepsInRamp;
+            }
             break;
           case CRUISING:  //
             if ( tCycSteps > _stepperData.tCycSteps ) {
@@ -1601,10 +1613,11 @@ void Stepper4::stop() {
 	// immediate stop of the motor
     if ( _stepperData.output == NO_OUTPUT ) return; // not attached
     
-    noInterrupts();
+    _noStepIRQ();
 	stepsToMove = 0;
+    _stepperData.rampState = STOPPED;
     _stepperData.stepCnt = 0;
-    interrupts();
+    _stepIRQ();
 }
 ///////////////////////////////////////////////////////////////////////////////////
 // --------- Class Servo8 ---------------------------------
