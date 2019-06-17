@@ -111,6 +111,7 @@
                             // of this value
 #define CYCLETICS   (CYCLETIME*TICS_PER_MICROSECOND)
 #define RAMPOFFSET  16       // startvaue of rampcounter
+#define MAXRAMPLEN  16000    // Do not change!
 
 // defines for soft-leds
 #define MAX_LEDS    16     // Soft On/Off defined for compatibility reasons. There is no fixed limit anymore.
