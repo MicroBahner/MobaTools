@@ -269,7 +269,7 @@ void ISR_Stepper(void) {
                     break;
                   case A4988_PINS : // output step-pulse and direction
                     // direction first
-                    CLR_TP1;
+                    //CLR_TP1;
                     if ( stepperDataP->patternIxInc > 0 ) {
                         // turn forward 
                         #ifdef FAST_PORTWRT
@@ -327,15 +327,18 @@ void ISR_Stepper(void) {
                     if (stepperDataP->stepsInRamp > stepperDataP->stepRampLen ) {
                         // we reached the end of the ramp
                         stepperDataP->aCycSteps = stepperDataP->tCycSteps;
-                        stepperDataP->aCycRemain = 0;
+                        stepperDataP->aCycRemain = stepperDataP->tCycRemain;
                         stepperDataP->rampState = CRUISING;
-                    } else 
-                        stepperDataP->aCycSteps = stepperDataP->cyctXramplen / (stepperDataP->stepsInRamp + RAMPOFFSET) +1;
-                        /*stepperDataP->aCycRemain += stepperDataP->cyctXramplen % (stepperDataP->stepsInRamp + RAMPOFFSET);
-                        if ( stepperDataP->aCycRemain > (stepperDataP->stepsInRamp + RAMPOFFSET) ) {
+                    } else {
+                        SET_TP3;
+                        stepperDataP->aCycSteps = stepperDataP->cyctXramplen / (stepperDataP->stepsInRamp + RAMPOFFSET) ;//+1;
+                        stepperDataP->aCycRemain += stepperDataP->cyctXramplen % (stepperDataP->stepsInRamp + RAMPOFFSET);
+                       if ( stepperDataP->aCycRemain > (stepperDataP->stepsInRamp + RAMPOFFSET) ) {
                             stepperDataP->aCycSteps++;
                             stepperDataP->aCycRemain -= (stepperDataP->stepsInRamp + RAMPOFFSET);
-                        }*/
+                        }
+                        CLR_TP3;
+                    }
                     // do we have to start deceleration ( remaining steps < steps in ramp so far )
                     // Ramp must be same length in accelerating and decelerating!
                     if ( stepperDataP->stepCnt <= (long)( stepperDataP->stepsInRamp  ) ) {
@@ -362,19 +365,33 @@ void ISR_Stepper(void) {
                         //DB_PRINT( "scnt=%ld, sIR=%u\n\r", stepperDataP->stepCnt, stepperDataP->stepsInRamp );
                         //SET_TP2;
                     }
-                    stepperDataP->aCycSteps = stepperDataP->cyctXramplen / ( --stepperDataP->stepsInRamp + RAMPOFFSET ) +1 ;
+                    stepperDataP->aCycSteps = stepperDataP->cyctXramplen / ( --stepperDataP->stepsInRamp + RAMPOFFSET ) ;// +1 ;
+                        stepperDataP->aCycRemain += stepperDataP->cyctXramplen % (stepperDataP->stepsInRamp + RAMPOFFSET);
+                        if ( stepperDataP->aCycRemain > (stepperDataP->stepsInRamp + RAMPOFFSET) ) {
+                            stepperDataP->aCycSteps++;
+                            stepperDataP->aCycRemain -= (stepperDataP->stepsInRamp + RAMPOFFSET);
+                        }
                     SET_TP1;
                     break;
                 
                   case SPEEDDECEL:
                     // lower speed to new value 
-                    stepperDataP->aCycSteps = stepperDataP->cyctXramplen / ( --stepperDataP->stepsInRamp + RAMPOFFSET ) +1 ;
-                    if ( stepperDataP->aCycSteps >= stepperDataP->tCycSteps2 || stepperDataP->stepsInRamp == 0 ) {
+                    stepperDataP->aCycSteps = stepperDataP->cyctXramplen / ( --stepperDataP->stepsInRamp + RAMPOFFSET ) ;//+1 ;
+                        stepperDataP->aCycRemain += stepperDataP->cyctXramplen % (stepperDataP->stepsInRamp + RAMPOFFSET);
+                        if ( stepperDataP->aCycRemain > (stepperDataP->stepsInRamp + RAMPOFFSET) ) {
+                            stepperDataP->aCycSteps++;
+                            stepperDataP->aCycRemain -= (stepperDataP->stepsInRamp + RAMPOFFSET);
+                        }
+                    //if ( stepperDataP->aCycSteps >= stepperDataP->tCycSteps2 || stepperDataP->stepsInRamp == 0 ) {
+                    if (  stepperDataP->stepsInRamp <=  stepperDataP->stepsInRampStop ) {
+                        SET_TP3;
                         // new targestspeed reached
                         stepperDataP->tCycSteps = stepperDataP->tCycSteps2;
                         stepperDataP->cyctXramplen = stepperDataP->cyctXramplen2;
                         stepperDataP->stepRampLen = stepperDataP->stepRampLen2;
+                        stepperDataP->aCycRemain = stepperDataP->tCycRemain;
                         stepperDataP->rampState = CRUISING;
+                        CLR_TP3;
                     }
                     //ToDo - do we have to stop the motor
                     break;
@@ -1250,9 +1267,11 @@ int Stepper4::setSpeed( int rpm10 ) {
 uint16_t Stepper4::setSpeedSteps( uint16_t speed10 ) {
     // Speed in steps per sec * 10
     // without a new ramplen, the ramplen is adjusted according to the speedchange
-    uint16_t stepRampLen =_stepperData.stepRampLen2;
+    uint16_t stepRampLen =_stepperData.stepRampLen;
+    //DB_PRINT("sSS1: sRL=%u, spd=%u", stepRampLen, speed10 );
     if ( stepRampLen == 0  ) stepRampLen = 1;
     stepRampLen = (long)speed10*stepRampLen/_stepSpeed10;
+    //DB_PRINT("sSS2: sRL=%u, spd=%u", stepRampLen, _stepSpeed10 );
     return setSpeedSteps( speed10, stepRampLen );
     // Rampenlänge in Steps ( entsprechend aktueller Beschleunigung )
     //_stepperData.stepsToStop = (long)_stepSpeed10 * _stepSpeed10 / 200 / _stepAccel ;
@@ -1268,34 +1287,38 @@ uint16_t Stepper4::setSpeedSteps( uint16_t speed10, int16_t rampLen ) {
     rampStats_t rampState;      // State of acceleration/deceleration
     uint16_t tCycSteps;         // nbr of IRQ cycles per step ( new target value of motorspeed  )
     uint16_t tCycRemain;        // Remainder of division when computing tCycSteps
+    long     tMicroSteps;       // Microseconds per step
     uint16_t aCycSteps;         // nbr of IRQ cycles per step ( actual motorspeed  )
     uint16_t aCycRemain;        // Remainder of division when computing aCycSteps
     uint16_t cyctXramplen;      // precompiled  tCycSteps*rampLen*RAMPOFFSET
     int16_t stepRampLen;        // new ramplen
-    int16_t stepsInRamp;        // actual stepcounter in ramp - may be recomputed im speed or
+    int16_t stepsInRamp;        // actual stepcounter in ramp - may be recomputed if speed or
                                 // ramplen is changed on the fly
+    uint16_t oldSpeed10;        // to see changes
     bool  storeFlg = true;      // store new values immediately
 
     if ( _stepperData.output == NO_OUTPUT ) return 0; // not attached
     stepRampLen = abs(rampLen);    // negative values are invalid
     if (stepRampLen > MAXRAMPLEN ) stepRampLen = MAXRAMPLEN;
+    oldSpeed10 = _stepSpeed10;
     _stepSpeed10 = min( 1000000L / MIN_STEPTIME * 10, speed10 );
-    
+    DB_PRINT( "rampLen-new=%u, ramplenParam=%u", stepRampLen, rampLen );
     // compute target steplength and check weather speed and ramp fit together: 
-    tCycSteps = ( 1000000L * 10  / _stepSpeed10 ) / CYCLETIME; 
-    tCycRemain = ( 1000000L * 10  / _stepSpeed10 ) % CYCLETIME; 
-    // tcyc * (rapmlen+3) must be less then 65000, otherwise ramplen is adjusted accordingly
-    long tmp =  (long)tCycSteps * ( stepRampLen + RAMPOFFSET ) ;
+    tMicroSteps = ( 1000000L * 10  / _stepSpeed10 );
+    tCycSteps = tMicroSteps / CYCLETIME; 
+    tCycRemain = tMicroSteps % CYCLETIME; 
+    // tcyc * (rapmlen+RAMPOFFSET) must be less then 65000, otherwise ramplen is adjusted accordingly
+    long tmp =  tMicroSteps * ( stepRampLen + RAMPOFFSET ) / CYCLETIME ;
     if ( tmp > 65000L ) {
         // adjust ramplen
-        stepRampLen = 65000/tCycSteps - RAMPOFFSET;
+        stepRampLen = 65000L * CYCLETIME / tMicroSteps - RAMPOFFSET;
         if( stepRampLen < 0 ) stepRampLen = 0;
-        cyctXramplen = tCycSteps * ( stepRampLen + RAMPOFFSET ) ;
+        cyctXramplen = tMicroSteps * ( stepRampLen + RAMPOFFSET ) / CYCLETIME;
     } else {
         cyctXramplen = tmp;
     }
     // recompute all relevant rampvalues according to actual speed and ramplength
-    DB_PRINT( "cXr-new=%u, xCr-old=%u", cyctXramplen, _stepperData.cyctXramplen );
+    DB_PRINT( "actRampLen=%u, cXr-new=%u, xCr-old=%u", stepRampLen, cyctXramplen, _stepperData.cyctXramplen );
     if ( _stepperData.stepRampLen == 0 && stepRampLen == 0 ) {
         // without ramp
         //_stepperData.aCycSteps = _stepperData.tCycSteps;
@@ -1324,6 +1347,9 @@ uint16_t Stepper4::setSpeedSteps( uint16_t speed10, int16_t rampLen ) {
                 // we are faster, go to decelerating
                 storeFlg = false;
                 //_stepperData.stepsInRamp = stepRampLen = _stepperData.stepRampLen;
+                // compute when to stop decelerationg ramp ( when new speed is reched )
+                // this is based on microseconds to get a more exact result
+                _stepperData.stepsInRampStop =  ( ( ( (long)_stepperData.tCycSteps * CYCLETIME + _stepperData.tCycRemain ) * ( _stepperData.stepRampLen+RAMPOFFSET ) ) / tMicroSteps ) - RAMPOFFSET;
                 _stepperData.rampState = SPEEDDECEL;
             } else {
                 // accelerate to new target speed
@@ -1334,18 +1360,21 @@ uint16_t Stepper4::setSpeedSteps( uint16_t speed10, int16_t rampLen ) {
             }
             break;
           case CRUISING:  //
-            if ( tCycSteps > _stepperData.tCycSteps ) {
+            if ( oldSpeed10 > _stepSpeed10 ) {
                 // speed changed to slower, compute values for speedchange-ramp
                 // ramp is based an actual speed/rampdata
                 // new values will be attached after new speed is reached ISR
                 storeFlg = false;
                 _stepperData.stepsInRamp = stepRampLen = _stepperData.stepRampLen;
+                _stepperData.stepsInRampStop =  ( ( ( (long)_stepperData.tCycSteps * CYCLETIME + _stepperData.tCycRemain ) * ( _stepperData.stepRampLen+RAMPOFFSET ) ) / tMicroSteps ) - RAMPOFFSET;
+                _stepperData.aCycRemain = 0;
                 _stepperData.rampState = SPEEDDECEL;
-            } else if ( tCycSteps < _stepperData.tCycSteps ) {
+            } else if ( oldSpeed10 < _stepSpeed10 ) {
                 // speed changed to faster
                 // ramp is based an new speed/rampdata
-                stepsInRamp = ( cyctXramplen / aCycSteps );
+                stepsInRamp =  (  tMicroSteps  * ( stepRampLen+RAMPOFFSET ) ) / ((long)_stepperData.tCycSteps * CYCLETIME + _stepperData.tCycRemain );
                 if ( stepsInRamp < RAMPOFFSET ) stepsInRamp = 0; else stepsInRamp -= RAMPOFFSET;
+                _stepperData.aCycRemain = 0;
                 _stepperData.rampState = RAMPACCEL;
                 _stepperData.stepsInRamp = stepsInRamp;
             }
@@ -1363,14 +1392,24 @@ uint16_t Stepper4::setSpeedSteps( uint16_t speed10, int16_t rampLen ) {
                 _stepperData.rampState = RAMPACCEL;
                 _stepperData.stepsInRamp = stepsInRamp;
             } else {
-                // we are already decelerating, new values will get valid after stop or reaching new targetspeed                
+                // we are already decelerating to new speed, new values will get valid after stop or reaching new targetspeed    
+                // we must set a new stoppoint
+                _stepperData.stepsInRampStop =  ( ( ( (long)_stepperData.tCycSteps * CYCLETIME + _stepperData.tCycRemain ) * ( _stepperData.stepRampLen+RAMPOFFSET ) ) / tMicroSteps ) - RAMPOFFSET;
                 storeFlg = false;
             }
             break;
           case STARTDECEL: //
           case RAMPDECEL:
-            // we are already decelerating, new values will get valid after stop or reaching new targetspeed
-            storeFlg = false;
+            // we are already decelerating to stoppoint, new values will get valid after stop or reaching new targetspeed
+            // ToDo: if ramp gets shorter we can accelerate again, and then decelerate faster to the stoppoint
+            if ( _stepperData.stepRampLen > stepRampLen ) {
+                // new ramp is shorter than actual ramp
+                stepsInRamp = (long)_stepperData.stepsInRamp * stepRampLen / _stepperData.stepRampLen;
+                _stepperData.rampState = RAMPACCEL;
+                _stepperData.stepsInRamp = stepsInRamp;
+            } else {
+                storeFlg = false;
+            }
             break;
           default:
             ;
