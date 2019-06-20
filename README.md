@@ -1,13 +1,13 @@
-## MobaTools
-## =========
-### Arduino library for model railroaders ( and maybe for others too ;-) )
+MobaTools
+=========
+### Arduino library for model railroaders ( and maybe for others too 😉 )
 
 **Latest changes:**
 
-Version |  Release Date  | Description
-------- |  ------------  | -----------
-v1.1.0  | beta state,    | acceleration/deceleration for steppermotors is now possible
-        |not released yet| 
+| Version |  Release Date  | Description
+| ------- |  ------------  | -----------
+| v1.1.0beta  | not released yet | acceleration/deceleration for steppermotors is now possible
+
 
 ## Functionality
 
