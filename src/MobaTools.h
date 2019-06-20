@@ -9,7 +9,9 @@
    (C) 02-2019 fpm fpm@mnet-online.de
    
   History:
-  V1.1  Anfahr- und Bremsrampe für die Stepper
+  V1.1 06-2019
+        stepper now supports ramps (accelerating, decelerating )
+        stepper speed has better resolution with high steprates
   V1.0  11-2017 Use of Timer 3 if available ( on AtMega32u4 and AtMega2560 )
   V0.9  03-2017
         Better resolution for the 'speed' servo-paramter (programm starts in compatibility mode)
@@ -274,10 +276,8 @@ class Stepper4
     uint16_t _stepSpeed10;          // speed in steps/10sec
     long stepsToMove;                // from last point
     uint8_t stepMode;               // FULLSTEP or HALFSTEP
-    //uint8_t minCycSteps;            // minimum time between 2 steps without ramp
-                                    // ramp starts with this speed if wanted speed ist faster
-    //uint8_t minrCycSteps;           // absolute minimum time between 2 steps even with ramp
     static outUsed_t outputsUsed;
+    
     long getSFZ();                  // get step-distance from last reference point
     bool _chkRunning();             // check if stepper is running
     void initialize(int,uint8_t,uint8_t);

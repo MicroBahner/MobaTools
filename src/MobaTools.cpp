@@ -4,6 +4,9 @@
    (C) 11-2017 fpm fpm@mnet-online.de
    
   History:
+  V1.1 06-2019
+        stepper now supports ramps (accelerating, decelerating )
+        stepper speed has better resolution with high steprates
   V1.0  11-2017 Use of Timer 3 if available ( on AtMega32u4 and AtMega2560 )
   V0.91 08-2017
         Enhanced EggTimer Class. Additional method 'getTime'
@@ -21,10 +24,6 @@
         interrupts e.g. for NmraDCC Library.
 		A4988 stepper driver IC is supported (needs only 2 ports: step and direction)
         
-  V1.1 05-2019
-        stepper now supports ramps (accelerating, decelerating )
-        stepper speed has better resolution with high steprates
-
   This library is free software; you can redistribute it and/or
   modify it under the terms of the GNU General Public
   License as published by the Free Software Foundation; either
@@ -133,9 +132,6 @@ static ledData_t* ledRootP = NULL; //start of ledData-chain
 static byte ledCount = 0;
 static uint8_t ledNextCyc = TIMERPERIODE  / CYCLETIME;     // next Cycle that is relevant for leds
 static uint8_t ledCycleCnt = 0;    // count IRQ cycles within PWM cycle
-//static uint8_t  ledStepIx = 0;      // Stepcounter for Leds ( Index in Array isteps , 0: start of pwm-Cycle )
-//static uint8_t  ledNextStep = 0;    // next step needed for softleds
-//static ledData_t*  ledDataP;              // pointer to active Led in ISR
 //==========================================================================
 
 // global functions / Interrupts
@@ -146,8 +142,8 @@ inline void _noStepIRQ() {
         #elif defined __AVR_MEGA__
             TIMSKx &= ~_BV(OCIExB) ; 
         #elif defined __STM32F1__
-            //timer_cc_enable(MT_TIMER, STEP_CHN);
-            noInterrupts;
+            timer_disable_irq(MT_TIMER, TIMER_STEPCH_IRQ);
+            //*bb_perip(&(MT_TIMER->regs).adv->DIER, TIMER_STEPCH_IRQ) = 0;
         #endif
 }
 inline void  _stepIRQ() {
@@ -156,7 +152,8 @@ inline void  _stepIRQ() {
         #elif defined __AVR_MEGA__
             TIMSKx |= _BV(OCIExB) ; 
         #elif defined __STM32F1__
-            //timer_cc_enable(MT_TIMER, STEP_CHN);
+            //timer_enable_irq(MT_TIMER, TIMER_STEPCH_IRQ) cannot be used, because this also clears pending irq's
+            *bb_perip(&(MT_TIMER->regs).adv->DIER, TIMER_STEPCH_IRQ) = 1;
             interrupts();
         #endif
 }
@@ -1289,7 +1286,7 @@ uint16_t Stepper4::setSpeedSteps( uint16_t speed10, int16_t rampLen ) {
     uint16_t tCycRemain;        // Remainder of division when computing tCycSteps
     long     tMicroSteps;       // Microseconds per step
     uint16_t aCycSteps;         // nbr of IRQ cycles per step ( actual motorspeed  )
-    uint16_t aCycRemain;        // Remainder of division when computing aCycSteps
+    //uint16_t aCycRemain;        // Remainder of division when computing aCycSteps
     uint16_t cyctXramplen;      // precompiled  tCycSteps*rampLen*RAMPOFFSET
     int16_t stepRampLen;        // new ramplen
     int16_t stepsInRamp;        // actual stepcounter in ramp - may be recomputed if speed or
@@ -1401,7 +1398,7 @@ uint16_t Stepper4::setSpeedSteps( uint16_t speed10, int16_t rampLen ) {
           case STARTDECEL: //
           case RAMPDECEL:
             // we are already decelerating to stoppoint, new values will get valid after stop or reaching new targetspeed
-            // ToDo: if ramp gets shorter we can accelerate again, and then decelerate faster to the stoppoint
+            // if ramp gets shorter we can accelerate again, and then decelerate faster to the stoppoint
             if ( _stepperData.stepRampLen > stepRampLen ) {
                 // new ramp is shorter than actual ramp
                 stepsInRamp = (long)_stepperData.stepsInRamp * stepRampLen / _stepperData.stepRampLen;
