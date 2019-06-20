@@ -9,11 +9,11 @@ MobaTools
 | v1.1.0beta  | not released yet | acceleration/deceleration for steppermotors is now possible
 
 
-## Functionality
+### Functionality
 
 The lib contains 4 classes:
 
-### Servo8: 
+#### Servo8: 
 Can control up to 16 servos. Compatible with arduino servo lib, but allows to control 
 the speed of the servo.
 
