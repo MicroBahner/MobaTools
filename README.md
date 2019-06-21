@@ -10,7 +10,9 @@ MobaTools
 
 From this version on, the functionaity of stepper, servo or softled can be included seperately.
 This safes flash space if not all of the functionality is needed
+
 | include | related function
+| ------- |  ------------  | 
 | #include <MoToStepper.h> | use only stepper
 | #include <MoToServo.h> | use only servos
 | #include <MotoSoftled.h> | use only Softleds
