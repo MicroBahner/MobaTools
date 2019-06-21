@@ -9,7 +9,7 @@ MobaTools
 | v2.0.0beta  | not released yet | the various functionality can be included separately
 
 From this version on, the functionaity of stepper, servo or softled can be included seperately.
-This safes flash space if not all of the functionality is needed
+This saves flash space if not all of the functionality is needed
 
 | include | related function
 | ------- |  ------------  | 
