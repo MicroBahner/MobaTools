@@ -1,4 +1,6 @@
-//#define debugTP
+#ifndef MOTODEBUG_H
+#define MOTODEBUG_H
+#define debugTP
 //#define debugPrint
 
 #ifdef debugTP 
@@ -168,3 +170,4 @@
     #define DB_PRINT( x, ... ) ;
 #endif
 
+#endif

@@ -6,8 +6,16 @@ MobaTools
 
 | Version |  Release Date  | Description
 | ------- |  ------------  | -----------
-| v1.1.0beta  | not released yet | acceleration/deceleration for steppermotors is now possible
+| v2.0.0beta  | not released yet | the various functionality can be included separately
 
+From this version on, the functionaity of stepper, servo or softled can be included seperately.
+This safes flash space if not all of the functionality is needed
+| include | related function
+| #include <MoToStepper.h> | use only stepper
+| #include <MoToServo.h> | use only servos
+| #include <MotoSoftled.h> | use only Softleds
+| | |
+| #include <MobaTools.h> | is the same as including all of the above
 
 ### Functionality
 
