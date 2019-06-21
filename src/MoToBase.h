@@ -24,8 +24,7 @@
 #endif
 
 
-#define Servo2	Servo8		// Kompatibilität zu Version 01 und 02
-//defines used in user programs
+// defines for the stepper motor
 #define HALFSTEP    1
 #define FULLSTEP    2
 #define A4988       3   // using motordriver A4988
@@ -43,7 +42,6 @@
 #define SINGLE_PINS  7
 #define A4988_PINS  8
 
-// defines for the stepper motor
 #define MAX_STEPPER  6    // 
 #define MIN_STEPTIME 400  // minimum steptime between 2 steps
 #define CYCLETIME   100     // Irq-periode in us. Step time is an integer multiple
@@ -56,7 +54,7 @@
 #define MAX_LEDS    16     // Soft On/Off defined for compatibility reasons. There is no fixed limit anymore.
 
 // defines for servos
-#define WITHSERVO
+#define Servo2	Servo8		// Kompatibilität zu Version 01 und 02
     #define MINPULSEWIDTH   700     // don't make it shorter
     #define MAXPULSEWIDTH   2300    // don't make it longer
 #ifdef FIXED_POSITION_SERVO_PULSES
