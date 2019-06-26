@@ -163,9 +163,7 @@
 #ifdef debugPrint
     #define DB_PRINT( x, ... ) { sprintf_P( dbgBuf, PSTR( x ), ##__VA_ARGS__ ) ; Serial.println( dbgBuf ); }
     static char dbgBuf[80];
-    
-
-     const char *rsC[] = { "INACTIVE", "STOPPED", "RAMPSTART", "RAMPACCEL", "CRUISING", "STARTDECEL", "RAMPDECEL", "SPEEDDECEL" };    
+    extern const char *rsC[] ;    
 #else
     #define DB_PRINT( x, ... ) ;
 #endif

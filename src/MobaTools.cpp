@@ -7,6 +7,7 @@
   V1.1 06-2019
         stepper now supports ramps (accelerating, decelerating )
         stepper speed has better resolution with high steprates
+        optimized flash usage when not all functionality is used
   V1.0  11-2017 Use of Timer 3 if available ( on AtMega32u4 and AtMega2560 )
   V0.91 08-2017
         Enhanced EggTimer Class. Additional method 'getTime'
@@ -40,7 +41,9 @@
 */
 
 #include <MoToBase.h>
-
+#ifdef debugPrint
+     const char *rsC[] = { "INACTIVE", "STOPPED", "RAMPSTART", "RAMPACCEL", "CRUISING", "STARTDECEL", "RAMPDECEL", "SPEEDDECEL" };    
+#endif
 void stepperISR(uint8_t cyclesLastIRQ) __attribute__ ((weak));
 void softledISR(uint8_t cyclesLastIRQ) __attribute__ ((weak));
 

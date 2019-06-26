@@ -42,13 +42,14 @@
 #define SINGLE_PINS  7
 #define A4988_PINS  8
 
-#define MAX_STEPPER  6    // 
-#define MIN_STEPTIME 400  // minimum steptime between 2 steps
-#define CYCLETIME   100     // Irq-periode in us. Step time is an integer multiple
-                            // of this value
+#define MAX_STEPPER     6       // 
+#define CYCLETIME       200     // Min. irq-periode in us.
+#define MIN_STEP_CYCLE  4       // Minimum number of cycles per step
+#define RAMPOFFSET      16      // startvalue of rampcounter
+
 #define CYCLETICS   (CYCLETIME*TICS_PER_MICROSECOND)
-#define RAMPOFFSET  16       // startvaue of rampcounter
-#define MAXRAMPLEN  16000    // Do not change!
+#define MIN_STEPTIME (CYCLETIME * MIN_STEP_CYCLE) 
+#define MAXRAMPLEN  16000       // Do not change!
 
 // defines for soft-leds
 #define MAX_LEDS    16     // Soft On/Off defined for compatibility reasons. There is no fixed limit anymore.

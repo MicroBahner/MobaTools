@@ -6,18 +6,8 @@ MobaTools
 
 | Version |  Release Date  | Description
 | ------- |  ------------  | -----------
-| v2.0.0beta  | not released yet | the various functionality can be included separately
-
-From this version on, the functionaity of stepper, servo or softled can be included seperately.
-This saves flash space if not all of the functionality is needed
-
-| include | related function
-| ------- |  ------------  | 
-| #include <MoToStepper.h> | use only stepper
-| #include <MoToServo.h> | use only servos
-| #include <MotoSoftled.h> | use only Softleds
-| | |
-| #include <MobaTools.h> | is the same as including all of the above
+| v1.1.1beta  | not released yet | acceleration/deceleration for steppermotors is now possible
+| | | optimized flash usage when only part of the functionality is used
 
 ### Functionality
 
@@ -37,7 +27,7 @@ V1.1: Ramps can be defined to accelerate/decelerate the Stepper.
 Allows easy softon / softoff of leds. It works on all digital outputs.
 
 #### Eggtimer: 
-Allows easy nonblocking timedelays in sketches.
+Allows easy nonblocking timedelays in sketches. You don't have to bother with millis() directly
 
 #### Additional Info:
 The library uses Timer1 for all classes. V1.0: from this version on, timer 3 is used instead of timer 1 if available.
