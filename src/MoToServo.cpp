@@ -5,7 +5,7 @@
 
   Functions for the stepper part of MobaTools
 */
-#include <MoToServo.h>
+#include <MobaTools.h>
 #include <avr/interrupt.h>
 #include <Arduino.h>
 

@@ -5,7 +5,8 @@
 
   Functions for the stepper part of MobaTools
 */
-#include <MoToSoftled.h>
+#include <MobaTools.h>
+
 #include <avr/interrupt.h>
 #include <Arduino.h>
 
@@ -23,6 +24,7 @@ static uint8_t ledCycleCnt = 0;    // count IRQ cycles within PWM cycle
     
 void softledISR(uint8_t cyclesLastIRQ) {
     // ---------------------- softleds -----------------------------------------------
+    SET_TP2;
     //CLR_TP3;
     ledCycleCnt += cyclesLastIRQ;
     //SET_TP3;
@@ -183,6 +185,7 @@ void softledISR(uint8_t cyclesLastIRQ) {
     //CLR_TP3;
     nextCycle = min( nextCycle, ( ledNextCyc-ledCycleCnt ) );
     //SET_TP3;
+    CLR_TP2;
 } //=============================== End of softledISR ========================================
 /////////////////////////////////////////////////////////////////////////////
 //Class SoftLed - for Led with soft on / soft off ---------------------------

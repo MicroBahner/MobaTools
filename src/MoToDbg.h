@@ -1,7 +1,7 @@
 #ifndef MOTODEBUG_H
 #define MOTODEBUG_H
 #define debugTP
-//#define debugPrint
+#define debugPrint
 
 #ifdef debugTP 
     #if defined(__AVR_ATmega1280__) || defined(__AVR_ATmega2560__)

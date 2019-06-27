@@ -40,7 +40,7 @@
   Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 */
 
-#include <MoToBase.h>
+#include <MobaTools.h>
 #ifdef debugPrint
      const char *rsC[] = { "INACTIVE", "STOPPED", "RAMPSTART", "RAMPACCEL", "CRUISING", "STARTDECEL", "RAMPDECEL", "SPEEDDECEL" };    
 #endif
@@ -60,18 +60,21 @@ void ISR_Stepper(void) {
   // Timer1 Compare B, used for stepper motor, starts every CYCLETIME us
     // 26-09-15 An Interrupt is only created at timeslices, where data is to output
     uint16_t tmp;
+    SET_TP4;SET_TP3;
     nextCycle = TIMERPERIODE  / CYCLETIME ;// min ist one cycle per Timeroverflow
+    CLR_TP4;
     if ( stepperISR ) stepperISR(cyclesLastIRQ);
     //============  End of steppermotor ======================================
+    SET_TP4;
+    CLR_TP4;
     if ( softledISR ) softledISR(cyclesLastIRQ);
     // ======================= end of softleds =====================================
-   
+    SET_TP4;
     cyclesLastIRQ = nextCycle;
     // set compareregister to next interrupt time;
-     CLR_TP1;
     // compute next IRQ-Time in us, not in tics, so we don't need long
     #ifdef __AVR_MEGA__
-     noInterrupts(); // when manipulating 16bit Timerregisters IRQ must be disabled
+    //noInterrupts(); // when manipulating 16bit Timerregisters IRQ must be disabled
     if ( nextCycle == 1 )  {
         // this is timecritical: Was the ISR running longer then CYCELTIME?
         // compute length of current IRQ ( which startet at OCRxB )
@@ -94,14 +97,14 @@ void ISR_Stepper(void) {
         if ( tmp > TIMERPERIODE ) tmp = tmp - TIMERPERIODE;
         OCRxB = tmp * TICS_PER_MICROSECOND;
     }
+    CLR_TP3;
     #elif defined __STM32F1__
     long tmpL = ( timer_get_compare(MT_TIMER, STEP_CHN) + nextCycle * CYCLETICS );
     if ( tmpL > TIMER_OVL_TICS ) tmpL = tmpL - TIMER_OVL_TICS;
     timer_set_compare( MT_TIMER, STEP_CHN, tmpL ) ;
     #endif
-    SET_TP1;
-    CLR_TP1; CLR_TP4; // Oszimessung Dauer der ISR-Routine
-    TOG_TP4;
+    CLR_TP4; // Oszimessung Dauer der ISR-Routine
+    CLR_TP3;
 }
 
 void seizeTimer1() {

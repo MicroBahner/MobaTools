@@ -23,7 +23,8 @@ typedef struct stepperData_t {
   uint16_t tCycSteps;           // nbr of IRQ cycles per step ( target value of motorspeed  )
   uint16_t tCycSteps2;          // to be used after speedchange
   uint16_t tCycRemain;          // Remainder of division when computing tCycSteps
-  uint16_t aCycSteps;           // nbr of IRQ cycles per step ( actual motorspeed  )
+  uint16_t tCycRemain2;         // to be used after speedchange
+  volatile uint16_t aCycSteps;           // nbr of IRQ cycles per step ( actual motorspeed  )
   uint16_t aCycRemain;          // accumulate tCycRemain when cruising
   uint16_t cyctXramplen;        // precompiled  tCycSteps*rampLen*RAMPOFFSET
   uint16_t cyctXramplen2;       // to be used after speedchange
