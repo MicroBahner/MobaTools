@@ -139,7 +139,6 @@ void seizeTimer1() {
     timer_set_compare(MT_TIMER, STEP_CHN, 400 );
     timer_attach_interrupt(MT_TIMER, TIMER_STEPCH_IRQ, (voidFuncPtr)ISR_Stepper );
     timer_set_compare(MT_TIMER, SERVO_CHN, FIRST_PULSE );
-    timer_attach_interrupt(MT_TIMER, TIMER_SERVOCH_IRQ, ISR_Servo );
     timer_resume(MT_TIMER);
 #endif
     timerInitialized = true;  

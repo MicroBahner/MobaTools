@@ -368,9 +368,14 @@ uint8_t Servo8::attach( int pinArg, int pmin, int pmax, bool autoOff ) {
     digitalWrite(pin,LOW);
 
     if ( !timerInitialized) seizeTimer1();
-    // initialize servochain pointer if not done already
+    // initialize servochain pointer and ISR if not done already
     noInterrupts();
-    if ( pulseP == NULL ) pulseP = lastServoDataP;
+    if ( pulseP == NULL ) {
+        pulseP = lastServoDataP;
+        #ifdef __STM32F1__
+        timer_attach_interrupt(MT_TIMER, TIMER_SERVOCH_IRQ, ISR_Servo );
+        #endif
+    }
     interrupts();
     
     // enable compare-A interrupt

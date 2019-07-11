@@ -12,6 +12,7 @@
   V1.1 06-2019
         stepper now supports ramps (accelerating, decelerating )
         stepper speed has better resolution with high steprates
+        split source into several fuction-specific .cpp files
   V1.0  11-2017 Use of Timer 3 if available ( on AtMega32u4 and AtMega2560 )
   V0.9  03-2017
         Better resolution for the 'speed' servo-paramter (programm starts in compatibility mode)

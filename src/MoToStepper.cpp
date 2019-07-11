@@ -307,7 +307,7 @@ void stepperISR(uint8_t cyclesLastIRQ) {
 } // ==================== End of stepper ISR ======================================
 #pragma GCC optimize "Os"
 // ---------- SPI interupt used for output stepper motor data -------------
-//extern "C" {
+extern "C" {
 #ifdef __AVR_MEGA__
 ISR ( SPI_STC_vect ) { 
     // output step-pattern on SPI, set SS when ready
@@ -335,6 +335,7 @@ void __irq_spi1(void) {// STM32
 }
     #endif
 #endif
+} // end of extern "C"
 
 static void initSPI() {
     // initialize SPI hardware.
@@ -620,7 +621,8 @@ uint16_t Stepper4::setSpeedSteps( uint16_t speed10, int16_t rampLen ) {
     //uint16_t aCycSteps;         // nbr of IRQ cycles per step ( actual motorspeed  )
     //uint16_t aCycRemain;        // Remainder of division when computing aCycSteps
     uint16_t cyctXramplen;      // precompiled  tCycSteps*rampLen*RAMPOFFSET
-    int16_t stepRampLen;        // new ramplen
+    int16_t stepRampLen;        // new ramplen (may be changed to old ramp length)
+    int16_t newRampLen;         // new ramplen
     int16_t stepsInRamp;        // actual stepcounter in ramp - may be recomputed if speed or
                                 // ramplen is changed on the fly
     uint16_t oldSpeed10;        // old target speed
@@ -632,33 +634,32 @@ uint16_t Stepper4::setSpeedSteps( uint16_t speed10, int16_t rampLen ) {
     
     // compute new speed values, adjust length of ramp if necessary
     actSpeed10 = oldSpeed10 = _stepSpeed10;
-    stepRampLen = abs(rampLen);    // negative values are invalid
-    if (stepRampLen > MAXRAMPLEN ) stepRampLen = MAXRAMPLEN;
+    newRampLen = abs(rampLen);    // negative values are invalid
+    if (newRampLen > MAXRAMPLEN ) newRampLen = MAXRAMPLEN;
     _stepSpeed10 = min( 1000000L / MIN_STEPTIME * 10, speed10 );
-    DB_PRINT( "rampLen-new=%u, ramplenParam=%u", stepRampLen, rampLen );
+    DB_PRINT( "rampLen-new=%u, ramplenParam=%u", newRampLen, rampLen );
     // compute target steplength and check whether speed and ramp fit together: 
     tMicroSteps = ( 1000000L * 10  / _stepSpeed10 );
     tCycSteps = tMicroSteps / CYCLETIME; 
     tCycRemain = tMicroSteps % CYCLETIME; 
     // tcyc * (rapmlen+RAMPOFFSET) must be less then 65000, otherwise ramplen is adjusted accordingly
-    long tmp =  tMicroSteps * ( stepRampLen + RAMPOFFSET ) / CYCLETIME ;
+    long tmp =  tMicroSteps * ( newRampLen + RAMPOFFSET ) / CYCLETIME ;
     if ( tmp > 65000L ) {
         // adjust ramplen
-        stepRampLen = 65000L * CYCLETIME / tMicroSteps - RAMPOFFSET;
-        if( stepRampLen < 0 ) stepRampLen = 0;
-        cyctXramplen = tMicroSteps * ( stepRampLen + RAMPOFFSET ) / CYCLETIME;
+        newRampLen = 65000L * CYCLETIME / tMicroSteps - RAMPOFFSET;
+        if( newRampLen < 0 ) newRampLen = 0;
+        cyctXramplen = tMicroSteps * ( newRampLen + RAMPOFFSET ) / CYCLETIME;
     } else {
         cyctXramplen = tmp;
     }
-    
     
     // recompute all relevant rampvalues according to actual speed and ramplength
     // This needs to be done only, if a ramp is defined, the stepper is moving
     // and the speed an ramp values changed
     // In all other cases the new speed/ramp values will get active immediately
-    DB_PRINT( "actRampLen=%u, cXr-new=%u, xCr-old=%u", stepRampLen, cyctXramplen, _stepperData.cyctXramplen );
+    DB_PRINT( "actRampLen=%u, cXr-new=%u, xCr-old=%u", newRampLen, cyctXramplen, _stepperData.cyctXramplen );
     _noStepIRQ(); SET_TP2;
-    if ( (_stepperData.stepRampLen + stepRampLen ) != 0
+    if ( (_stepperData.stepRampLen + newRampLen ) != 0
         && _stepperData.rampState != INACTIVE
         && _stepperData.rampState != STOPPED
         &&  cyctXramplen != _stepperData.cyctXramplen ) {
@@ -673,7 +674,7 @@ uint16_t Stepper4::setSpeedSteps( uint16_t speed10, int16_t rampLen ) {
         long        __newStepCnt;
         long        __newStepCnt2;
         
-        DB_PRINT("Speed changed! New: tcyc=%u, ramp=%u, cXr=%u",tCycSteps,stepRampLen,cyctXramplen );
+        DB_PRINT("Speed changed! New: tcyc=%u, ramp=%u, cXr=%u",tCycSteps,newRampLen,cyctXramplen );
          do {
             // read actual ISR values
             __tCycSteps     =  _stepperData.tCycSteps;
@@ -698,7 +699,7 @@ uint16_t Stepper4::setSpeedSteps( uint16_t speed10, int16_t rampLen ) {
 
             if ( actSpeed10 > _stepSpeed10 ) {
                 //  ==========  speed changed to slower ============================
-                DB_PRINT ( "Slower: %u/%u -> %u/%u", actSpeed10,_stepperData.stepRampLen,  _stepSpeed10, stepRampLen );
+                DB_PRINT ( "Slower: %u/%u -> %u/%u", actSpeed10,_stepperData.stepRampLen,  _stepSpeed10, newRampLen );
                 switch ( __rampState ) {
                   case RAMPSTART:
                   case RAMPACCEL: //
@@ -716,7 +717,7 @@ uint16_t Stepper4::setSpeedSteps( uint16_t speed10, int16_t rampLen ) {
                     // ramp is based an actual speed/rampdata
                     // new values will be attached in ISR after new speed is reached
                     storeFlg = false;
-                    __stepsInRamp = stepRampLen = _stepperData.stepRampLen;
+                    __stepsInRamp = _stepperData.stepRampLen;
                      // (Glchg 13 )
                     _stepperData.stepsInRampStop =  (long)_stepSpeed10 * ( _stepperData.stepRampLen+RAMPOFFSET ) / oldSpeed10;
                     if ( _stepperData.stepsInRampStop < RAMPOFFSET ) _stepperData.stepsInRampStop = 0; else _stepperData.stepsInRampStop -= RAMPOFFSET;
@@ -730,7 +731,6 @@ uint16_t Stepper4::setSpeedSteps( uint16_t speed10, int16_t rampLen ) {
                         __newStepCnt = fullRampLen;
                     }
                         
-                    DB_PRINT( "change state from %s to %s", rsC[__rampState], rsC[__rampState] );
                     //CLR_TP3;
                     break;
                   case SPEEDDECEL:
@@ -752,7 +752,7 @@ uint16_t Stepper4::setSpeedSteps( uint16_t speed10, int16_t rampLen ) {
                 } // end switch rampstate ( to lower speed )
             } else if ( actSpeed10 < _stepSpeed10 ) {
                 //  ==========  speed changed to faster ============================
-                DB_PRINT ( "Faster: %u/%u -> %u/%u", actSpeed10,_stepperData.stepRampLen,  _stepSpeed10, stepRampLen );
+                DB_PRINT ( "Faster: %u/%u -> %u/%u", actSpeed10,_stepperData.stepRampLen,  _stepSpeed10, newRampLen );
                 switch ( __rampState ) {
                   case RAMPSTART:
                   case RAMPACCEL: //
@@ -766,7 +766,7 @@ uint16_t Stepper4::setSpeedSteps( uint16_t speed10, int16_t rampLen ) {
                     SET_TP3;
                      // speed changed to faster
                     // ramp is based an new speed/rampdata
-                    __stepsInRamp =  (  tMicroSteps  * ( stepRampLen+RAMPOFFSET ) ) / ((long)__tCycSteps * CYCLETIME + __tCycRemain );
+                    __stepsInRamp =  (  tMicroSteps  * ( newRampLen+RAMPOFFSET ) ) / ((long)__tCycSteps * CYCLETIME + __tCycRemain );
                     if ( __stepsInRamp < RAMPOFFSET ) __stepsInRamp = 0; else __stepsInRamp -= RAMPOFFSET;
                     _stepperData.aCycRemain = 0;
                     if ( __stepsInRamp >= __stepCnt ) {
@@ -778,7 +778,6 @@ uint16_t Stepper4::setSpeedSteps( uint16_t speed10, int16_t rampLen ) {
                         __rampState = RAMPACCEL;
                     }
                         
-                    DB_PRINT( "change state from %s to %s", rsC[__rampState], rsC[__rampState] );
                     CLR_TP3;
                     break;
                   case SPEEDDECEL:
@@ -791,7 +790,7 @@ uint16_t Stepper4::setSpeedSteps( uint16_t speed10, int16_t rampLen ) {
                   case RAMPDECEL:
                     // we are already decelerating to stoppoint, new values will get valid after stop or reaching new targetspeed
                     // if ramp gets shorter we can accelerate again, and then decelerate faster to the stoppoint
-                    if ( _stepperData.stepRampLen > stepRampLen ) {
+                    if ( _stepperData.stepRampLen > newRampLen ) {
                         // new ramp is shorter than actual ramp (Glchg 12)
                         __stepsInRamp = ( (long)cyctXramplen * (__stepsInRamp + RAMPOFFSET ) / _stepperData.cyctXramplen );
                         if ( __stepsInRamp < RAMPOFFSET ) __stepsInRamp = 0; else __stepsInRamp -= RAMPOFFSET;
@@ -805,7 +804,7 @@ uint16_t Stepper4::setSpeedSteps( uint16_t speed10, int16_t rampLen ) {
                 }
             } else {
                 //  ==========  speed did not change ( only ramp length ) ============================
-                DB_PRINT ( "NoChange: %u/%u -> %u/%u", actSpeed10,_stepperData.stepRampLen,  _stepSpeed10, stepRampLen );
+                DB_PRINT ( "NoChange: %u/%u -> %u/%u", actSpeed10,_stepperData.stepRampLen,  _stepSpeed10, newRampLen );
                 switch ( __rampState ) {
                    case RAMPSTART:
                   case RAMPACCEL: //
@@ -816,12 +815,11 @@ uint16_t Stepper4::setSpeedSteps( uint16_t speed10, int16_t rampLen ) {
                     break;
                   case CRUISING:  //
                      // only ramplen changed. See if we can reach targetposition within new ramp
-                    if ( stepRampLen > __stepCnt ) {
+                    if ( newRampLen > __stepCnt ) {
                         // we cannot reach the tagetposition, start decelerating, and after ramp go backward to target.
-                        __newStepCnt2 = stepRampLen - __stepCnt;
-                        __newStepCnt = stepRampLen;
+                        __newStepCnt2 = newRampLen - __stepCnt;
+                        __newStepCnt = newRampLen;
                     }
-                    DB_PRINT( "change state from %s to %s", rsC[__rampState], rsC[__rampState] );
                     break;
                   case SPEEDDECEL:
                         // we are already decelerating to a new speed, new ramp values will get valid after stop or reaching new targetspeed    
@@ -833,7 +831,7 @@ uint16_t Stepper4::setSpeedSteps( uint16_t speed10, int16_t rampLen ) {
                   case RAMPDECEL:
                     // we are already decelerating to stoppoint, new values will get valid after stop or reaching new targetspeed
                     // if ramp gets shorter we can accelerate again, and then decelerate faster to the stoppoint
-                    if ( _stepperData.stepRampLen > stepRampLen ) {
+                    if ( _stepperData.stepRampLen > newRampLen ) {
                         // new ramp is shorter than actual ramp (Glchg 12)
                         __stepsInRamp = ( (long)cyctXramplen * (__stepsInRamp + RAMPOFFSET ) / _stepperData.cyctXramplen );
                         if ( __stepsInRamp < RAMPOFFSET ) __stepsInRamp = 0; else __stepsInRamp -= RAMPOFFSET;
@@ -860,13 +858,13 @@ uint16_t Stepper4::setSpeedSteps( uint16_t speed10, int16_t rampLen ) {
     _stepperData.tCycSteps2 = tCycSteps;
     _stepperData.tCycRemain2 = tCycRemain;
     _stepperData.cyctXramplen2 = cyctXramplen;
-    _stepperData.stepRampLen2 = stepRampLen;
+    _stepperData.stepRampLen2 = newRampLen;
     
     if ( storeFlg ) {
         _stepperData.tCycSteps = tCycSteps;
         _stepperData.tCycRemain = tCycRemain;
         _stepperData.cyctXramplen = cyctXramplen;
-        _stepperData.stepRampLen = stepRampLen;
+        _stepperData.stepRampLen = newRampLen;
     }
     _stepIRQ(); CLR_TP2;
     
@@ -1008,6 +1006,10 @@ void Stepper4::doSteps( long stepValue ) {
     }
     
     DB_PRINT( "StepValues:, sCnt=%ld, sCnt2=%ld, sMove=%ld, aCyc=%d", _stepperData.stepCnt, _stepperData.stepCnt2, stepsToMove, _stepperData.aCycSteps );
+    DB_PRINT( "RampValues:, Spd=%u, rmpLen=%u, tcyc=%u, trest=%u, acyc=%u", _stepSpeed10, _stepperData.stepRampLen,
+                    _stepperData.tCycSteps, _stepperData.tCycRemain, _stepperData.aCycSteps );
+    DB_PRINT( "   - State=%s, Rampsteps=%u" , rsC[_stepperData.rampState], _stepperData.stepsInRamp );
+    DB_PRINT( "   - tcyc2=%u, cXr2=%u, rampLen2=%u" , _stepperData.tCycSteps2, _stepperData.cyctXramplen2,  _stepperData.stepRampLen2 );
     
 }
 
