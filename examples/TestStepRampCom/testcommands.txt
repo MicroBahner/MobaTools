@@ -1,0 +1,15 @@
+
+#Die Befehle können z.B. mit Copy/Paste in den ser. Monitor kopiert werden
+
+eep 0 - 0 sss 8500 500
+eep 1 - 0 wrs 6880
+eep 2 > 3440 sss 12500 500
+eep 2 m 50 sss 12500 500
+eep 3 > 6000 srl 1000
+eep 4 m 0 rds
+eep 4 > 6900 mov 
+eep 5 t 4000 wrs 0
+eep 6 < 299 srl 500
+eep 6 < 299 sss 1259 100
+
+
