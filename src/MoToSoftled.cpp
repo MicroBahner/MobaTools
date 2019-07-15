@@ -7,8 +7,8 @@
 */
 #include <MobaTools.h>
 
-#include <avr/interrupt.h>
-#include <Arduino.h>
+// Debug-defines
+#include <MoToDbg.h>
 
 // Global Data for all instances and classes  --------------------------------
 extern uint8_t timerInitialized;
@@ -20,7 +20,7 @@ static byte ledCount = 0;
 static uint8_t ledNextCyc = TIMERPERIODE  / CYCLETIME;     // next Cycle that is relevant for leds
 static uint8_t ledCycleCnt = 0;    // count IRQ cycles within PWM cycle
 
-    ledData_t*  ledDataP;              // pointer to active Led in ISR
+static ledData_t*  ledDataP;              // pointer to active Led in ISR
     
 void softledISR(uint8_t cyclesLastIRQ) {
     // ---------------------- softleds -----------------------------------------------
@@ -190,7 +190,6 @@ void softledISR(uint8_t cyclesLastIRQ) {
 /////////////////////////////////////////////////////////////////////////////
 //Class SoftLed - for Led with soft on / soft off ---------------------------
 // Version with Software PWM
-#ifdef WITHSOFTLED
 SoftLed::SoftLed() {
     ledValid = LEDVALID;            // Flag 'object created'
     ledIx = ledCount++;
@@ -364,4 +363,3 @@ void SoftLed::riseTime( int riseTime ) {
     ledSpeed = tmp;
     //DB_PRINT( "ledSpeed[%d] = %d ( risetime=%d, riseMax=%d )", ledIx, ledSpeed, riseTime, riseMax );
 }
-#endif

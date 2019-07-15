@@ -7,7 +7,6 @@
 
   Definitions and declarations for the servo part of MobaTools
 */
-#include <MoToBase.h>
 
 #define WITHSERVO
 

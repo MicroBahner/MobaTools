@@ -6,9 +6,9 @@
   Functions for the stepper part of MobaTools
 */
 #include <MobaTools.h>
-#include <avr/interrupt.h>
-#include <Arduino.h>
 
+// Debug-defines
+#include <MoToDbg.h>
 
 
 // Global Data for all instances and classes  --------------------------------

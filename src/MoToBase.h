@@ -9,8 +9,7 @@
 */
 #include <inttypes.h>
 #include <Arduino.h>
-// Debug-defines
-#include <MoToDbg.h>
+#include <avr/interrupt.h>
 
 #ifndef  __AVR_MEGA__
 #ifndef __STM32F1__
@@ -31,10 +30,12 @@
 #define NOSTEP      0   // invalid-flag
 
 #define NO_OUTPUT   0
+
 #ifdef __AVR_MEGA__
 #define PIN8_11     1
 #define PIN4_7      2
 #endif
+
 #define SPI_1        3
 #define SPI_2        4
 #define SPI_3        5
@@ -42,12 +43,6 @@
 #define SINGLE_PINS  7
 #define A4988_PINS  8
 
-#define MAX_STEPPER     6       // 
-#define DEF_SPEEDSTEPS  3000    // default speed after attach
-#define DEF_RAMP        0       // default ramp after attach       
-#define CYCLETIME       200     // Min. irq-periode in us.
-#define MIN_STEP_CYCLE  4       // Minimum number of cycles per step
-#define RAMPOFFSET      16      // startvalue of rampcounter
 
 #define CYCLETICS   (CYCLETIME*TICS_PER_MICROSECOND)
 #define MIN_STEPTIME (CYCLETIME * MIN_STEP_CYCLE) 
@@ -58,8 +53,6 @@
 
 // defines for servos
 #define Servo2	Servo8		// Kompatibilität zu Version 01 und 02
-    #define MINPULSEWIDTH   700     // don't make it shorter
-    #define MAXPULSEWIDTH   2300    // don't make it longer
 #ifdef FIXED_POSITION_SERVO_PULSES
     #define MAX_SERVOS  8
 #else
@@ -68,6 +61,7 @@
     #define MARGINTICS      ( OVLMARGIN * TICS_PER_MICROSECOND )
     #define MAX_SERVOS  16  
 #endif               
+
 #define MINPULSETICS    (MINPULSEWIDTH * TICS_PER_MICROSECOND)
 #define MAXPULSETICS    (MAXPULSEWIDTH * TICS_PER_MICROSECOND)
 #define OFF_COUNT       50  // if autoOff is set, a pulse is switched off, if it length does not change for
@@ -80,12 +74,11 @@
                             // the real 'timer tics'
 
 extern uint8_t nextCycle;   // to be used in ISR for stepper and softled
+
 // for formatted printing to Serial( just like fprintf )
 // you need to define txtbuf with proper length to use this
 #define SerialPrintf( ... ) sprintf( txtbuf,  __VA_ARGS__ ); Serial.print( txtbuf );
 
-//#define FIXED_POSITION_SERVO_PULSES
-////////////////// END OF 'PUBLIC' PARAMETERS ////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 // internal defines
 #ifdef __AVR_MEGA__
@@ -184,38 +177,19 @@ inline void  _stepIRQ() {
         #endif
 }
 
-////////////////////////////////////////////////////////////////////////////
-// Class EggTimer - Timerverwaltung für Zeitverzögerungen in der Loop-Schleife
-// 
-
 class EggTimer
 {
+  public:
+    EggTimer();
+    void setTime( long);
+    bool running();
+    long getTime();
+
   private:
     bool active;
     long endtime;
-  public:
-    EggTimer()
-    {
-        active = false;
-    }
-    void setTime(  long wert ) {
-        endtime =  (long) millis() + ( (long)wert>0?wert:1 );
-        active = true;
-    }
-
-    bool running() {
-        if ( active ) active =  ( endtime - (long)millis() > 0 );
-        return active;
-    }
-
-    long getTime() {
-        // return remaining time
-        if ( running() ) return endtime - (long)millis();
-        else return 0;
-    }
-
-
 };
 #endif
+
 
 

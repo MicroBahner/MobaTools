@@ -7,13 +7,9 @@
 
   Definitions and declarations for the softled part of MobaTools
 */
-#include <MoToBase.h>
-
 // Defines for Softleds
-#define WITHSOFTLED
 ///////////////////////////////////////////////////////////////////////////////////////////////
 // 
-#ifdef WITHSOFTLED // Constants and variables for softleds
 //////////////////////////////////////////////////////////////////////////////////
 // global data for softleds ( used in ISR )
 // the PWM pulses are created together with stepper pulses
@@ -61,7 +57,6 @@ typedef struct ledData_t {            // global led values ( used in IRQ )
   uint8_t pin;                 // Outputpins as Arduino numbers
   #endif
 } ledData_t;
-#endif
 
 
 //////////////////////////////////////////////////////////////////////////////////////////////

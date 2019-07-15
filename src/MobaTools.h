@@ -52,9 +52,27 @@
      this uses only 2 pins: STEP and DIRECTION
 */
 
-// This global include activates all features of MobaTools
+
+// defines that may be changed by the user
+
+// stepper related defines
+#define MAX_STEPPER     6       // 
+#define DEF_SPEEDSTEPS  3000    // default speed after attach
+#define DEF_RAMP        0       // default ramp after attach       
+#define CYCLETIME       200     // Min. irq-periode in us.
+#define MIN_STEP_CYCLE  4       // Minimum number of cycles per step
+#define RAMPOFFSET      16      // startvalue of rampcounter
+
+// servo related defines
+// #define FIXED_POSITION_SERVO_PULSES
+#define MINPULSEWIDTH   700     // don't make it shorter than 700
+#define MAXPULSEWIDTH   2300    // don't make it longer than 2300
+
+
+#include <MoToBase.h>
 #include <MoToStepper.h>
 #include <MoToServo.h>
 #include <MoToSoftled.h>
 
 #endif
+

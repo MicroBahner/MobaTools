@@ -7,7 +7,6 @@
 
   Definitions and declarations for the stepper part of MobaTools
 */
-#include <MoToBase.h>
 
 #define WITHSTEPPER
 
