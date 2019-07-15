@@ -104,6 +104,7 @@ void execCmd( eeBefehl_t &cmdBuf ) {
     uint16_t ramp;
     switch ( cmdBuf.command ) {
       case szpT:
+        printf("Pos %d -> neuer Nullpunkt\n\r", myStepper.readSteps() );
         myStepper.setZero();
         break;
       case dstT: // ===============================  dst nnn     -> doSteps( +/-nnnL ) ==========
