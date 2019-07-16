@@ -79,17 +79,30 @@ EggTimer waitTimer;
 int comIx = -1;
 
 //--------------------- Funktionen --------------------------------------
-void printEeBefehl ( eeBefehl_t &comline ) {
+void printEeBefehl ( eeBefehl_t &comline, int eeIx = -1 ) {
     char _cmdStr[4];
     strncpy( _cmdStr, &comStr[comline.command*4], 3 );
     _cmdStr[3] = 0;
-    printf("| %2c %5ld | Cmd: %s %5ld %5ld|" ,
-        comline.bedingung,
-        comline.bedParam,
-        _cmdStr,
-        comline.comPar1,
-        comline.comPar2   );
-    Serial.println();
+    if ( eeIx >= 0 ) {
+        // im eep-Format ausgeben ( kann per Copy/paste wieder als
+        // Kommando verwendet werden
+        printf("eep %2d %2c %5ld  %s %5ld %5ld " ,
+            eeIx,
+            comline.bedingung,
+            comline.bedParam,
+            _cmdStr,
+            comline.comPar1,
+            comline.comPar2   );
+        Serial.println();
+    } else {
+        printf("| %2c %5ld | Cmd: %s %5ld %5ld|" ,
+            comline.bedingung,
+            comline.bedParam,
+            _cmdStr,
+            comline.comPar1,
+            comline.comPar2   );
+        Serial.println();
+    }
 }
 
 

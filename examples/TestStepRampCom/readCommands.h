@@ -73,8 +73,8 @@ bool getCmd ( eeBefehl_t &cmdBuf ) {
                     while (eeIx < 32 ) {
                         if ( (strchr( "-<>mt!", cmdBuf.bedingung ) != NULL) && cmdBuf.bedingung != 0  ) {
                             // nur gültioge Einträge anzeigen
-                            printf( "%02d: ", eeIx );
-                            printEeBefehl( cmdBuf );
+                            // printf( "%02d: ", eeIx );
+                            printEeBefehl( cmdBuf , eeIx);
                             fulCmd = true;
                         } else if ( fulCmd) {
                             // Trenner ausgeben
