@@ -54,8 +54,7 @@ const byte A4988Step=A1, A4988Dir=A0;
 #endif
 //====================================== Ende Pin-Definitionen ======================
 
-char txtbuf[100];
-#define printf( x, ... ) { sprintf_P( txtbuf, PSTR( x ), ##__VA_ARGS__ ) ; Serial.print( txtbuf ); }
+#define printf( x, ... ) { char txtbuf[100]; sprintf_P( txtbuf, PSTR( x ), ##__VA_ARGS__ ) ; Serial.print( txtbuf ); }
 
 // Tokens der Befehle
 enum comTok { dstT, wraT, wrsT, rotT, sspT, sssT, srlT, stpT, movT, rdaT, rdsT, szpT, wrpT, estT, espT, eepT, elsT,nopT };
@@ -79,6 +78,7 @@ enum  { ASTOPPED, NEXTCOM, WAITGT, WAITLT, WAITMV, WAITTM } autoZustand;
 EggTimer waitTimer;
 int comIx = -1;
 
+//--------------------- Funktionen --------------------------------------
 void printEeBefehl ( eeBefehl_t &comline ) {
     char _cmdStr[4];
     strncpy( _cmdStr, &comStr[comline.command*4], 3 );
@@ -113,12 +113,14 @@ void readCmd( byte eeIx, eeBefehl_t &cmdBuf ) {
     #endif
     
 }
+
 #include "readCommands.h"
+
+
 void setup() {
   Serial.begin( 115200 );
   while( !Serial ); 
   Serial.println("Programmstart");
-  
   if (myStepper.attach( A4988Step, A4988Dir )  ) Serial.println("Attach A4988 OK"); else Serial.println("Attach A4988 NOK");
 
   myStepper.setSpeedSteps( 6000, 100 );
@@ -159,8 +161,8 @@ void loop() {
             autoZustand = WAITTM;
             waitTimer.setTime( autoCom.bedParam );
          } else {
-            //kein gültiger Eintrag, stoppen
-            Serial.println(" stop");
+            //kein gültiger Eintrag, Ablaufende
+            Serial.println(" Ende");
             autoZustand = ASTOPPED;
          }
         break;

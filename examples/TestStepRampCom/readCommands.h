@@ -69,11 +69,17 @@ bool getCmd ( eeBefehl_t &cmdBuf ) {
                     Serial.println();
                     eeIx = 0;
                     readCmd( eeIx, cmdBuf  );
+                    fulCmd = true;  // wird hier temporär als Merker für Lücken in der Liste genutzt
                     while (eeIx < 32 ) {
                         if ( (strchr( "-<>mt!", cmdBuf.bedingung ) != NULL) && cmdBuf.bedingung != 0  ) {
                             // nur gültioge Einträge anzeigen
                             printf( "%02d: ", eeIx );
                             printEeBefehl( cmdBuf );
+                            fulCmd = true;
+                        } else if ( fulCmd) {
+                            // Trenner ausgeben
+                            Serial.println( "----" );
+                            fulCmd = false;
                         }
                         readCmd( ++eeIx, cmdBuf );
                     }
@@ -104,7 +110,7 @@ void execCmd( eeBefehl_t &cmdBuf ) {
     uint16_t ramp;
     switch ( cmdBuf.command ) {
       case szpT:
-        printf("Pos %d -> neuer Nullpunkt\n\r", myStepper.readSteps() );
+        printf(" Pos %d -> neuer Nullpunkt\n\r", myStepper.readSteps() );
         myStepper.setZero();
         break;
       case dstT: // ===============================  dst nnn     -> doSteps( +/-nnnL ) ==========

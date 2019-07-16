@@ -13,3 +13,10 @@ eep 6 < 299 srl 500
 eep 6 < 299 sss 1259 100
 
 
+eep 8 - 0 sss 8500 2000
+eep 9 - 0 wrs 3440
+eep 10 > 300 srl 400
+eep 11 > 3400 wrs 3420
+eep 12 m 0 rds
+eep 13 t 100 rds
+eep 14 t 1000 wrs 0
