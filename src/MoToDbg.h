@@ -1,6 +1,6 @@
 #ifndef MOTODEBUG_H
 #define MOTODEBUG_H
-#define debugTP
+//#define debugTP
 //#define debugPrint
 
 #ifdef debugTP 

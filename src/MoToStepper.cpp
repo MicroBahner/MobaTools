@@ -273,7 +273,7 @@ void stepperISR(uint8_t cyclesLastIRQ) {
                     break;
                     
                   case STOPPED:
-                    //stopped
+                    //stepper does not move -> nothing to do
                     //CLR_TP2;
                     break;
                 } // End of ramp-statemachine
