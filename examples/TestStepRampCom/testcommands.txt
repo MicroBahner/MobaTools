@@ -26,3 +26,12 @@ eep 25  t   100  srl  2000    -1
 eep 26  t  1000  wrs     0    -1 
 eep 27  m    50  srl   200    -1 
 ----
+eep 32  -     0  sss 10000  2000 
+eep 33  -     0  wrs  6000    -1 
+eep 34  >  2000  sss  5000  2000 
+eep 35  >  2500  sss  4000   400 
+eep 36  m     0  rds     0    -1 
+eep 37  t   100  nop  8000  1000 
+eep 38  t  1000  wrs     0    -1 
+eep 39  m    50  srl   200    -1 
+----

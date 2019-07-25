@@ -29,8 +29,8 @@ typedef struct stepperData_t {
   uint16_t cyctXramplen2;       // to be used after speedchange
   int16_t  stepRampLen;         // Length of ramp in steps
   int16_t  stepRampLen2;        // Length of ramp in steps
-  uint16_t stepsInRamp;         // stepcounter within ramp ( counting from stop: incrementing in startramp, decrementing in stopramp
-  uint16_t stepsInRampStop;     // stoppoint when decelerating to new speed
+  int16_t  stepsInRamp;         // stepcounter within ramp ( counting from stop: incrementing in startramp, decrementing in stopramp
+  int16_t  stepsInRampStop;     // stoppoint when decelerating to new speed
   rampStats_t rampState;        // State of acceleration/deceleration
   volatile uint16_t cycCnt;     // counting cycles until cycStep
   volatile long stepsFromZero;  // distance from last reference point ( always as steps in HALFSTEP mode )
