@@ -20,17 +20,12 @@ typedef struct stepperData_t {
   volatile int8_t patternIx;    // Pattern-Index of actual Step (0-7)
   int8_t   patternIxInc;        // halfstep: +/-1, fullstep: +/-2, A4988 +1/-1  the sign defines direction
   uint16_t tCycSteps;           // nbr of IRQ cycles per step ( target value of motorspeed  )
-  uint16_t tCycSteps2;          // to be used after speedchange
   uint16_t tCycRemain;          // Remainder of division when computing tCycSteps
-  uint16_t tCycRemain2;         // to be used after speedchange
   volatile uint16_t aCycSteps;           // nbr of IRQ cycles per step ( actual motorspeed  )
   uint16_t aCycRemain;          // accumulate tCycRemain when cruising
-  uint16_t cyctXramplen;        // precompiled  tCycSteps*rampLen*RAMPOFFSET
-  uint16_t cyctXramplen2;       // to be used after speedchange
+  uint16_t cyctXramplen;        // precompiled  tCycSteps*(rampLen+RAMPOFFSET)
   int16_t  stepRampLen;         // Length of ramp in steps
-  int16_t  stepRampLen2;        // Length of ramp in steps
   int16_t  stepsInRamp;         // stepcounter within ramp ( counting from stop: incrementing in startramp, decrementing in stopramp
-  int16_t  stepsInRampStop;     // stoppoint when decelerating to new speed
   rampStats_t rampState;        // State of acceleration/deceleration
   volatile uint16_t cycCnt;     // counting cycles until cycStep
   volatile long stepsFromZero;  // distance from last reference point ( always as steps in HALFSTEP mode )
@@ -67,7 +62,9 @@ class Stepper4
     uint8_t stepperIx;              // Objectnumber ( 0 ... MAX_STEPPER )
     int stepsRev;                   // steps per full rotation
     uint16_t _stepSpeed10;          // speed in steps/10sec
-    long stepsToMove;                // from last point
+    uint16_t _lastRampLen ;         // last manually set ramplen
+    uint16_t _lastRampSpeed;        // speed when ramp was set manually
+    long stepsToMove;               // from last point
     uint8_t stepMode;               // FULLSTEP or HALFSTEP
     static outUsed_t outputsUsed;
     
