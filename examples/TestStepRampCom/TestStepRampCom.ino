@@ -18,7 +18,7 @@
  *  
  *  est nn      -> Kommandos in EEPROM ab Befehl nn abarbeiten
  *  esp         -> Abbarbeitung der EEPROM-Komandos stoppen
- *  eep ii c pp ccc nn rr Kommando im EEPROM an Stelle ii ablegen ( 0 <= ii < 32 )
+ *  eep ii c pp ccc nn rr Kommando im EEPROM an Stelle ii ablegen ( 0 <= ii < EEMAX )
  *              c= '-' Kommando sofort ausführen
  *              c= '<' Ausführen, wenn abs. Position pp unterschritten ( in Steps vom Ref.Punkt )
  *              c= '>' Ausführen, wenn abs, Position pp überschritten ( in Steps vom Ref. Punkt )
@@ -43,12 +43,12 @@ const byte A4988Step=PA2, A4988Dir=PA3 ;
 // LA-Pins: TP1=PB12, TP2=PB13, TP3= PB14,  TP4=BP15
 //............................................................................
 #elif defined __AVR_ATmega328P__ // ========- 328P ( Nano, Uno Mega ) ========--
-const byte A4988Step=A5, A4988Dir=A0;
+const byte A4988Step=6, A4988Dir=5;
 // SPI = Pins 10,11,12,13
 // LA-Pins: TP1=A1, TP2=A2, TP3= A3,  TP4=A4
 //............................................................................
 #elif defined __AVR_ATmega32U4__ // ====- 32U4 ( Micro, Leonardo ) ================
-const byte A4988Step=A1, A4988Dir=A0;
+const byte A4988Step=6, A4988Dir=5;
 // SPI = Pins 14,15,16,17
 // LA-Pins: TP1=A3, TP2=A2, TP3= D1,  TP4=D0
 #endif
@@ -60,6 +60,7 @@ const byte A4988Step=A1, A4988Dir=A0;
 enum comTok { dstT, wraT, wrsT, rotT, sspT, sssT, srlT, stpT, movT, rdaT, rdsT, szpT, wrpT, estT, espT, eepT, elsT,nopT };
 const char comStr[] = "dst,wra,wrs,rot,ssp,sss,srl,stp,mov,rda,rds,szp,wrp,est,esp,eep,els,nop";
 // Befehlsstruktur im EEPROM
+#define EEMAX   64 // Zahl der einträge im EEPROM
 typedef struct {
     char bedingung = '?';     // Bedingung für die Ausführung des Befehls
     long bedParam;      // Paramter für die Bedingung
@@ -72,7 +73,7 @@ const byte eeComLen = sizeof( eeBefehl_t );
 
 eeBefehl_t autoCom, interCom;      // aktuell abzuarbeitende Kommandos ( automatisch, interaktiv )
 #ifdef __STM32F1__
-eeBefehl_t cmdStorage[32]; // Auf dem STM32 werdein die Befehle im Ram gespeichert
+eeBefehl_t cmdStorage[EEMAX]; // Auf dem STM32 werdein die Befehle im Ram gespeichert
 #endif
 enum  { ASTOPPED, NEXTCOM, WAITGT, WAITLT, WAITMV, WAITTM } autoZustand;
 EggTimer waitTimer;
@@ -108,7 +109,7 @@ void printEeBefehl ( eeBefehl_t &comline, int eeIx = -1 ) {
 
 void storeCmd( byte eeIx, eeBefehl_t &cmdBuf ) {
     #ifdef __STM32F1__ // beim STM32 im Ram speichern
-    if ( eeIx >= 0 && eeIx < 32 ) {
+    if ( eeIx >= 0 && eeIx < EEMAX ) {
         memcpy( &cmdStorage[eeIx], &cmdBuf, sizeof( eeBefehl_t ) );
     }
     #else
@@ -118,7 +119,7 @@ void storeCmd( byte eeIx, eeBefehl_t &cmdBuf ) {
 
 void readCmd( byte eeIx, eeBefehl_t &cmdBuf ) {
     #ifdef __STM32F1__ // hier gibt es keinen get-Befehl, eine Stelle kann aber uint16 aufnehmen
-    if ( eeIx >= 0 && eeIx < 32 ) {
+    if ( eeIx >= 0 && eeIx < EEMAX ) {
         memcpy( &cmdBuf, &cmdStorage[eeIx], eeComLen );
     }
     #else
@@ -154,30 +155,36 @@ void loop() {
         comIx = -1;
         break;
       case NEXTCOM:
-         readCmd( comIx++, autoCom );
-            Serial.print("Auto:");
-         if ( autoCom.bedingung == '-' ) {
-            // Befehl sofort ausführen
-            execCmd( autoCom );
-         } else if ( autoCom.bedingung == '>' ) {
-            // verzögerte Ausführung
-            printf(" warte bis Steppos > %d ->", autoCom.bedParam );
-            autoZustand = WAITGT;
-         } else if ( autoCom.bedingung == '<' ) {
-            printf(" warte bis Steppos < %d ->", autoCom.bedParam );
-            autoZustand = WAITLT;
-         } else if ( autoCom.bedingung == 'm' ) {
-            printf( " warte bis Restweg <= %d%% ->", autoCom.bedParam );
-            autoZustand = WAITMV;
-         } else if ( autoCom.bedingung == 't' ) {
-            printf(" warte %d ms ->", autoCom.bedParam );
-            autoZustand = WAITTM;
-            waitTimer.setTime( autoCom.bedParam );
-         } else {
-            //kein gültiger Eintrag, Ablaufende
-            Serial.println(" Ende");
+         if ( comIx == -1 ){
+            // Ablauf stoppen
+            Serial.println("Auto: Angehalten");
             autoZustand = ASTOPPED;
-         }
+         } else {
+             readCmd( comIx++, autoCom );
+             printf("Auto: (%2d) ", comIx-1 );
+             if ( autoCom.bedingung == '-' ) {
+                // Befehl sofort ausführen
+                execCmd( autoCom );
+             } else if ( autoCom.bedingung == '>' ) {
+                // verzögerte Ausführung
+                printf(" warte bis Steppos > %d ->", autoCom.bedParam );
+                autoZustand = WAITGT;
+             } else if ( autoCom.bedingung == '<' ) {
+                printf(" warte bis Steppos < %d ->", autoCom.bedParam );
+                autoZustand = WAITLT;
+             } else if ( autoCom.bedingung == 'm' ) {
+                printf( " warte bis Restweg <= %d%% ->", autoCom.bedParam );
+                autoZustand = WAITMV;
+             } else if ( autoCom.bedingung == 't' ) {
+                printf(" warte %d ms ->", autoCom.bedParam );
+                autoZustand = WAITTM;
+                waitTimer.setTime( autoCom.bedParam );
+             } else {
+                //kein gültiger Eintrag, Ablaufende
+                Serial.println(" Ende");
+                autoZustand = ASTOPPED;
+             }
+        }
         break;
       case WAITGT: // warten auf Erfüllung der aktuellen Bedingung
         if ( myStepper.readSteps() > autoCom.bedParam ) {

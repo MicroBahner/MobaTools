@@ -4,7 +4,7 @@ bool getCmd ( eeBefehl_t &cmdBuf ) {
     // Wenn Daten verfügbar, diese in den receive-Buffer lesen. Endezeichen ist LF oder CR
     // Funktionswert ist true, wenn ein kompletter Befehl empfangen, und im cmdBuf eingetragen wurde
     bool fulCmd = false;
-    byte eeIx = -1;         // default: kein EEPROM Eintrag
+    int8_t eeIx = -1;         // default: kein EEPROM Eintrag
     static char rcvBuf[50];
     static byte rcvIx=0;       // Index im Empfangspuffer
     char *token, *tkPtr;
@@ -55,13 +55,21 @@ bool getCmd ( eeBefehl_t &cmdBuf ) {
                  
                 switch ( cmdBuf.command )  {     
                   case estT: // ===============================  est nnn     -> Automat an Index nn starten ======
-                    comIx = cmdBuf.comPar1;
-                    if ( comIx >= 0 && comIx <32 ) autoZustand = NEXTCOM;
-                    printf( "Starte autom. Ablauf ab Index %d\n\r", comIx );
-                    fulCmd = false;
+                    if ( eeIx < 0 ) {
+                        // war kein eep-Befehl -> Ablauf starten
+                        comIx = cmdBuf.comPar1;
+                        if ( comIx >= 0 && comIx <EEMAX ) autoZustand = NEXTCOM;
+                        printf( "Starte autom. Ablauf ab Index %d\n\r", comIx );
+                        fulCmd = false;
+                    }
                     break;
                   case espT: // ===============================  esp     -> Automat stoppen ======
-                    autoZustand = ASTOPPED;
+                    if ( cmdBuf.comPar1 == 0 )
+                        comIx = -1; // nach aaktuellem Befehl anhalten
+                    else {
+                        Serial.println(" Abgebrochen");
+                        autoZustand = ASTOPPED; // direkt anhalten
+                    }
                     fulCmd = false;
                     break;
                   case elsT: // ===============================  els         -> list Commands ======================
@@ -70,8 +78,8 @@ bool getCmd ( eeBefehl_t &cmdBuf ) {
                     eeIx = 0;
                     readCmd( eeIx, cmdBuf  );
                     fulCmd = true;  // wird hier temporär als Merker für Lücken in der Liste genutzt
-                    while (eeIx < 32 ) {
-                        if ( (strchr( "-<>mt!", cmdBuf.bedingung ) != NULL) && cmdBuf.bedingung != 0  ) {
+                    while (eeIx < EEMAX ) {
+                        if ( (strchr( "-<>mt!?", cmdBuf.bedingung ) != NULL) && cmdBuf.bedingung != 0  ) {
                             // nur gültioge Einträge anzeigen
                             // printf( "%02d: ", eeIx );
                             printEeBefehl( cmdBuf , eeIx);
@@ -89,7 +97,7 @@ bool getCmd ( eeBefehl_t &cmdBuf ) {
                     ;
                 }
                 // ------------- war eep-Befehl -> Kommando im Speicher eintragen --------------
-                if ( fulCmd && eeIx >=0 && eeIx < 32 ) {
+                if ( fulCmd && eeIx >=0 && eeIx < EEMAX ) {
                     // Kommando in EEPROM eintragen
                     printf( "EEPROM-Ix = %d, ", eeIx );
                     storeCmd( eeIx, cmdBuf );
@@ -143,7 +151,7 @@ void execCmd( eeBefehl_t &cmdBuf ) {
             printf(" sss: %u,%u",cmdBuf.comPar1 /10, cmdBuf.comPar1 %10);
             ramp = myStepper.setSpeedSteps( cmdBuf.comPar1  );
         } else {
-            printf(" sss: %u,%u, ramp: %u",cmdBuf.comPar1 /10, cmdBuf.comPar1 %10, cmdBuf.comPar2 );
+            printf(" sss: %ld,%ld ramp: %ld ",cmdBuf.comPar1 /10, cmdBuf.comPar1 %10, cmdBuf.comPar2 );
             ramp = myStepper.setSpeedSteps( cmdBuf.comPar1 , cmdBuf.comPar2  );
         }
         printf( "->akt.Rampe=%u\n\r", ramp );
@@ -157,13 +165,19 @@ void execCmd( eeBefehl_t &cmdBuf ) {
         printf( " akt.Rampe=%u\n\r", ramp );
         break;
      case movT: // ===============================  mov         -> print restweg ======================
-        printf( " Remaining: %d\n\r", myStepper.moving() );
+        printf( " Remaining: %d%%\n\r", myStepper.moving() );
         break;
      case rdaT: // ===============================  rda         -> print anglepos =====================
        printf( " Winkelposition: %ld\n\r", myStepper.read() );
        break;
      case rdsT: // ===============================  rds         -> print steppos ======================
        printf( " Stepposition: %ld\n\r", myStepper.readSteps() );
+       break;
+     case estT: // =============================== est -> Programm bei schritt nn fortführen ========
+       if ( cmdBuf.comPar1 >= 0 && cmdBuf.comPar1 < EEMAX ) {
+           printf( " Goto %d\n\r", cmdBuf.comPar1 );
+           if ( comIx != -1 ) comIx = cmdBuf.comPar1 ;
+       }
        break;
      case nopT:
        Serial.println( " NOP" );
