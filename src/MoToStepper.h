@@ -100,8 +100,9 @@ class Stepper4
                                     // will move to the correct angle
     void rotate(int8_t direction ); // rotate endless until 'stop',
     void stop();                    // stops moving immediately
-    uint8_t moving();               // returns the remaining way to the angle last set with write() in
-                                    // in percentage. '0' means, that the angle is reached
+    long stepsToDo();               // remaining steps until target position
+    uint8_t moving();               // returns the remaining way to the position last set with write() in
+                                    // in percentage. '0' means, that the target positio is reached
                                     // 255 means the motor is rotating endlessly
     long read();                    // actual angle from zeropoint (setZero)
     long readSteps();               // actual distance to zeropoint in steps

@@ -10,7 +10,8 @@
  *  sss nn rr   -> setSpeedSteps( speed10, ramp ) wenn rr fehlt wird es nicht ausgegeben
  *  srl nn      -> setRampLen( ramp )
  *  stp         -> stop
- *  mov         -> print restweg
+ *  mov         -> print Restweg in % vom Gesamtweg
+ *  std         -> print Restweg in Steps
  *  rda         -> print anglepos
  *  rds         -> print steppos
  *  szp         -> set zeropoint
@@ -57,8 +58,8 @@ const byte A4988Step=6, A4988Dir=5;
 #define printf( x, ... ) { char txtbuf[100]; sprintf_P( txtbuf, PSTR( x ), ##__VA_ARGS__ ) ; Serial.print( txtbuf ); }
 
 // Tokens der Befehle
-enum comTok { dstT, wraT, wrsT, rotT, sspT, sssT, srlT, stpT, movT, rdaT, rdsT, szpT, wrpT, estT, espT, eepT, elsT,nopT };
-const char comStr[] = "dst,wra,wrs,rot,ssp,sss,srl,stp,mov,rda,rds,szp,wrp,est,esp,eep,els,nop";
+enum comTok { dstT, wraT, wrsT, rotT, sspT, sssT, srlT, stpT, movT, rdaT, rdsT, szpT, wrpT, estT, espT, eepT, elsT,nopT,stdT };
+const char comStr[] = "dst,wra,wrs,rot,ssp,sss,srl,stp,mov,rda,rds,szp,wrp,est,esp,eep,els,nop,std";
 // Befehlsstruktur im EEPROM
 #define EEMAX   64 // Zahl der einträge im EEPROM
 typedef struct {

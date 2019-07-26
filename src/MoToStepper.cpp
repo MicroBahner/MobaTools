@@ -866,7 +866,16 @@ long Stepper4::readSteps()
 }
 
 
+long Stepper4::stepsToDo() { 
+    // return remaining steps until target position
+    long tmp;
+    _noStepIRQ(); // disable Stepper interrupt, because (long)stepcnt is changed in TCR interrupt
+    tmp = _stepperData.stepCnt + _stepperData.stepCnt2;
+    _stepIRQ();  // enable stepper IRQ
+    return tmp;
+}
 
+        
 uint8_t Stepper4::moving() {
     // return how much still to move (percentage)
     long tmp;

@@ -164,8 +164,11 @@ void execCmd( eeBefehl_t &cmdBuf ) {
         ramp = myStepper.setRampLen( cmdBuf.comPar1  );
         printf( " akt.Rampe=%u\n\r", ramp );
         break;
-     case movT: // ===============================  mov         -> print restweg ======================
+     case movT: // ===============================  mov         -> print restweg in % =================
         printf( " Remaining: %d%%\n\r", myStepper.moving() );
+        break;
+     case stdT: // ===============================  std         -> print restweg in Steps =============
+        printf( " Remaining: %ld Steps\n\r", myStepper.stepsToDo() );
         break;
      case rdaT: // ===============================  rda         -> print anglepos =====================
        printf( " Winkelposition: %ld\n\r", myStepper.read() );
