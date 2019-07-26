@@ -18,7 +18,7 @@ Can control up to 16 servos. Compatible with arduino servo lib, but allows to co
 the speed of the servo.
 
 #### Stepper4: 
-A class to control unipolar stepper motors. The arduino sketch is not blocked while 
+A class to control stepper motors. The arduino sketch is not blocked while 
 the stepper is moving. After setting a reference point, the stepper can be positioned 
 absolutely just like a servo. But without the angle limitation of 0--180 degrees.
 V1.1: Ramps can be defined to accelerate/decelerate the Stepper.

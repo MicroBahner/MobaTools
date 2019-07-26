@@ -198,7 +198,7 @@ void stepperISR(uint8_t cyclesLastIRQ) {
                     // Ramp must be same length in accelerating and decelerating!
                     if ( stepperDataP->stepCnt <= (long)( stepperDataP->stepsInRamp  ) ) {
                         //CLR_TP2;
-                        stepperDataP->rampState = STARTDECEL;
+                        stepperDataP->rampState = RAMPDECEL;
                         //DB_PRINT( "scnt=%ld, sIR=%u\n\r", stepperDataP->stepCnt, stepperDataP->stepsInRamp );
                         //SET_TP2;
                     } else {
@@ -206,11 +206,6 @@ void stepperISR(uint8_t cyclesLastIRQ) {
                         stepperDataP->stepsInRamp ++;
                     }    
                     break;
-                  case STARTDECEL:
-                    //SET_TP3;
-                    stepperDataP->rampState = RAMPDECEL;
-                    stepperDataP->stepsInRamp = stepperDataP->stepCnt;
-                    //CLR_TP3;
                   case RAMPDECEL:
                     // we are stopping the motor
                     if ( stepperDataP->stepCnt > (long)( stepperDataP->stepsInRamp ) ) {
@@ -259,7 +254,7 @@ void stepperISR(uint8_t cyclesLastIRQ) {
                     // do we have to start the deceleration
                     if ( stepperDataP->stepCnt <= stepperDataP->stepRampLen ) {
                         // in mode without ramp ( stepRampLen == 0 ) , this can never be true
-                        stepperDataP->rampState = STARTDECEL;
+                        stepperDataP->rampState = RAMPDECEL;
                     }
                     
                     break;
@@ -662,7 +657,7 @@ uint16_t Stepper4::setSpeedSteps( uint16_t speed10, int16_t rampLen ) {
         long        __newStepCnt2;
         
         DB_PRINT("Speed changed! New: tcyc=%u, ramp=%u, cXr=%u",tCycSteps,newRampLen,newCyctXramplen );
-        Serial.print(" ( ");Serial.print( _stepperData.stepsInRamp );Serial.print("->");
+        //Serial.print(_stepperData.rampState); Serial.print(" ( ");Serial.print( _stepperData.stepsInRamp );Serial.print("->");
          do {
             // read actual ISR values
             newRampState = _stepperData.rampState;
@@ -675,38 +670,38 @@ uint16_t Stepper4::setSpeedSteps( uint16_t speed10, int16_t rampLen ) {
             // than ramplen, if speed changed to slower
             newStepsInRamp = ( (long)newCyctXramplen * (_stepperData.stepsInRamp + RAMPOFFSET ) / _stepperData.cyctXramplen ) -RAMPOFFSET;
             if ( newStepsInRamp < 0 ) newStepsInRamp = 0; 
-            Serial.print( newStepsInRamp );
+            //Serial.print( newStepsInRamp );
             
             if ( newSpeed10 != _stepSpeed10 ) {
                 // speed changed!
                 if ( newStepsInRamp > newRampLen ) {
                     //  ==========  we are too fast ============================
-                        Serial.print(" --");
+                        //Serial.print(" --");
                         DB_PRINT ( "Slower: %u/%u -> %u/%u", _stepSpeed10,_stepperData.stepRampLen,  newSpeed10, newRampLen );
                         newRampState = SPEEDDECEL;
                         DB_PRINT("State->%s,  actStep=%u",rsC[_stepperData.rampState], _stepperData.stepsInRamp );
                     
                 } else  {
                     //  ==========  we are too slow ============================
-                    Serial.print(" ++"); 
+                    //Serial.print(" ++"); 
                     DB_PRINT ( "Faster: %u/%u -> %u/%u", _stepSpeed10,_stepperData.stepRampLen, newSpeed10 , newRampLen );
                     newRampState = RAMPACCEL;
                 }
             } else {
-                Serial.print(" ==");
+                //Serial.print(" ==");
             }
 
             // Check whether we can reach targetposition with new values
             if ( newStepsInRamp > (__stepCnt - _stepperData.stepCnt2) ) {
                 // we cannot reach the tagetposition, so we go beyond the targetposition and than back.
                 // This works even if we are already beyond the target position
-                Serial.print( " ><");
+                //Serial.print( " ><");
                 __newStepCnt2 = newStepsInRamp - (__stepCnt - _stepperData.stepCnt2);
                 __newStepCnt = newStepsInRamp;
                 newRampState = RAMPDECEL;
             }
             _noStepIRQ(); SET_TP2;
-            Serial.print(" ) ");
+            //Serial.print(" ) ");Serial.print(_stepperData.rampState);
         } while ( __stepCnt != _stepperData.stepCnt ); // if there was a step during computing, do it again
         _stepperData.rampState = newRampState;
         _stepperData.stepsInRamp = newStepsInRamp;
@@ -882,15 +877,13 @@ uint8_t Stepper4::moving() {
         tmp = 0;        // there was nothing to move
     } else {
         _noStepIRQ(); // disable Stepper interrupt, because (long)stepcnt is changed in TCR interrupt
-        tmp = _stepperData.stepCnt;
+        tmp = _stepperData.stepCnt + _stepperData.stepCnt2;
         _stepIRQ();  // enable stepper IRQ
         if ( tmp > 0 ) {
             // do NOT return 0, even if less than 1%, because 0 means real stop of the motor
             if ( tmp < 2147483647L / 100 )
-                //tmp = max ( (tmp * 100 / abs( stepsToMove)) , 1 );
                 tmp = (tmp * 100 / abs( stepsToMove)) + 1;
             else
-                //tmp = max ( (tmp  / ( abs( stepsToMove) / 100 ) ) , 1 );
                 tmp =  (tmp  / ( abs( stepsToMove) / 100 ) ) + 1;
         }
     }
@@ -911,7 +904,6 @@ void Stepper4::rotate(int8_t direction) {
             switch ( _stepperData.rampState ) {
               case STOPPED:
               case RAMPDECEL:
-              case STARTDECEL:
                 // already in Stop or decelerating - do nothing
                 break;
               case RAMPACCEL:
