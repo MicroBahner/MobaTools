@@ -26,6 +26,7 @@ readMicroseconds	KEYWORD2
 read	KEYWORD2
 setSpeed	KEYWORD2
 moving	KEYWORD2
+stepsToDo	KEYWORD2
 setMinimumPulse	KEYWORD2
 setMaximumPulse	KEYWORD2
 
