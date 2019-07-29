@@ -12,7 +12,8 @@
 
 /////////////////////////////////////////////////////////////////////////////////
 // global stepper data ( used in ISR )
-enum rampStats_t:byte { INACTIVE, STOPPED, RAMPSTART, RAMPACCEL, CRUISING, RAMPDECEL, SPEEDDECEL  };
+enum rampStats_t:byte { INACTIVE, STOPPED, ENABLE, CRUISING, RAMPACCEL, RAMPDECEL, SPEEDDECEL  };
+// states from CRUISING and above mean that the motor is moving
 typedef struct stepperData_t {
   struct stepperData_t *nextStepperDataP;    // chain pointer
   volatile long stepCnt;        // nmbr of steps to take
@@ -66,6 +67,7 @@ class Stepper4
     uint16_t _lastRampSpeed;        // speed when ramp was set manually
     long stepsToMove;               // from last point
     uint8_t stepMode;               // FULLSTEP or HALFSTEP
+    uint8_t _enablePin;             // define an enablePin, which is active (HIGH) while the stepper is moving
     static outUsed_t outputsUsed;
     
     long getSFZ();                  // get step-distance from last reference point
@@ -83,6 +85,7 @@ class Stepper4
     uint8_t attach(uint8_t outArg);    // stepMode defaults to halfstep
     uint8_t attach(uint8_t outArg, uint8_t*  ); 
                                     // returns 0 on failure
+    void    attachEnable( uint8_t enableP, uint16_t delay ); // define an enable pin and the delay (µs) between enable and starting the motor
     void detach();                  // detach from output, motor will not move anymore
     void write(long angle);         // specify the angle in degrees, mybe pos or neg. angle is
                                     // measured from last 'setZero' point
