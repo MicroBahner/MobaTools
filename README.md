@@ -6,7 +6,7 @@ MobaTools
 
 | Version |  Release Date  | Description
 | ------- |  ------------  | -----------
-| 1.1.0 | 2019-07-26 | acceleration/deceleration for steppermotors is now possible
+| 1.1.1 | 2019-07-29 | acceleration/deceleration for steppermotors is now possible
 | | | optimized flash usage when only part of the functionality is used
 
 ### Functionality
