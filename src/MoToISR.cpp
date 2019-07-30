@@ -30,7 +30,7 @@ void ISR_Stepper(void) {
     // 26-09-15 An Interrupt is only created at timeslices, where data is to output
     uint16_t tmp;
     SET_TP4;SET_TP3;
-    nextCycle = TIMERPERIODE  / CYCLETIME ;// min ist one cycle per Timeroverflow
+    nextCycle = ISR_IDLETIME  / CYCLETIME ;// min ist one cycle per Timeroverflow
     CLR_TP4;
     if ( stepperISR ) stepperISR(cyclesLastIRQ);
     //============  End of steppermotor ======================================

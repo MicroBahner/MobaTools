@@ -54,8 +54,7 @@ void stepperISR(uint8_t cyclesLastIRQ) {
             digitalWrite( stepperDataP->pins[0], LOW );
             #endif
         }
-        //if ( stepperDataP->activ && stepperDataP->stepCnt > 0 ) {
-        if ( stepperDataP->rampState != STOPPED ) {
+        if ( stepperDataP->rampState >= CRUISING ) {
             // only active motors
             //SET_TP2;
             stepperDataP->cycCnt+=cyclesLastIRQ;
@@ -169,6 +168,11 @@ void stepperISR(uint8_t cyclesLastIRQ) {
                         stepperDataP->stepCnt2 = 0;
                         stepperDataP->rampState = RAMPACCEL;
                     } else {    
+                        if (stepperDataP->enablePin != 255) {
+                            // enable is active, wait for disabling
+                            stepperDataP->aCycSteps = stepperDataP->delayCycles;
+                            stepperDataP->rampState = STOPPING;
+                        } else {    
                         stepperDataP->aCycSteps = TIMERPERIODE;    // no more Interrupts for this stepper needed
                         stepperDataP->rampState = STOPPED;
                         //CLR_TP2;
@@ -269,6 +273,20 @@ void stepperISR(uint8_t cyclesLastIRQ) {
             nextCycle = min ( nextCycle, stepperDataP->aCycSteps-stepperDataP->cycCnt );
             //SET_TP1;
         } // end of 'if stepper active AND moving'
+        else if ( stepperDataP->rampState == STARTING ) {
+            // we start with enablepin active ( cycCnt is already set to 0 )
+            stepperDataP->aCycSteps = stepperDataP->cycDelay;
+            stepperDataP->rampState = RAMPACCEL;
+            nextCycle = min ( nextCycle, stepperDataP->aCycSteps );
+        } else if ( stepperDataP->rampState == STOPPING  ) {
+            stepperDataP->cycCnt+=cyclesLastIRQ;
+            if ( stepperDataP->cycCnt >= stepperDataP->aCycSteps ) {
+                stepperDataP->cycCnt = 0;
+                digitalWrite( stepperDataP->enablePin, !stepperDataP->enable );
+                stepperDataP->rampState == STOPPED
+            }
+        }
+
         //CLR_TP1;
         stepperDataP = stepperDataP->nextStepperDataP;
         SET_TP1; //CLR_TP3;
@@ -778,9 +796,17 @@ void Stepper4::doSteps( long stepValue ) {
                 _noStepIRQ();
                 _stepperData.patternIxInc   = patternIxInc;
                 _stepperData.cycCnt         = 0;            // start with the next IRQ
-                _stepperData.aCycSteps      = 0;
                 _stepperData.aCycRemain     = 0;   
-                _stepperData.rampState      = RAMPACCEL;
+                if ( _stepperData.enablePin != 255 ) {
+                    // set enable pin to active and start delaytime
+                    digitalWrite( _stepperData.enablePin, _stepperData.enable );
+                    _stepperData.aCycSteps      = _stepperData.cycDelay;
+                    _stepperData.rampState      = STARTING;
+                } else {
+                    // no delay
+                    _stepperData.aCycSteps      = 0;
+                    _stepperData.rampState      = RAMPACCEL;
+                }
                 _stepperData.stepsInRamp    = 0;
                 _stepperData.stepCnt        = abs(stepsToMove);
                 _stepIRQ();

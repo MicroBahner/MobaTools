@@ -12,7 +12,7 @@
 
 /////////////////////////////////////////////////////////////////////////////////
 // global stepper data ( used in ISR )
-enum rampStats_t:byte { INACTIVE, STOPPED, ENABLE, CRUISING, RAMPACCEL, RAMPDECEL, SPEEDDECEL  };
+enum rampStats_t:byte { INACTIVE, STOPPED, STOPPING, STARTING, CRUISING, RAMPACCEL, RAMPDECEL, SPEEDDECEL  };
 // states from CRUISING and above mean that the motor is moving
 typedef struct stepperData_t {
   struct stepperData_t *nextStepperDataP;    // chain pointer
@@ -33,7 +33,9 @@ typedef struct stepperData_t {
                                 // in FULLSTEP mode this is twice the real step number
   uint8_t output  :6 ;             // PORTB(pin8-11), PORTD (pin4-7), SPI0,SPI1,SPI2,SPI3, SINGLE_PINS, A4988_PINS
   uint8_t activ :1;  
-  //uint8_t endless :1;              // turn endless
+  uint8_t enable:1;             // true: enablePin=HIGH is active, false: enablePin=LOW is active
+  uint8_t _enablePin;           // define an enablePin, which is active while the stepper is moving (255: no pin defined)
+  uint16_t cycDelay;            // delay time enable -> stepping
   #ifdef FAST_PORTWRT
   portBits_t portPins[4];       // Outputpins as Portaddress and Bitmask for faster writing
   #else
@@ -67,7 +69,6 @@ class Stepper4
     uint16_t _lastRampSpeed;        // speed when ramp was set manually
     long stepsToMove;               // from last point
     uint8_t stepMode;               // FULLSTEP or HALFSTEP
-    uint8_t _enablePin;             // define an enablePin, which is active (HIGH) while the stepper is moving
     static outUsed_t outputsUsed;
     
     long getSFZ();                  // get step-distance from last reference point

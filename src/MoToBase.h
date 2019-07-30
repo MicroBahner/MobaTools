@@ -36,17 +36,18 @@
 #define PIN4_7      2
 #endif
 
-#define SPI_1        3
-#define SPI_2        4
-#define SPI_3        5
-#define SPI_4        6
-#define SINGLE_PINS  7
-#define A4988_PINS  8
+#define SPI_1           3
+#define SPI_2           4
+#define SPI_3           5
+#define SPI_4           6
+#define SINGLE_PINS     7
+#define A4988_PINS      8
 
 
-#define CYCLETICS   (CYCLETIME*TICS_PER_MICROSECOND)
-#define MIN_STEPTIME (CYCLETIME * MIN_STEP_CYCLE) 
-#define MAXRAMPLEN  16000       // Do not change!
+#define CYCLETICS       (CYCLETIME*TICS_PER_MICROSECOND)
+#define MIN_STEPTIME    (CYCLETIME * MIN_STEP_CYCLE) 
+#define MAXRAMPLEN      16000       // Do not change!
+#define ISR_IDLETIME    5000        // max time between two Stepper/Softled ISRs
 
 // defines for soft-leds
 #define MAX_LEDS    16     // Soft On/Off defined for compatibility reasons. There is no fixed limit anymore.
