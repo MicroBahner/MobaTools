@@ -170,12 +170,13 @@ void stepperISR(uint8_t cyclesLastIRQ) {
                     } else {    
                         if (stepperDataP->enablePin != 255) {
                             // enable is active, wait for disabling
-                            stepperDataP->aCycSteps = stepperDataP->delayCycles;
+                            stepperDataP->aCycSteps = stepperDataP->cycDelay;
                             stepperDataP->rampState = STOPPING;
                         } else {    
                         stepperDataP->aCycSteps = TIMERPERIODE;    // no more Interrupts for this stepper needed
                         stepperDataP->rampState = STOPPED;
                         //CLR_TP2;
+                        }
                     }
                 }
                 // --------------- compute nexte steplength ------------------------------------
@@ -276,14 +277,15 @@ void stepperISR(uint8_t cyclesLastIRQ) {
         else if ( stepperDataP->rampState == STARTING ) {
             // we start with enablepin active ( cycCnt is already set to 0 )
             stepperDataP->aCycSteps = stepperDataP->cycDelay;
-            stepperDataP->rampState = RAMPACCEL;
+            if ( stepperDataP->stepRampLen > 0 ) stepperDataP->rampState = RAMPACCEL;
+            else                                stepperDataP->rampState = CRUISING;
             nextCycle = min ( nextCycle, stepperDataP->aCycSteps );
         } else if ( stepperDataP->rampState == STOPPING  ) {
             stepperDataP->cycCnt+=cyclesLastIRQ;
             if ( stepperDataP->cycCnt >= stepperDataP->aCycSteps ) {
                 stepperDataP->cycCnt = 0;
                 digitalWrite( stepperDataP->enablePin, !stepperDataP->enable );
-                stepperDataP->rampState == STOPPED
+                stepperDataP->rampState == STOPPED;
             }
         }
 
@@ -437,6 +439,7 @@ void Stepper4::initialize ( int steps360, uint8_t mode, uint8_t minStepTime ) {
     _stepperData.stepRampLen             = 0;               // initialize with no acceleration  
     _stepperData.activ = 0;
     _stepperData.output = NO_OUTPUT;          // unknown, not attached yet
+    _stepperData.enablePin = 255;             // without enable
     _stepperData.nextStepperDataP = NULL;
     // add at end of chain
     stepperData_t **tmpPP = &stepperRootP;
@@ -593,6 +596,13 @@ void Stepper4::detach() {   // no more moving, detach from output
     _stepperData.rampState = STOPPED;
 }
 
+void Stepper4::attachEnable( uint8_t enablePin, uint16_t delay, bool active ) {
+    // define an enable pin. enable is active as long as the motor moves.
+    _stepperData.enablePin = enablePin;
+    _stepperData.cycDelay = delay;      // delay between enablePin HIGH/LOW and stepper moving
+    _stepperData.enable = active;       // defines whether activ is HIGH or LOW
+    pinMode( enablePin, OUTPUT );
+}
 int Stepper4::setSpeed( int rpm10 ) {
     // Set speed in rpm*10. Step time is computed internally based on CYCLETIME and
     // steps per full rotation (stepsRev)
@@ -796,15 +806,14 @@ void Stepper4::doSteps( long stepValue ) {
                 _noStepIRQ();
                 _stepperData.patternIxInc   = patternIxInc;
                 _stepperData.cycCnt         = 0;            // start with the next IRQ
+                _stepperData.aCycSteps      = 0;
                 _stepperData.aCycRemain     = 0;   
                 if ( _stepperData.enablePin != 255 ) {
                     // set enable pin to active and start delaytime
                     digitalWrite( _stepperData.enablePin, _stepperData.enable );
-                    _stepperData.aCycSteps      = _stepperData.cycDelay;
                     _stepperData.rampState      = STARTING;
                 } else {
                     // no delay
-                    _stepperData.aCycSteps      = 0;
                     _stepperData.rampState      = RAMPACCEL;
                 }
                 _stepperData.stepsInRamp    = 0;
@@ -820,10 +829,20 @@ void Stepper4::doSteps( long stepValue ) {
         _noStepIRQ();
         _stepperData.patternIxInc = patternIxInc;
         _stepperData.stepCnt = abs(stepsToMove);
-        _stepperData.cycCnt         = 0;            // start with the next IRQ
-        _stepperData.aCycSteps      = _stepperData.tCycSteps;
-        _stepperData.aCycRemain     = _stepperData.tCycRemain;   
-        _stepperData.rampState      = CRUISING;
+        if ( _stepperData.rampState < CRUISING ) {
+            // stepper does not move, start it
+            _stepperData.cycCnt         = 0;            // start with the next IRQ
+            _stepperData.aCycSteps      = 0;
+            _stepperData.aCycRemain     = 0; 
+            if ( _stepperData.enablePin != 255 ) {
+                // set enable pin to active and start delaytime
+                digitalWrite( _stepperData.enablePin, _stepperData.enable );
+                _stepperData.rampState      = STARTING;
+            } else {
+                // no delay
+                _stepperData.rampState      = CRUISING;
+            }
+        }
         _stepIRQ();
         DB_PRINT( "NoRamp:, sCnt=%ld, sCnt2=%ld, sMove=%ld, aCyc=%d", _stepperData.stepCnt, _stepperData.stepCnt2, stepsToMove, _stepperData.aCycSteps );
 

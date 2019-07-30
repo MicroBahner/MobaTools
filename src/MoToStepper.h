@@ -34,7 +34,7 @@ typedef struct stepperData_t {
   uint8_t output  :6 ;             // PORTB(pin8-11), PORTD (pin4-7), SPI0,SPI1,SPI2,SPI3, SINGLE_PINS, A4988_PINS
   uint8_t activ :1;  
   uint8_t enable:1;             // true: enablePin=HIGH is active, false: enablePin=LOW is active
-  uint8_t _enablePin;           // define an enablePin, which is active while the stepper is moving (255: no pin defined)
+  uint8_t enablePin;            // define an enablePin, which is active while the stepper is moving (255: no pin defined)
   uint16_t cycDelay;            // delay time enable -> stepping
   #ifdef FAST_PORTWRT
   portBits_t portPins[4];       // Outputpins as Portaddress and Bitmask for faster writing
@@ -86,7 +86,7 @@ class Stepper4
     uint8_t attach(uint8_t outArg);    // stepMode defaults to halfstep
     uint8_t attach(uint8_t outArg, uint8_t*  ); 
                                     // returns 0 on failure
-    void    attachEnable( uint8_t enableP, uint16_t delay ); // define an enable pin and the delay (µs) between enable and starting the motor
+    void    attachEnable( uint8_t enableP, uint16_t delay, bool active ); // define an enable pin and the delay (µs) between enable and starting the motor
     void detach();                  // detach from output, motor will not move anymore
     void write(long angle);         // specify the angle in degrees, mybe pos or neg. angle is
                                     // measured from last 'setZero' point
