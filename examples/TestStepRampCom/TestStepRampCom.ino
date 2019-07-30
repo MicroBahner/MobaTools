@@ -24,7 +24,9 @@
  *              c= '<' Ausführen, wenn abs. Position pp unterschritten ( in Steps vom Ref.Punkt )
  *              c= '>' Ausführen, wenn abs, Position pp überschritten ( in Steps vom Ref. Punkt )
  *              c= 'm' Ausführen, wenn Restweg unter pp fällt ( in % )
+ *              c= 's' Ausführen, wenn Restweg unter pp fällt ( in Steps )
  *              c= 't' nach pp Millisekunden ausführen
+ *              c= 'p' Ausführen, wenn Pin pp HIGH, bzw -pp LOW ist
  *              c= '?' Abarbeitung stoppen
  *              ccc nn rr = eines der obigen Kommandos
  *  els         -> Kommandos aus EEPROM auflisten
@@ -45,6 +47,7 @@ const byte A4988Step=PA2, A4988Dir=PA3 ;
 //............................................................................
 #elif defined __AVR_ATmega328P__ // ========- 328P ( Nano, Uno Mega ) ========--
 const byte A4988Step=6, A4988Dir=5;
+const byte enablePin = 7;
 // SPI = Pins 10,11,12,13
 // LA-Pins: TP1=A1, TP2=A2, TP3= A3,  TP4=A4
 //............................................................................
@@ -76,7 +79,7 @@ eeBefehl_t autoCom, interCom;      // aktuell abzuarbeitende Kommandos ( automat
 #ifdef __STM32F1__
 eeBefehl_t cmdStorage[EEMAX]; // Auf dem STM32 werdein die Befehle im Ram gespeichert
 #endif
-enum  { ASTOPPED, NEXTCOM, WAITGT, WAITLT, WAITMV, WAITTM } autoZustand;
+enum  { ASTOPPED, NEXTCOM, WAITGT, WAITLT, WAITMV, WAITTM, WAITST, WAITPN } autoZustand;
 EggTimer waitTimer;
 int comIx = -1;
 
@@ -137,7 +140,7 @@ void setup() {
   while( !Serial ); 
   Serial.println("Programmstart");
   if (myStepper.attach( A4988Step, A4988Dir )  ) Serial.println("Attach A4988 OK"); else Serial.println("Attach A4988 NOK");
-
+  myStepper.attachEnable(enablePin, 1000, LOW );
   myStepper.setSpeedSteps( 6000, 100 );
   delay( 500 );
   Serial.println( "Starting loop" );
@@ -176,6 +179,14 @@ void loop() {
              } else if ( autoCom.bedingung == 'm' ) {
                 printf( " warte bis Restweg <= %d%% ->", autoCom.bedParam );
                 autoZustand = WAITMV;
+             } else if ( autoCom.bedingung == 's' ) {
+                printf( " warte bis Restweg <= %d Steps ->", autoCom.bedParam );
+                autoZustand = WAITST;
+             } else if ( autoCom.bedingung == 'p' ) {
+                printf( " warte bis Pin %d  ", autoCom.bedParam );
+                if ( autoCom.bedParam > 0 ) Serial.print("HIGH ->");
+                else                        Serial.print("LOW ->");
+                autoZustand = WAITPN;
              } else if ( autoCom.bedingung == 't' ) {
                 printf(" warte %d ms ->", autoCom.bedParam );
                 autoZustand = WAITTM;
@@ -187,25 +198,37 @@ void loop() {
              }
         }
         break;
-      case WAITGT: // warten auf Erfüllung der aktuellen Bedingung
+      case WAITGT: // warten bis akt. Position > Param
         if ( myStepper.readSteps() > autoCom.bedParam ) {
             execCmd( autoCom );
             autoZustand = NEXTCOM;
         }
         break;
-      case WAITLT: // warten auf Erfüllung der aktuellen Bedingung
+      case WAITLT: // warten bis akt. Position < Param
         if ( myStepper.readSteps() < autoCom.bedParam ) {
             execCmd( autoCom );
             autoZustand = NEXTCOM;
         }
         break;
-      case WAITMV: // warten auf Erfüllung der aktuellen Bedingung
+      case WAITMV: // warten bis Restweg <= Param Prozent
         if ( myStepper.moving() <= autoCom.bedParam ) {
             execCmd( autoCom );
             autoZustand = NEXTCOM;
         }
         break;
-      case WAITTM: // warten auf Erfüllung der aktuellen Bedingung
+      case WAITST: // warten bis Restweg <= Param Steps
+        if ( myStepper.stepsToDo() <= autoCom.bedParam ) {
+            execCmd( autoCom );
+            autoZustand = NEXTCOM;
+        }
+        break;
+      case WAITPN: // warten auf Pin Param
+        if ( digitalRead( abs(autoCom.bedParam) ) == ( autoCom.bedParam > 0 ) ) {
+            execCmd( autoCom );
+            autoZustand = NEXTCOM;
+        }
+        break;
+      case WAITTM: // warten auf Zeitablauf
         if ( !waitTimer.running() ) {
             execCmd( autoCom );
             autoZustand = NEXTCOM;

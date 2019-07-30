@@ -7,15 +7,15 @@
 */
 #include <MobaTools.h>
 
-// Debug-defines
-#include <MoToDbg.h>
-
 // Global Data for all instances and classes  --------------------------------
 extern uint8_t timerInitialized;
 static uint8_t spiInitialized = false;
 
 // constants
 static const int stepPattern[8] = {0b0011, 0b0010, 0b0110, 0b0100, 0b1100, 0b1000, 0b1001,0b0001 };
+#ifdef debugPrint
+     const char *rsC[] = { "INACTIVE", "STOPPED", "STOPPING", "STARTING", "CRUISING", "RAMPACCEL", "RAMPDECEL", "SPEEDDECEL" };    
+#endif
 
 // Variables for stepper motors
 static stepperData_t *stepperRootP = NULL;    // start of stepper data chain ( NULL if no stepper object )
@@ -173,7 +173,7 @@ void stepperISR(uint8_t cyclesLastIRQ) {
                             stepperDataP->aCycSteps = stepperDataP->cycDelay;
                             stepperDataP->rampState = STOPPING;
                         } else {    
-                        stepperDataP->aCycSteps = TIMERPERIODE;    // no more Interrupts for this stepper needed
+                        stepperDataP->aCycSteps = ISR_IDLETIME;    // no more Interrupts for this stepper needed
                         stepperDataP->rampState = STOPPED;
                         //CLR_TP2;
                         }
@@ -467,7 +467,7 @@ bool Stepper4::_chkRunning() {
     tmp = _stepperData.stepCnt != 0;
     _stepIRQ();
     return tmp;*/
-    return ( _stepperData.rampState != STOPPED && _stepperData.rampState != INACTIVE );
+    return ( _stepperData.rampState >= CRUISING );
 }
 
 // public functions -------------------
@@ -599,9 +599,10 @@ void Stepper4::detach() {   // no more moving, detach from output
 void Stepper4::attachEnable( uint8_t enablePin, uint16_t delay, bool active ) {
     // define an enable pin. enable is active as long as the motor moves.
     _stepperData.enablePin = enablePin;
-    _stepperData.cycDelay = delay;      // delay between enablePin HIGH/LOW and stepper moving
+    _stepperData.cycDelay = 1000L * delay / CYCLETIME;      // delay between enablePin HIGH/LOW and stepper moving
     _stepperData.enable = active;       // defines whether activ is HIGH or LOW
     pinMode( enablePin, OUTPUT );
+    digitalWrite( enablePin, !active );
 }
 int Stepper4::setSpeed( int rpm10 ) {
     // Set speed in rpm*10. Step time is computed internally based on CYCLETIME and
@@ -645,7 +646,7 @@ uint16_t Stepper4::setSpeedSteps( uint16_t speed10, int16_t rampLen ) {
     if (newRampLen > MAXRAMPLEN ) newRampLen = MAXRAMPLEN;
     newSpeed10 = min( 1000000L / MIN_STEPTIME * 10, speed10 );
     
-    DB_PRINT( "rampLen-new=%u, ramplenParam=%u", newRampLen, rampLen );
+    //DB_PRINT( "rampLen-new=%u, ramplenParam=%u", newRampLen, rampLen );
     // compute target steplength and check whether speed and ramp fit together: 
     tMicroSteps = ( 1000000L * 10  / newSpeed10 );
     tCycSteps = tMicroSteps / CYCLETIME; 
@@ -671,11 +672,10 @@ uint16_t Stepper4::setSpeedSteps( uint16_t speed10, int16_t rampLen ) {
     // This needs to be done only, if a ramp is defined, the stepper is moving
     // and the speed an ramp values changed
     // In all other cases the new speed/ramp values will get active immediately
-    DB_PRINT( "actRampLen=%u, cXr-new=%u, xCr-old=%u", newRampLen, newCyctXramplen, _stepperData.cyctXramplen );
+    //DB_PRINT( "actRampLen=%u, cXr-new=%u, xCr-old=%u", newRampLen, newCyctXramplen, _stepperData.cyctXramplen );
     _noStepIRQ(); SET_TP2;
     if ( (_stepperData.stepRampLen + newRampLen ) != 0
-        && _stepperData.rampState != INACTIVE
-        && _stepperData.rampState != STOPPED
+        && _stepperData.rampState >= CRUISING 
         &&  newCyctXramplen != _stepperData.cyctXramplen ) {
         // local variables to hold data that might change in IRQ:
         // If there was a step during recomputing the rampvalues, we must recompute again
@@ -684,7 +684,7 @@ uint16_t Stepper4::setSpeedSteps( uint16_t speed10, int16_t rampLen ) {
         long        __newStepCnt;
         long        __newStepCnt2;
         
-        DB_PRINT("Speed changed! New: tcyc=%u, ramp=%u, cXr=%u",tCycSteps,newRampLen,newCyctXramplen );
+        //DB_PRINT("Speed changed! New: tcyc=%u, ramp=%u, cXr=%u",tCycSteps,newRampLen,newCyctXramplen );
         //Serial.print(_stepperData.rampState); Serial.print(" ( ");Serial.print( _stepperData.stepsInRamp );Serial.print("->");
          do {
             // read actual ISR values
@@ -705,14 +705,14 @@ uint16_t Stepper4::setSpeedSteps( uint16_t speed10, int16_t rampLen ) {
                 if ( newStepsInRamp > newRampLen ) {
                     //  ==========  we are too fast ============================
                         //Serial.print(" --");
-                        DB_PRINT ( "Slower: %u/%u -> %u/%u", _stepSpeed10,_stepperData.stepRampLen,  newSpeed10, newRampLen );
+                        //DB_PRINT ( "Slower: %u/%u -> %u/%u", _stepSpeed10,_stepperData.stepRampLen,  newSpeed10, newRampLen );
                         newRampState = SPEEDDECEL;
-                        DB_PRINT("State->%s,  actStep=%u",rsC[_stepperData.rampState], _stepperData.stepsInRamp );
+                        //DB_PRINT("State->%s,  actStep=%u",rsC[_stepperData.rampState], _stepperData.stepsInRamp );
                     
                 } else  {
                     //  ==========  we are too slow ============================
                     //Serial.print(" ++"); 
-                    DB_PRINT ( "Faster: %u/%u -> %u/%u", _stepSpeed10,_stepperData.stepRampLen, newSpeed10 , newRampLen );
+                    //DB_PRINT ( "Faster: %u/%u -> %u/%u", _stepSpeed10,_stepperData.stepRampLen, newSpeed10 , newRampLen );
                     newRampState = RAMPACCEL;
                 }
             } else {
@@ -747,7 +747,7 @@ uint16_t Stepper4::setSpeedSteps( uint16_t speed10, int16_t rampLen ) {
     _stepSpeed10 = newSpeed10;
     
     DB_PRINT( "RampValues:, Spd=%u, rmpLen=%u, tcyc=%u, trest=%u, acyc=%u", _stepSpeed10, _stepperData.stepRampLen,
-                    _stepperData.tCycSteps, _stepperData.tCycRemain, _stepperData.aCycSteps );
+                   _stepperData.tCycSteps, _stepperData.tCycRemain, _stepperData.aCycSteps );
     DB_PRINT( "   - State=%s, Rampsteps=%u" , rsC[_stepperData.rampState], _stepperData.stepsInRamp );
     return _stepperData.stepRampLen;
 }
@@ -819,7 +819,7 @@ void Stepper4::doSteps( long stepValue ) {
                 _stepperData.stepsInRamp    = 0;
                 _stepperData.stepCnt        = abs(stepsToMove);
                 _stepIRQ();
-                DB_PRINT("New Move: Steps:%ld", stepValue );
+                DB_PRINT("New Move: Steps:%ld, Enable=%d - State=%s", stepValue, digitalRead(_stepperData.enablePin) , rsC[_stepperData.rampState]);
             }
         }
     } else {

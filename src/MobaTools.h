@@ -9,7 +9,10 @@
    (C) 02-2019 fpm fpm@mnet-online.de
    
   History:
-  V1.1 06-2019
+  V1.2 08-2019
+      - it is possible to define an enable pin for steppers. This is active
+        only when the stepper is moving.
+  V1.1 07-2019
       - stepper now supports ramps (accelerating, decelerating )
       - stepper speed has better resolution with high steprates
       - split source into several fuction-specific .cpp files. This

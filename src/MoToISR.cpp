@@ -11,9 +11,6 @@
 // Debug-defines
 #include <MoToDbg.h>
 
-#ifdef debugPrint
-     const char *rsC[] = { "INACTIVE", "STOPPED", "RAMPSTART", "RAMPACCEL", "CRUISING", "STARTDECEL", "RAMPDECEL", "SPEEDDECEL" };    
-#endif
 void stepperISR(uint8_t cyclesLastIRQ) __attribute__ ((weak));
 void softledISR(uint8_t cyclesLastIRQ) __attribute__ ((weak));
 

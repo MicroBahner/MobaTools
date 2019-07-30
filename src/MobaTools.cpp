@@ -1,29 +1,8 @@
 
 /*
-  MobaTools V1.0
+  MobaTools V1.x
    (C) 11-2017 fpm fpm@mnet-online.de
    
-  History:
-  V1.1 06-2019
-        stepper now supports ramps (accelerating, decelerating )
-        stepper speed has better resolution with high steprates
-        optimized flash usage when not all functionality is used
-  V1.0  11-2017 Use of Timer 3 if available ( on AtMega32u4 and AtMega2560 )
-  V0.91 08-2017
-        Enhanced EggTimer Class. Additional method 'getTime'
-        Uses only 5 byte Ram per Instance.
-        No Problems with rollover of millis and if the methods are called very rarely
-        ( less than once every 25 days )
-  V0.9  03-2017
-        Better resolution for the 'speed' paramter (programm starts in compatibility mode
-        preparations for porting to STM32F1 platform
-        
-  V0.8 02-2017
-        Enable Softleds an all digital outputs
-  V0.7 01-2017
-		Allow nested Interrupts with the servos. This allows more precise other
-        interrupts e.g. for NmraDCC Library.
-		A4988 stepper driver IC is supported (needs only 2 ports: step and direction)
         
   This library is free software; you can redistribute it and/or
   modify it under the terms of the GNU General Public
