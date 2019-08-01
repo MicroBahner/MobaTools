@@ -856,11 +856,11 @@ void Stepper4::doSteps( long stepValue ) {
 }
 
 
-void Stepper4::setZero() {
+void Stepper4::setZero( long zeroPoint ) {
     // set reference point for absolute positioning
     if ( _stepperData.output == NO_OUTPUT ) return; // not attached
     noInterrupts();
-    _stepperData.stepsFromZero = 0;
+    _stepperData.stepsFromZero = -zeroPoint ;
     interrupts();
 }
 

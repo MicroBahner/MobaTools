@@ -302,7 +302,6 @@ void ISR_Servo( void) {
 // --------- Class Servo8 ---------------------------------
 // Class-specific Variables
 
-#ifdef WITHSERVO
 const byte NO_ANGLE = 0xff;
 const byte NO_PIN = 0xff;
 
@@ -500,5 +499,5 @@ uint8_t Servo8::attached()
 {
     return ( pin != NO_PIN );
 }
-#endif
+
 

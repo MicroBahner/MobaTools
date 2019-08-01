@@ -8,7 +8,30 @@
   Definitions and declarations for the stepper part of MobaTools
 */
 
-#define WITHSTEPPER
+// defines for the stepper motor
+#define HALFSTEP    1
+#define FULLSTEP    2
+#define A4988       3   // using motordriver A4988
+#define NOSTEP      0   // invalid-flag
+
+#define NO_OUTPUT   0
+
+#ifdef __AVR_MEGA__
+#define PIN8_11     1
+#define PIN4_7      2
+#endif
+
+#define SPI_1           3
+#define SPI_2           4
+#define SPI_3           5
+#define SPI_4           6
+#define SINGLE_PINS     7
+#define A4988_PINS      8
+
+
+#define CYCLETICS       (CYCLETIME*TICS_PER_MICROSECOND)
+#define MIN_STEPTIME    (CYCLETIME * MIN_STEP_CYCLE) 
+#define MAXRAMPLEN      16000       // Do not change!
 
 /////////////////////////////////////////////////////////////////////////////////
 // global stepper data ( used in ISR )
@@ -93,7 +116,7 @@ class Stepper4
     void write(long angle, uint8_t factor);        // factor specifies resolution of parameter angle
                                     // e.g. 10 means, 'angle' is angle in .1 degrees
 	void writeSteps( long stepPos );// Go to position stepPos steps from zeropoint
-    void setZero();                 // actual position is set as 0 angle (zeropoint)
+    void setZero(long zeroPos=0);  // set zeropoint to zeroPos in steps ( default is 0 )
     int setSpeed(int rpm10 );       // Set movement speed, rpm*10
     uint16_t setSpeedSteps( uint16_t speed10 ); // set speed withput changing ramp, returns ramp length
     uint16_t setSpeedSteps( uint16_t speed10, int16_t rampLen ); // set speed and ramp, returns ramp length

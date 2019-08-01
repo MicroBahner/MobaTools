@@ -22,57 +22,9 @@
 #include <libmaple/nvic.h>
 #endif
 
-
-// defines for the stepper motor
-#define HALFSTEP    1
-#define FULLSTEP    2
-#define A4988       3   // using motordriver A4988
-#define NOSTEP      0   // invalid-flag
-
-#define NO_OUTPUT   0
-
-#ifdef __AVR_MEGA__
-#define PIN8_11     1
-#define PIN4_7      2
-#endif
-
-#define SPI_1           3
-#define SPI_2           4
-#define SPI_3           5
-#define SPI_4           6
-#define SINGLE_PINS     7
-#define A4988_PINS      8
-
-
-#define CYCLETICS       (CYCLETIME*TICS_PER_MICROSECOND)
-#define MIN_STEPTIME    (CYCLETIME * MIN_STEP_CYCLE) 
-#define MAXRAMPLEN      16000       // Do not change!
 #define ISR_IDLETIME    5000        // max time between two Stepper/Softled ISRs
 
-// defines for soft-leds
-#define MAX_LEDS    16     // Soft On/Off defined for compatibility reasons. There is no fixed limit anymore.
 
-// defines for servos
-#define Servo2	Servo8		// Kompatibilität zu Version 01 und 02
-#ifdef FIXED_POSITION_SERVO_PULSES
-    #define MAX_SERVOS  8
-#else
-    #define OVLMARGIN           280     // Overlap margin ( Overlap is MINPULSEWIDTH - OVLMARGIN )
-    #define OVL_TICS       ( ( MINPULSEWIDTH - OVLMARGIN ) * TICS_PER_MICROSECOND )
-    #define MARGINTICS      ( OVLMARGIN * TICS_PER_MICROSECOND )
-    #define MAX_SERVOS  16  
-#endif               
-
-#define MINPULSETICS    (MINPULSEWIDTH * TICS_PER_MICROSECOND)
-#define MAXPULSETICS    (MAXPULSEWIDTH * TICS_PER_MICROSECOND)
-#define OFF_COUNT       50  // if autoOff is set, a pulse is switched off, if it length does not change for
-                            // OFF_COUNT cycles ( = OFF_COUNT * 20ms )
-#define FIRST_PULSE     100 // first pulse starts 200 tics after timer overflow, so we do not compete
-                            // with overflow IRQ
-#define SPEED_RES       4   // All position values in tics are multiplied by this factor. This means, that one 
-                            // 'Speed-tic' is 0,125 µs per 20ms cycle. This gives better resolution in defining the speed.
-                            // Only when computing the next interrupt time the values are divided by this value again to get
-                            // the real 'timer tics'
 
 extern uint8_t nextCycle;   // to be used in ISR for stepper and softled
 
@@ -177,6 +129,7 @@ inline void  _stepIRQ() {
             interrupts();
         #endif
 }
+
 
 class EggTimer
 {

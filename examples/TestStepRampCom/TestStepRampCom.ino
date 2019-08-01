@@ -36,8 +36,6 @@
 #include <MobaTools.h>
 #include <EEPROM.h>
 
-Stepper4  myStepper(800, A4988 );
-
 // Definition der Pins für verschiedene Platformen
 //==========================================================================
 #ifdef __STM32F1__  //===================== STM32F1 ========================
@@ -47,6 +45,10 @@ const byte A4988Step=PA2, A4988Dir=PA3 ;
 //............................................................................
 #elif defined __AVR_ATmega328P__ // ========- 328P ( Nano, Uno Mega ) ========--
 const byte A4988Step=6, A4988Dir=5;
+const byte stepPins[] = {16,18,17,19 };
+const byte stepMode = HALFSTEP;
+const int stPerRev = 400;
+
 const byte enablePin = 7;
 // SPI = Pins 10,11,12,13
 // LA-Pins: TP1=A1, TP2=A2, TP3= A3,  TP4=A4
@@ -57,6 +59,7 @@ const byte A4988Step=6, A4988Dir=5;
 // LA-Pins: TP1=A3, TP2=A2, TP3= D1,  TP4=D0
 #endif
 //====================================== Ende Pin-Definitionen ======================
+Stepper4  myStepper(stPerRev, stepMode );
 
 #define printf( x, ... ) { char txtbuf[100]; sprintf_P( txtbuf, PSTR( x ), ##__VA_ARGS__ ) ; Serial.print( txtbuf ); }
 
@@ -139,8 +142,12 @@ void setup() {
   Serial.begin( 115200 );
   while( !Serial ); 
   Serial.println("Programmstart");
-  if (myStepper.attach( A4988Step, A4988Dir )  ) Serial.println("Attach A4988 OK"); else Serial.println("Attach A4988 NOK");
-  myStepper.attachEnable(enablePin, 1000, LOW );
+  if ( stepMode == A4988 ) {
+    if (myStepper.attach( A4988Step, A4988Dir )  ) Serial.println("Attach A4988 OK"); else Serial.println("Attach A4988 NOK");
+  } else {
+    if (myStepper.attach( stepPins[0],stepPins[1],stepPins[2],stepPins[3] )  ) Serial.println("Attach 4Wire OK"); else Serial.println("Attach A4988 NOK");
+  }
+  myStepper.attachEnable(enablePin, 30, LOW );
   myStepper.setSpeedSteps( 6000, 100 );
   delay( 500 );
   Serial.println( "Starting loop" );

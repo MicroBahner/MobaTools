@@ -5,16 +5,17 @@
  *  SPI belegt beim UNO oder nano die Pins 10(SS),11(MOSI) und 13(SCK)
  *  Pin 12 (MISO) wird zwar nicht genutzt, aber von der HW belegt
 */
-Stepper4 Step1(4096);           // HALFSTEP ist default
+const int FULLROT1 = 400;
+Stepper4 Step1(FULLROT1);           // HALFSTEP ist default
 Stepper4 Step2(2048,FULLSTEP);
 
 
 void setup() {
-    Step1.attach( 4,5,6,7 );    // Anschluß an digitalen Ausgängen
+    Step1.attach( A5,A3,A4,A2 );    // Anschluß an digitalen Ausgängen
     Step2.attach( SPI_1 );      // an die SPI-Schnittstelle muss ein Schieberegister angschlossen werden
                                 // 
-    Step1.setSpeed( 60 );       // = 6 U/Min
-    Step1.setRampLen( 512);     // = 1/4 Umdrehung
+    Step1.setSpeed( 240 );       // = 24 U/Min
+    Step1.setRampLen( FULLROT1/4 );     // = 1/4 Umdrehung
     Step2.setSpeed( 120 );      // = 12 U/Min
     Step2.rotate( -1 );         // Motor 2 dreht dauerhaft rückwärts
     Step1.setZero();            // Referenzpunkt für Motor 1 setzen
