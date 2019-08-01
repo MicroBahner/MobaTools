@@ -21,9 +21,6 @@
 
 #include <MobaTools.h>
 
-// Debug-defines
-#include <MoToDbg.h>
-
 uint8_t timerInitialized = false;
 
 void seizeTimer1() {

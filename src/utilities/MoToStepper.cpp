@@ -675,7 +675,7 @@ uint16_t Stepper4::setSpeedSteps( uint16_t speed10, int16_t rampLen ) {
     //DB_PRINT( "actRampLen=%u, cXr-new=%u, xCr-old=%u", newRampLen, newCyctXramplen, _stepperData.cyctXramplen );
     _noStepIRQ(); SET_TP2;
     if ( (_stepperData.stepRampLen + newRampLen ) != 0
-        && _stepperData.rampState >= CRUISING 
+        && _chkRunning() 
         &&  newCyctXramplen != _stepperData.cyctXramplen ) {
         // local variables to hold data that might change in IRQ:
         // If there was a step during recomputing the rampvalues, we must recompute again

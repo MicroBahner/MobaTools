@@ -14,6 +14,7 @@ void setup() {
     Step2.attach( SPI_1 );      // an die SPI-Schnittstelle muss ein Schieberegister angschlossen werden
                                 // 
     Step1.setSpeed( 60 );       // = 6 U/Min
+    Step1.setRampLen( 512);     // = 1/4 Umdrehung
     Step2.setSpeed( 120 );      // = 12 U/Min
     Step2.rotate( -1 );         // Motor 2 dreht dauerhaft rückwärts
     Step1.setZero();            // Referenzpunkt für Motor 1 setzen

@@ -64,10 +64,10 @@
 #define MAXPULSEWIDTH   2300    // don't make it longer than 2300
 
 
-#include <MoToBase.h>
-#include <MoToStepper.h>
-#include <MoToServo.h>
-#include <MoToSoftled.h>
+#include <utilities/MoToBase.h>
+#include <utilities/MoToStepper.h>
+#include <utilities/MoToServo.h>
+#include <utilities/MoToSoftled.h>
 
 #endif
 

@@ -7,8 +7,6 @@
 */
 #include <MobaTools.h>
 
-// Debug-defines
-#include <MoToDbg.h>
 
 
 // Global Data for all instances and classes  --------------------------------
