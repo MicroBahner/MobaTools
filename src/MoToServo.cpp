@@ -144,11 +144,13 @@ static bool searchNextPulse() {
 // ---------- OCRxA Compare Interrupt used for servo motor (overlapping pulses) ----------------
 #ifdef __AVR_MEGA__
 ISR ( TIMERx_COMPA_vect) {
+    uint8_t saveTIMSK;
 #elif defined __STM32F1__
 void ISR_Servo( void) {
     uint16_t OCRxA;
 #endif
     SET_SV3;
+    saveTIMSK = TIMSKx; // restore IE for stepper later ( maybe it is not enabled)
     // Timer1 Compare A, used for servo motor
     if ( IrqType == POFF ) { // Pulse OFF time
         //SET_TP1; // Oszimessung Dauer der ISR-Routine OFF
@@ -292,7 +294,7 @@ void ISR_Servo( void) {
     #endif 
     //CLR_TP1; CLR_TP3; // Oszimessung Dauer der ISR-Routine
     #ifdef __AVR_MEGA__
-    _stepIRQ(); // allow Stepper IRQ again
+    TIMSKx = saveTIMSK;      // retore Interrupt enable reg
     #endif
     CLR_SV3;
 }
@@ -376,7 +378,6 @@ uint8_t Servo8::attach( int pinArg, int pmin, int pmax, bool autoOff ) {
         timer_attach_interrupt(MT_TIMER, TIMER_SERVOCH_IRQ, ISR_Servo );
         #endif
     }
-    interrupts();
     
     // enable compare-A interrupt
     #if defined(__AVR_ATmega8__)|| defined(__AVR_ATmega128__)
@@ -388,7 +389,8 @@ uint8_t Servo8::attach( int pinArg, int pmin, int pmax, bool autoOff ) {
     #elif defined __STM32F1__
         timer_cc_enable(MT_TIMER, SERVO_CHN);
     #endif
-    return 1;
+     interrupts();
+   return 1;
 }
 
 void Servo8::detach()
