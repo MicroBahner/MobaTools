@@ -2,13 +2,15 @@
 #define MOBATOOLS_H
 /*
   MobaTools.h - a library for model railroaders
-  Author: fpm, fpm@mnet-mail.de
+  Author: fpm, fpm-gh@mnet-mail.de
   Copyright (c) 2019 All right reserved.
 
-  MobaTools V1.0
-   (C) 02-2019 fpm fpm@mnet-online.de
+  MobaTools V1.1
+   (C) 08-2019 fpm fpm@mnet-online.de
    
   History:
+  V1.1.2 08-2019
+      - fix error when only servo objects are defined ( sketch rashed )
   V1.1 06-2019
       - stepper now supports ramps (accelerating, decelerating )
       - stepper speed has better resolution with high steprates
