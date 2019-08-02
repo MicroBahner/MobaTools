@@ -10,7 +10,9 @@
    
   History:
   V1.1.2 08-2019
-      - fix error when only servo objects are defined ( sketch rashed )
+      - fix error when only servo objects are defined ( sketch crashed )
+      - two more stepper examples ( thanks to 'agmue' from german arduino.cc forum )
+      - detach() configures used pins back to INPUT
   V1.1 06-2019
       - stepper now supports ramps (accelerating, decelerating )
       - stepper speed has better resolution with high steprates

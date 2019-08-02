@@ -7,8 +7,6 @@
 */
 #include <MobaTools.h>
 
-// Debug-defines
-#include <MoToDbg.h>
 
 // Global Data for all instances and classes  --------------------------------
 extern uint8_t timerInitialized;
@@ -569,7 +567,42 @@ uint8_t Stepper4::attach( byte outArg, byte pins[] ) {
 
 void Stepper4::detach() {   // no more moving, detach from output
     if ( _stepperData.output == NO_OUTPUT ) return ; // not attached
-    
+    // reconfigure stepper pins as INPUT ( state of RESET )
+    // in FAST_PORTWRT mode this is not done, because the necessary Information is not stored
+    byte nPins=2;
+    switch ( _stepperData.output ) {
+      #ifdef __AVR_MEGA__
+      case PIN4_7:
+        DDRD &= 0x0f;   // Port D Pin4-7 as Input
+        PORTD &= 0x0f;  // Pullups off
+        break;
+      case PIN8_11:
+        DDRB &= 0xf0;   // Port B Pin0-3 as Input
+        PORTB &= 0xf0;  // Pullups off
+        break;
+      #endif
+      #ifdef FAST_PORTWRT
+      case SINGLE_PINS:
+        nPins+=2;
+      case A4988_PINS:
+        for ( byte i=0; i<nPins; i++ ) {
+            *(_stepperData.portPins[i].Adr-1) &= ~_stepperData.portPins[i].Mask;
+            *(_stepperData.portPins[i].Adr) &= ~_stepperData.portPins[i].Mask;
+        }
+        break;
+      #else
+      case SINGLE_PINS:
+        // 4 single output pins
+           pinMode( _stepperData.pins[3], INPUT );
+           pinMode( _stepperData.pins[2], INPUT );
+      case A4988_PINS: // only pins 0/1 
+           pinMode( _stepperData.pins[1], INPUT );
+           pinMode( _stepperData.pins[0], INPUT );
+        break;
+      #endif
+      default:
+        ;   // no action with SPI Outputs
+    }
     _stepperData.output = NO_OUTPUT;
     _stepperData.activ = 0;
     _stepperData.rampState = STOPPED;
@@ -882,20 +915,17 @@ uint8_t Stepper4::moving() {
     if ( _stepperData.output == NO_OUTPUT ) return 0; // not attached
     //Serial.print( _stepperData.stepCnt ); Serial.print(" "); 
     //Serial.println( _stepperData.aCycSteps );
-    if ( stepsToMove == 0 ) {
-        tmp = 0;        // there was nothing to move
-    } else {
-        _noStepIRQ(); // disable Stepper interrupt, because (long)stepcnt is changed in TCR interrupt
-        tmp = _stepperData.stepCnt + _stepperData.stepCnt2;
-        _stepIRQ();  // enable stepper IRQ
-        if ( tmp > 0 ) {
-            // do NOT return 0, even if less than 1%, because 0 means real stop of the motor
-            if ( tmp < 2147483647L / 100 )
-                tmp = (tmp * 100 / abs( stepsToMove)) + 1;
-            else
-                tmp =  (tmp  / ( abs( stepsToMove) / 100 ) ) + 1;
-        }
+    _noStepIRQ(); // disable Stepper interrupt, because (long)stepcnt is changed in TCR interrupt
+    tmp = _stepperData.stepCnt + _stepperData.stepCnt2;
+    _stepIRQ();  // enable stepper IRQ
+    if ( tmp > 0 ) {
+        // do NOT return 0, even if less than 1%, because 0 means real stop of the motor
+        if ( tmp < 2147483647L / 100 )
+            tmp = (tmp * 100 / (abs( stepsToMove)+1) ) + 1;
+        else
+            tmp =  (tmp  / (( abs( stepsToMove)+1) / 100 ) ) + 1;
     }
+    if ( tmp > 255 ) tmp=255;
     return tmp ;
 }
 
@@ -923,6 +953,7 @@ void Stepper4::rotate(int8_t direction) {
                 DB_PRINT( "rot: sCnt=%u\n\r", _stepperData.stepCnt );
                 break;
             }
+            stepsToMove = _stepperData.stepCnt;
             _stepIRQ();
         }
 	} else if (direction > 0 ) { // ToDo: Grenzwerte sauber berechnen

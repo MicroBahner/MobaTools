@@ -8,7 +8,6 @@
   Definitions and declarations for the servo part of MobaTools
 */
 
-#define WITHSERVO
 
 ////////////////////////////////////////////////////////////////////////////////////
 // global servo data ( used in ISR )
@@ -32,12 +31,12 @@ typedef struct servoData_t {
 class Servo8
 {
   private:
-    int16_t lastPos;     // startingpoint of movement
-    uint8_t pin;
-    uint8_t angle;       // in degrees
-    uint8_t min16;       // minimum pulse, 16uS units  (default is 34)
-    uint8_t max16;       // maximum pulse, 16uS units, (default is 150)
-    servoData_t servoData;  // Servo data to be used in ISR
+    int16_t _lastPos;     // startingpoint of movement
+    //uint8_t pin;
+    uint8_t _angle;       // in degrees
+    uint8_t _min16;       // minimum pulse, 16uS units  (default is 34)
+    uint8_t _max16;       // maximum pulse, 16uS units, (default is 150)
+    servoData_t _servoData;  // Servo data to be used in ISR
 
 	public:
     Servo8();

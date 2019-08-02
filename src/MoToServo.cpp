@@ -7,9 +7,6 @@
 */
 #include <MobaTools.h>
 
-// Debug-defines
-#include <MoToDbg.h>
-
 
 // Global Data for all instances and classes  --------------------------------
 extern uint8_t timerInitialized;
@@ -306,29 +303,32 @@ void ISR_Servo( void) {
 // --------- Class Servo8 ---------------------------------
 // Class-specific Variables
 
-#ifdef WITHSERVO
 const byte NO_ANGLE = 0xff;
 const byte NO_PIN = 0xff;
 
-Servo8::Servo8() : pin(NO_PIN),angle(NO_ANGLE),min16(1000/16),max16(2000/16)
-{   servoData.servoIx = servoCount++;
-    servoData.soll = -1;    // = not initialized
+Servo8::Servo8() //: _servoData.pin(NO_PIN),_angle(NO_ANGLE),_min16(1000/16),_max16(2000/16)
+{   _servoData.servoIx = servoCount++;
+    _servoData.soll = -1;    // = not initialized
+    _servoData.pin = NO_PIN;
+    _angle = NO_ANGLE;
+    _min16 = MINPULSEWIDTH / 16;
+    _max16 = MAXPULSEWIDTH / 16;
     noInterrupts();
-    servoData.prevServoDataP = lastServoDataP;
-    lastServoDataP = &servoData;
+    _servoData.prevServoDataP = lastServoDataP;
+    lastServoDataP = &_servoData;
     interrupts();
 }
 
 void Servo8::setMinimumPulse(uint16_t t)
 {
     t = t/16;
-    if ( t >= MINPULSEWIDTH/16 && t < max16 ) min16 = t;
+    if ( t >= MINPULSEWIDTH/16 && t < _max16 ) _min16 = t;
 }
 
 void Servo8::setMaximumPulse(uint16_t t)
 {
     t = t/16;
-    if ( t > min16 && t <= MAXPULSEWIDTH/16 ) max16 = t;
+    if ( t > _min16 && t <= MAXPULSEWIDTH/16 ) _max16 = t;
 }
 
 
@@ -344,30 +344,29 @@ uint8_t Servo8::attach(int pinArg, int pmin, int pmax ) {
 
 uint8_t Servo8::attach( int pinArg, int pmin, int pmax, bool autoOff ) {
     // return false if already attached or too many servos
-    if ( pin != NO_PIN ||  servoData.servoIx >= MAX_SERVOS ) return 0;
+    if ( _servoData.pin != NO_PIN ||  _servoData.servoIx >= MAX_SERVOS ) return 0;
     // set pulselength for angle 0 and 180
-    if ( pmin >= MINPULSEWIDTH && pmin <= MAXPULSEWIDTH) min16 = pmin/16;
-    if ( pmax >= MINPULSEWIDTH && pmax <= MAXPULSEWIDTH ) max16 = pmax/16;
-	//DB_PRINT( "pin: %d, pmin:%d pmax%d autoOff=%d, min16=%d, max16=%d", pinArg, pmin, pmax, autoOff, min16, max16);
+    if ( pmin >= MINPULSEWIDTH && pmin <= MAXPULSEWIDTH) _min16 = pmin/16;
+    if ( pmax >= MINPULSEWIDTH && pmax <= MAXPULSEWIDTH ) _max16 = pmax/16;
+	//DB_PRINT( "pin: %d, pmin:%d pmax%d autoOff=%d, _min16=%d, _max16=%d", pinArg, pmin, pmax, autoOff, _min16, _max16);
     
     // intialize objectspecific data
-    lastPos = 3000*SPEED_RES ;    // initalize to middle position
-    servoData.soll = -1;  // invalid position -> no pulse output
-    servoData.ist = -1;   
-    servoData.inc = 2000*SPEED_RES;  // means immediate movement
-    servoData.pin = pinArg;
-    servoData.on = false;  // create no pulses until next write
-    servoData.noAutoff = autoOff?0:1 ;  
+    _lastPos = 3000*SPEED_RES ;    // initalize to middle position
+    _servoData.soll = -1;  // invalid position -> no pulse output
+    _servoData.ist = -1;   
+    _servoData.inc = 2000*SPEED_RES;  // means immediate movement
+    _servoData.pin = pinArg;
+    _servoData.on = false;  // create no pulses until next write
+    _servoData.noAutoff = autoOff?0:1 ;  
     #ifdef FAST_PORTWRT
     // compute portaddress and bitmask related to pin number
-    servoData.portAdr = (byte *) pgm_read_word_near(&port_to_output_PGM[pgm_read_byte_near(&digital_pin_to_port_PGM[ pinArg])]);
-    servoData.bitMask = pgm_read_byte_near(&digital_pin_to_bit_mask_PGM[pinArg]);
-    //DB_PRINT( "Idx: %d Portadr: 0x%x, Bitmsk: 0x%x", servoData.servoIx, servoData.portAdr, servoData.bitMask );
+    _servoData.portAdr = (byte *) pgm_read_word_near(&port_to_output_PGM[pgm_read_byte_near(&digital_pin_to_port_PGM[ pinArg])]);
+    _servoData.bitMask = pgm_read_byte_near(&digital_pin_to_bit_mask_PGM[pinArg]);
+    //DB_PRINT( "Idx: %d Portadr: 0x%x, Bitmsk: 0x%x", _servoData.servoIx, _servoData.portAdr, _servoData.bitMask );
 	#endif
-    pin = pinArg;
-    angle = NO_ANGLE;
-    pinMode(pin,OUTPUT);
-    digitalWrite(pin,LOW);
+    _angle = NO_ANGLE;
+    pinMode (_servoData.pin,OUTPUT);
+    digitalWrite( _servoData.pin,LOW);
 
     if ( !timerInitialized) seizeTimer1();
     // initialize servochain pointer and ISR if not done already
@@ -377,29 +376,29 @@ uint8_t Servo8::attach( int pinArg, int pmin, int pmax, bool autoOff ) {
         #ifdef __STM32F1__
         timer_attach_interrupt(MT_TIMER, TIMER_SERVOCH_IRQ, ISR_Servo );
         #endif
-    }
     
-    // enable compare-A interrupt
-    #if defined(__AVR_ATmega8__)|| defined(__AVR_ATmega128__)
-    TIMSK |=  _BV(OCIExA);   
-    #elif defined __AVR_MEGA__
-    //DB_PRINT( "IniOCR: %d", OCRxA );
-    TIMSKx |=  _BV(OCIExA) ; 
-    //DB_PRINT( "AttOCR: %d", OCRxA );
-    #elif defined __STM32F1__
-        timer_cc_enable(MT_TIMER, SERVO_CHN);
-    #endif
+        // enable compare-A interrupt
+        #if defined(__AVR_ATmega8__)|| defined(__AVR_ATmega128__)
+        TIMSK |=  _BV(OCIExA);   
+        #elif defined __AVR_MEGA__
+        //DB_PRINT( "IniOCR: %d", OCRxA );
+        TIMSKx |=  _BV(OCIExA) ; 
+        //DB_PRINT( "AttOCR: %d", OCRxA );
+        #elif defined __STM32F1__
+            timer_cc_enable(MT_TIMER, SERVO_CHN);
+        #endif
+    }
      interrupts();
    return 1;
 }
 
 void Servo8::detach()
 {
-    servoData.on = false;  
-    servoData.soll = -1;  
-    servoData.ist = -1;  
-    servoData.pin = NO_PIN;  
-    pin = NO_PIN;
+    _servoData.on = false;  
+    _servoData.soll = -1;  
+    _servoData.ist = -1;  
+    pinMode( _servoData.pin, INPUT );
+    _servoData.pin = NO_PIN;  
 }
 
 void Servo8::write(int angleArg)
@@ -410,42 +409,42 @@ void Servo8::write(int angleArg)
     #ifdef __AVR_MEGA__
 	//DB_PRINT( "Write: angleArg=%d, Soll=%d, OCR=%u", angleArg, servoData.soll, OCRxA );
     #endif
-    if ( pin != NO_PIN ) { // only if servo is attached
-        //Serial.print( "Pin:" );Serial.print(pin);Serial.print("Wert:");Serial.println(angleArg);
+    if ( _servoData.pin != NO_PIN ) { // only if servo is attached
+        //Serial.print( "Pin:" );Serial.print (_servoData.pin);Serial.print("Wert:");Serial.println(angleArg);
         #ifdef __AVR_MEGA__
 		//DB_PRINT( "Stack=0x%04x, &sIx=0x%04x", ((SPH&0x7)<<8)|SPL, &servoData.servoIx );
         #endif
         if ( angleArg < 0) angleArg = 0;
         if ( angleArg <= 255) {
             // pulse width as degrees (byte values are always degrees) 09-02-2017
-            angle = min( 180,angleArg);
+            _angle = min( 180,angleArg);
 
-            newpos = map( angle, 0,180, min16*16, max16*16 ) * TICS_PER_MICROSECOND * SPEED_RES;
+            newpos = map( _angle, 0,180, _min16*16, _max16*16 ) * TICS_PER_MICROSECOND * SPEED_RES;
         } else {
             // pulsewidth as microseconds
             if ( angleArg < MINPULSEWIDTH ) angleArg = MINPULSEWIDTH;
             if ( angleArg > MAXPULSEWIDTH ) angleArg = MAXPULSEWIDTH;
             newpos = angleArg * TICS_PER_MICROSECOND * SPEED_RES;
-            angle = map( angleArg, min16*16, max16*16, 0, 180 );  // angle in degrees
+            _angle = map( angleArg, _min16*16, _max16*16, 0, 180 );  // angle in degrees
         }
-        if ( servoData.soll < 0 ) {
+        if ( _servoData.soll < 0 ) {
             // Serial.println( "first write");
             // this is the first pulse to be created after attach
-            servoData.on = true;
-            lastPos = newpos;
+            _servoData.on = true;
+            _lastPos = newpos;
             noInterrupts();
-            servoData.soll= newpos ; // .ist - value is still -1 (invalid) -> will jump to .soll immediately
+            _servoData.soll= newpos ; // .ist - value is still -1 (invalid) -> will jump to .soll immediately
             interrupts();
             
         }
-        else if ( newpos != servoData.soll ) {
+        else if ( newpos != _servoData.soll ) {
             // position has changed, store old position, set new position
-            lastPos = servoData.soll;
+            _lastPos = _servoData.soll;
             noInterrupts();
-            servoData.soll= newpos ;
+            _servoData.soll= newpos ;
             interrupts();
         }
-        servoData.offcnt = OFF_COUNT;   // auf jeden Fall wieder Pulse ausgeben
+        _servoData.offcnt = OFF_COUNT;   // auf jeden Fall wieder Pulse ausgeben
     }
 }
 
@@ -457,13 +456,13 @@ void Servo8::setSpeed( int speed, bool compatibility ) {
 
 void Servo8::setSpeed( int speed ) {
     // Set increment value for movement to new angle
-    if ( pin != NO_PIN ) { // only if servo is attached
+    if ( _servoData.pin != NO_PIN ) { // only if servo is attached
         if ( speedV08 ) speed *= SPEED_RES;
         noInterrupts();
         if ( speed == 0 )
-            servoData.inc = 2000*SPEED_RES;  // means immiediate movement
+            _servoData.inc = 2000*SPEED_RES;  // means immiediate movement
         else
-            servoData.inc = speed;
+            _servoData.inc = speed;
         interrupts();
     }
 }
@@ -471,19 +470,19 @@ void Servo8::setSpeed( int speed ) {
 uint8_t Servo8::read() {
     // get position in degrees
     int value;
-    if ( pin == NO_PIN ) return -1; // Servo not attached
+    if ( _servoData.pin == NO_PIN ) return -1; // Servo not attached
     noInterrupts();
-    value = servoData.ist;
+    value = _servoData.ist;
     interrupts();
-    return map( value/TICS_PER_MICROSECOND/SPEED_RES, min16*16, max16*16, 0, 180 );
+    return map( value/TICS_PER_MICROSECOND/SPEED_RES, _min16*16, _max16*16, 0, 180 );
 }
 
 int Servo8::readMicroseconds() {
     // get position in microseconds
     int value;
-    if ( pin == NO_PIN ) return -1; // Servo not attached
+    if ( _servoData.pin == NO_PIN ) return -1; // Servo not attached
     noInterrupts();
-    value = servoData.ist;
+    value = _servoData.ist;
     interrupts();
     return value/TICS_PER_MICROSECOND/SPEED_RES;   
 
@@ -491,18 +490,18 @@ int Servo8::readMicroseconds() {
 
 uint8_t Servo8::moving() {
     // return how much still to move (percentage)
-    if ( pin == NO_PIN ) return 0; // Servo not attached
+    if ( _servoData.pin == NO_PIN ) return 0; // Servo not attached
     long total , remaining;
-    total = abs( lastPos - servoData.soll );
-    noInterrupts(); // disable interrupt, because integer servoData.ist is changed in interrupt
-    remaining = abs( servoData.soll - servoData.ist );
+    total = abs( _lastPos - _servoData.soll );
+    noInterrupts(); // disable interrupt, because integer _servoData.ist is changed in interrupt
+    remaining = abs( _servoData.soll - _servoData.ist );
     interrupts();  // allow interrupts again
     if ( remaining == 0 ) return 0;
     return ( remaining * 100 ) /  total +1;
 }
 uint8_t Servo8::attached()
 {
-    return ( pin != NO_PIN );
+    return ( _servoData.pin != NO_PIN );
 }
-#endif
+
 
