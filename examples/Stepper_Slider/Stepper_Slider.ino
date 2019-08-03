@@ -3,6 +3,7 @@
     Slider-Minimalprogramm: Endposition - Startposition - Bewegung von Start- zu Endposition
     Danke an 'agmue' vom arduino.cc Forum für dieses Beispiel
 */
+
 #include <MobaTools.h>
 Stepper4 Step1(4096);           // HALFSTEP ist default
 const byte linksPin = 8, rechtsPin = 9, weiterPin = 10;
@@ -10,9 +11,9 @@ const byte linksPin = 8, rechtsPin = 9, weiterPin = 10;
 void setup() {
   Serial.begin(9600);
   Serial.println("Anfang");
-  pinMode(8, INPUT_PULLUP);   // aktiv LOW
-  pinMode(9, INPUT_PULLUP);   // aktiv LOW
-  pinMode(10, INPUT_PULLUP);  // aktiv LOW
+  pinMode(linksPin, INPUT_PULLUP);   // aktiv LOW
+  pinMode(rechtsPin, INPUT_PULLUP);  // aktiv LOW
+  pinMode(weiterPin, INPUT_PULLUP);  // aktiv LOW
   Step1.attach( 4, 5, 6, 7 ); // Anschluß an digitalen Ausgängen; Treiber IN1,IN2,IN3,IN4
   Step1.setSpeed( 60 );       // = 6 U/Min
 }
@@ -47,9 +48,9 @@ void loop() {
       } else if (!digitalRead(rechtsPin)) {
         Step1.doSteps(-10);
       } else if (alt && !akt) {
-        Step1.setSpeed( 240 );      // = 24 U/Min
-        Step1.setRampLen(500);      // Beschleunigung
-        Step1.write(0);               // Bewegung zu Endpunkt
+        Step1.setSpeed( 240 );          // = 24 U/Min
+        Step1.setRampLen(500);          // Beschleunigung
+        Step1.write(0);                 // Bewegung zu Endpunkt
         Serial.println("BEWEGUNG");
         status++;
       } else {
@@ -58,8 +59,8 @@ void loop() {
       break;
     case BEWEGUNG:
       if ( !Step1.moving() ) {          // warten bis die Bewegung abgeschlossen ist
-        Step1.setSpeed( 60 );      // = 6 U/Min
-        Step1.setRampLen(0);      // Beschleunigung
+        Step1.setSpeed( 60 );           // = 6 U/Min
+        Step1.setRampLen(0);            // Beschleunigung
         Serial.println("ENDPOSITION");
         status = 0;
       }
