@@ -439,12 +439,13 @@ long Stepper4::getSFZ() {
 
 bool Stepper4::_chkRunning() {
     // is the stepper moving?
-    /*bool tmp;
+    bool tmp;
     _noStepIRQ();
-    tmp = _stepperData.stepCnt != 0;
+    //tmp = _stepperData.stepCnt != 0;
+    tmp = _stepperData.rampState != STOPPED && _stepperData.rampState != INACTIVE && _stepperData.stepsInRamp > 0 ;
     _stepIRQ();
-    return tmp;*/
-    return ( _stepperData.rampState != STOPPED && _stepperData.rampState != INACTIVE );
+    return tmp;
+    //return ( _stepperData.rampState != STOPPED && _stepperData.rampState != INACTIVE  );
 }
 
 // public functions -------------------
@@ -863,7 +864,7 @@ void Stepper4::write( long angleArg, byte fact ) {
     // typical: fact = 10, angleArg in .1 degrees
     if ( _stepperData.output == NO_OUTPUT ) return ; // not attached
     bool negative;
-    int angel2steps;
+    long angel2steps;
     negative =  ( angleArg < 0 ) ;
     //DB_PRINT( "angleArg: %d",angleArg ); //DB_PRINT( " getSFZ: ", getSFZ() );
     //Serial.print( "Write: " ); Serial.println( angleArg );
