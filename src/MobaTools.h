@@ -2,16 +2,20 @@
 #define MOBATOOLS_H
 /*
   MobaTools.h - a library for model railroaders
-  Author: fpm, fpm@mnet-mail.de
+  Author: fpm, fpm-gh@mnet-mail.de
   Copyright (c) 2019 All right reserved.
 
-  MobaTools V1.0
-   (C) 02-2019 fpm fpm@mnet-online.de
+  MobaTools V1.2
+   (C) 08-2019 fpm fpm@mnet-online.de
    
   History:
   V1.2 08-2019
       - it is possible to define an enable pin for steppers. This is active
         only when the stepper is moving.
+  V1.1.2 08-2019
+      - fix error when only servo objects are defined ( sketch crashed )
+      - two more stepper examples ( thanks to 'agmue' from german arduino.cc forum )
+      - detach() configures used pins back to INPUT
   V1.1 07-2019
       - stepper now supports ramps (accelerating, decelerating )
       - stepper speed has better resolution with high steprates

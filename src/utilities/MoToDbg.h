@@ -93,16 +93,16 @@
         #define CLR_TP4 
     #endif 
 // special Testpoint for Servo-testing
-    //#define SET_SV3     SET_TP3
-    //#define CLR_SV3     CLR_TP3
+    #define SET_SV3     SET_TP3
+    #define CLR_SV3     CLR_TP3
     /*    #define SET_SV3 PORTC |= (1<<3)  //A3
-        #define CLR_SV3 PORTC &= ~(1<<3) 
+        #define CLR_SV3 PORTC &= ~(1<<3) */
     #define SET_SV4     SET_TP4
-    #define CLR_SV4     CLR_TP4*/
-    #define SET_SV3
-    #define CLR_SV3
-    #define SET_SV4     
-    #define CLR_SV4     
+    #define CLR_SV4     CLR_TP4
+    //#define SET_SV3
+    //#define CLR_SV3
+    //#define SET_SV4     
+    //#define CLR_SV4     
 
 // switch off Testpoints temporarily
  /*   #undef  MODE_TP4
