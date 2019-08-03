@@ -10,6 +10,7 @@
 #include <inttypes.h>
 #include <Arduino.h>
 #include <avr/interrupt.h>
+#include <MotoDbg.h>
 
 #ifndef  __AVR_MEGA__
 #ifndef __STM32F1__
