@@ -84,25 +84,25 @@ typedef union { // used output channels as bit and uint8_t
 class Stepper4
 {
   private:
+    static outUsed_t outputsUsed;
+    static byte     _stepperCount;  // number of objects ( objectcounter )
     stepperData_t _stepperData;      // Variables that are used in IRQ
-    uint8_t stepperIx;              // Objectnumber ( 0 ... MAX_STEPPER )
+    uint8_t _stepperIx;              // Objectnumber ( 0 ... MAX_STEPPER )
     int stepsRev;                   // steps per full rotation
     uint16_t _stepSpeed10;          // speed in steps/10sec
     uint16_t _lastRampLen ;         // last manually set ramplen
     uint16_t _lastRampSpeed;        // speed when ramp was set manually
     long stepsToMove;               // from last point
     uint8_t stepMode;               // FULLSTEP or HALFSTEP
-    static outUsed_t outputsUsed;
     
     long getSFZ();                  // get step-distance from last reference point
     bool _chkRunning();             // check if stepper is running
-    void initialize(int,uint8_t,uint8_t);
+    void initialize(int,uint8_t);
     uint16_t  _setRampValues();
   public:
     Stepper4(int steps);            // steps per 360 degree in FULLSTEP mode
     Stepper4(int steps, uint8_t mode ); 
                                     // mode means HALFSTEP or FULLSTEP
-    Stepper4(int steps, uint8_t mode, uint8_t minStepTime ); // min StepTim in ms
     
     uint8_t attach( uint8_t,uint8_t,uint8_t,uint8_t); //single pins definition for output
     uint8_t attach( uint8_t stepP, uint8_t dirP); // Port for step and direction in A4988 mode

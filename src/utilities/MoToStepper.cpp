@@ -24,7 +24,6 @@ static uint8_t spiData[2]; // step pattern to be output on SPI
                             // high nibble of spiData[1] is SPI_4
                             // spiData[1] is shifted out first
 static uint8_t spiByteCount = 0;
-static byte stepperCount = 0;
 
 //==========================================================================
 
@@ -35,8 +34,7 @@ static byte stepperCount = 0;
 void stepperISR(uint8_t cyclesLastIRQ) {
     SET_TP4;
     stepperData_t *stepperDataP;         // actual stepper data in IRQ
-    uint8_t i, spiChanged, changedPins, bitNr;
-    uint16_t tmp;
+    uint8_t spiChanged, changedPins, bitNr;
     SET_TP1;SET_TP4; // Oszimessung Dauer der ISR-Routine
     spiChanged = false;
     #ifdef __AVR_MEGA__
@@ -66,10 +64,6 @@ void stepperISR(uint8_t cyclesLastIRQ) {
                 stepperDataP->stepsFromZero += stepperDataP->patternIxInc;
                 
                 // sign of patternIxInc defines direction
-                /*stepperDataP->patternIx += stepperDataP->patternIxInc;
-                if ( stepperDataP->patternIx > 7 ) stepperDataP->patternIx = 0;
-                if ( stepperDataP->patternIx < 0 ) stepperDataP->patternIx += 8;*/
-                //#define _patIx stepperDataP->patternIx
                 int8_t _patIx;
                 _patIx = stepperDataP->patternIx + stepperDataP->patternIxInc;
                 if ( _patIx > 7 ) _patIx = 0;
@@ -285,7 +279,7 @@ void stepperISR(uint8_t cyclesLastIRQ) {
             if ( stepperDataP->cycCnt >= stepperDataP->aCycSteps ) {
                 stepperDataP->cycCnt = 0;
                 digitalWrite( stepperDataP->enablePin, !stepperDataP->enable );
-                stepperDataP->rampState == STOPPED;
+                stepperDataP->rampState = STOPPED;
             }
         }
 
@@ -349,7 +343,6 @@ static void initSPI() {
     // initialize SPI hardware.
     // MSB first, default Clk Level is 0, shift on leading edge
 #ifdef __AVR_MEGA__
-    byte tmp;
     uint8_t oldSREG = SREG;
     cli();
     pinMode( MOSI, OUTPUT );
@@ -402,27 +395,24 @@ static void initSPI() {
 // --------- Class Stepper ---------------------------------
 // Class-specific Variables
 outUsed_t Stepper4::outputsUsed;
+byte Stepper4::_stepperCount = 0;
 
 // constructor -------------------------
 Stepper4::Stepper4(int steps ) {
     // constuctor for stepper Class, initialize data
-    Stepper4::initialize ( steps, HALFSTEP, 1 );
+    Stepper4::initialize ( steps, HALFSTEP );
 }
 
 Stepper4::Stepper4(int steps, uint8_t mode ) {
     // constuctor for stepper Class, initialize data
-    Stepper4::initialize ( steps, mode, 1 );
+    Stepper4::initialize ( steps, mode );
 }
 
-Stepper4::Stepper4(int steps, uint8_t mode,uint8_t minStepTime ) {
-    // constuctor for stepper Class, initialize data
-    Stepper4::initialize ( steps, mode, minStepTime );
-}
 
 // private functions ---------------
-void Stepper4::initialize ( int steps360, uint8_t mode, uint8_t minStepTime ) {
+void Stepper4::initialize ( int steps360, uint8_t mode ) {
     // create new instance
-    stepperIx = stepperCount ;
+    _stepperIx = _stepperCount ;
     stepsRev = steps360;       // number of steps for full rotation in fullstep mode
     if ( mode != FULLSTEP && mode != A4988 ) mode = HALFSTEP;
     stepMode = mode;
@@ -430,7 +420,6 @@ void Stepper4::initialize ( int steps360, uint8_t mode, uint8_t minStepTime ) {
     _stepperData.stepCnt = 0;         // don't move
     _stepperData.patternIx = 0;
     _stepperData.patternIxInc = mode;         // positive direction
-    //minCycSteps = minStepTime*1000/CYCLETIME;         // minStepTime in ms, cycletime in us
     _stepperData.aCycSteps = TIMERPERIODE; //MIN_STEPTIME/CYCLETIME; 
     _stepperData.tCycSteps = _stepperData.aCycSteps; 
     _stepperData.tCycRemain = 0;                // work with remainder when cruising
@@ -445,7 +434,7 @@ void Stepper4::initialize ( int steps360, uint8_t mode, uint8_t minStepTime ) {
     stepperData_t **tmpPP = &stepperRootP;
     while ( *tmpPP != NULL ) tmpPP = &((*tmpPP)->nextStepperDataP);
     *tmpPP = &_stepperData;
-    if( stepperCount++ >= MAX_STEPPER )  {
+    if( _stepperCount++ >= MAX_STEPPER )  {
         stepMode = NOSTEP;      // invalid instance ( too mach objects )
     }
     
@@ -494,7 +483,7 @@ uint8_t Stepper4::attach(byte outArg) {
     
 uint8_t Stepper4::attach( byte outArg, byte pins[] ) {
     // outArg must be one of PIN8_11 ... SPI_4 or SINGLE_PINS, A4988_PINS
-    if ( stepMode == NOSTEP ) { DB_PRINT("Attach: invalid Object ( Ix = %d)", stepperIx ); return 0; }// Invalid object
+    if ( stepMode == NOSTEP ) { DB_PRINT("Attach: invalid Object ( Ix = %d)", _stepperIx ); return 0; }// Invalid object
     uint8_t attachOK = true;
     switch ( outArg ) {
       #ifdef __AVR_MEGA__
@@ -583,7 +572,7 @@ uint8_t Stepper4::attach( byte outArg, byte pins[] ) {
         #endif
     }
     DB_PRINT( "attach: output=%d, attachOK=%d", _stepperData.output, attachOK );
-    //Serial.print( "Attach Stepper, Ix= "); Serial.println( stepperIx );
+    //Serial.print( "Attach Stepper, Ix= "); Serial.println( _stepperIx );
     return attachOK;
 }
 
@@ -668,7 +657,6 @@ uint16_t Stepper4::setSpeedSteps( uint16_t speed10, int16_t rampLen ) {
     int16_t newRampLen;         // new ramplen
     int16_t newStepsInRamp;     // new stepcounter in ramp - according to new speed and ramplen
     uint16_t newSpeed10;        // new target speed
-    uint16_t fullRampLen;
 
     if ( _stepperData.output == NO_OUTPUT ) return 0; // --------------->>>>>>>>>>>>>>>>not attached
     
