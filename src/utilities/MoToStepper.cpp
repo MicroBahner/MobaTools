@@ -258,7 +258,7 @@ void stepperISR(uint8_t cyclesLastIRQ) {
                     
                     break;
                     
-                  case STOPPED:
+                  default:
                     //stepper does not move -> nothing to do
                     //CLR_TP2;
                     break;
@@ -975,10 +975,6 @@ void Stepper4::rotate(int8_t direction) {
             // start decelerating
             _noStepIRQ();
             switch ( _stepperData.rampState ) {
-              case STOPPED:
-              case RAMPDECEL:
-                // already in Stop or decelerating - do nothing
-                break;
               case RAMPACCEL:
                 _stepperData.stepCnt = _stepperData.stepsInRamp;
                 break;
@@ -986,6 +982,8 @@ void Stepper4::rotate(int8_t direction) {
                 _stepperData.stepCnt = _stepperData.stepRampLen;
                 DB_PRINT( "rot: sCnt=%u\n\r", _stepperData.stepCnt );
                 break;
+              default:
+                ; // already in Stop or decelerating - do nothing
             }
             stepsToMove = _stepperData.stepCnt;
             _stepIRQ();

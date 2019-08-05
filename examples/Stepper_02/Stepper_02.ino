@@ -1,6 +1,6 @@
-/*  Demo zum Anschlu� eines unipolaren Stepmotors 28BYJ-48
+﻿/*  Demo zum Anschluß eines unipolaren Stepmotors 28BYJ-48
  *  mit Verwendung einer Beschleunigungsrampe
- *      Danke an 'agmue' vom arduino.cc Forum f�r dieses Beispiel
+ *      Danke an 'agmue' vom arduino.cc Forum für dieses Beispiel
 */
 #include <MobaTools.h>
 Stepper4 Step1(4096);           // HALFSTEP ist default
@@ -12,7 +12,7 @@ void setup() {
   //Step1.attach( SPI_1 );        // alternativ über SPI
   Step1.setSpeed( 240 );        // = 24 U/Min
   Step1.setRampLen(500);        // Beschleunigung
-  Step1.setZero();              // Referenzpunkt f�r Motor 1 setzen
+  Step1.setZero();              // Referenzpunkt für Motor 1 setzen
 }
 
 void loop() {
