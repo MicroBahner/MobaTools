@@ -33,8 +33,7 @@ static byte stepperCount = 0;
 void stepperISR(uint8_t cyclesLastIRQ) {
     SET_TP4;
     stepperData_t *stepperDataP;         // actual stepper data in IRQ
-    uint8_t i, spiChanged, changedPins, bitNr;
-    uint16_t tmp;
+    uint8_t spiChanged, changedPins, bitNr;
     SET_TP1;SET_TP4; // Oszimessung Dauer der ISR-Routine
     spiChanged = false;
     #ifdef __AVR_MEGA__
@@ -257,7 +256,7 @@ void stepperISR(uint8_t cyclesLastIRQ) {
                     
                     break;
                     
-                  case STOPPED:
+                  default:
                     //stepper does not move -> nothing to do
                     //CLR_TP2;
                     break;
@@ -327,7 +326,6 @@ static void initSPI() {
     // initialize SPI hardware.
     // MSB first, default Clk Level is 0, shift on leading edge
 #ifdef __AVR_MEGA__
-    byte tmp;
     uint8_t oldSREG = SREG;
     cli();
     pinMode( MOSI, OUTPUT );
@@ -639,8 +637,7 @@ uint16_t Stepper4::setSpeedSteps( uint16_t speed10, int16_t rampLen ) {
     int16_t newRampLen;         // new ramplen
     int16_t newStepsInRamp;     // new stepcounter in ramp - according to new speed and ramplen
     uint16_t newSpeed10;        // new target speed
-    uint16_t fullRampLen;
-
+    
     if ( _stepperData.output == NO_OUTPUT ) return 0; // --------------->>>>>>>>>>>>>>>>not attached
     
     // compute new speed values, adjust length of ramp if necessary
@@ -845,11 +842,15 @@ void Stepper4::doSteps( long stepValue ) {
 }
 
 
+// set reference point for absolute positioning
 void Stepper4::setZero() {
-    // set reference point for absolute positioning
+    setZero(0);
+}
+
+void Stepper4::setZero(long zeroPoint) {
     if ( _stepperData.output == NO_OUTPUT ) return; // not attached
     noInterrupts();
-    _stepperData.stepsFromZero = 0;
+    _stepperData.stepsFromZero = -zeroPoint;
     interrupts();
 }
 
@@ -864,13 +865,17 @@ void Stepper4::write( long angleArg, byte fact ) {
     // typical: fact = 10, angleArg in .1 degrees
     if ( _stepperData.output == NO_OUTPUT ) return ; // not attached
     bool negative;
-    long angel2steps;
+    long angle2steps;
     negative =  ( angleArg < 0 ) ;
     //DB_PRINT( "angleArg: %d",angleArg ); //DB_PRINT( " getSFZ: ", getSFZ() );
     //Serial.print( "Write: " ); Serial.println( angleArg );
-    angel2steps =  ( (abs(angleArg) * (long)stepsRev*10) / ( 360L * fact) +5) /10 ;
-    if ( negative ) angel2steps = -angel2steps;
-    doSteps(angel2steps  - getSFZ() );
+    // full revolutions:
+    angle2steps = abs(angleArg) / (360L * fact ) * (long)stepsRev;
+    // + remaining steps in last revolution ( with rounding )
+    angle2steps += (( abs(angleArg % (360L * fact) ) * (long)stepsRev ) + 180L*fact )/ ( 360L * fact)  ;
+    //angle2steps =  ( (abs(angleArg) * (long)stepsRev*10) / ( 360L * fact) +5) /10 ;
+    if ( negative ) angle2steps = -angle2steps;
+    doSteps(angle2steps  - getSFZ() );
 }
 
 void Stepper4::writeSteps( long stepPos ) {
@@ -942,10 +947,6 @@ void Stepper4::rotate(int8_t direction) {
             // start decelerating
             _noStepIRQ();
             switch ( _stepperData.rampState ) {
-              case STOPPED:
-              case RAMPDECEL:
-                // already in Stop or decelerating - do nothing
-                break;
               case RAMPACCEL:
                 _stepperData.stepCnt = _stepperData.stepsInRamp;
                 break;
@@ -953,6 +954,8 @@ void Stepper4::rotate(int8_t direction) {
                 _stepperData.stepCnt = _stepperData.stepRampLen;
                 DB_PRINT( "rot: sCnt=%u\n\r", _stepperData.stepCnt );
                 break;
+              default:
+              ; // already in Stop or decelerating - do nothing
             }
             stepsToMove = _stepperData.stepCnt;
             _stepIRQ();

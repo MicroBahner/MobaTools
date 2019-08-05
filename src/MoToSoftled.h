@@ -23,7 +23,7 @@ const uint8_t iSteps[] = {9, 16 ,23 ,29, 35,41, 45, 49, 53, 56, 59, 62, 64, 66, 
 // 20ms cycletime ( 50Hz )
 //const uint8_t iSteps[] = { 2,4, 6, 9, 12, 15, 20, 25, 30, 35, 40, 45,50,55,65,80,100 };
 
-#define LED_STEP_MAX    (sizeof(iSteps) -1)
+#define LED_STEP_MAX    ((int16_t)sizeof(iSteps) -1) // int16_t to suppress warnings when comparing to aCycle
 #define LED_CYCLE_MAX   (iSteps[LED_STEP_MAX])
 #define LED_PWMTIME     (iSteps[LED_STEP_MAX] / 5)  // PWM refreshrate in ms
                                         // todo: dies gilt nur bei einer CYCLETIME von 200us (derzeit default)

@@ -24,8 +24,9 @@ typedef struct stepperData_t {
   volatile uint16_t aCycSteps;           // nbr of IRQ cycles per step ( actual motorspeed  )
   uint16_t aCycRemain;          // accumulate tCycRemain when cruising
   uint16_t cyctXramplen;        // precompiled  tCycSteps*(rampLen+RAMPOFFSET)
-  int16_t  stepRampLen;         // Length of ramp in steps
-  int16_t  stepsInRamp;         // stepcounter within ramp ( counting from stop: incrementing in startramp, decrementing in stopramp
+  uint16_t  stepRampLen;        // Length of ramp in steps
+  uint16_t  stepsInRamp;        // stepcounter within ramp ( counting from stop ( = 0 ): incrementing in startramp, decrementing in stopramp
+                                // max value is stepRampLen
   rampStats_t rampState;        // State of acceleration/deceleration
   volatile uint16_t cycCnt;     // counting cycles until cycStep
   volatile long stepsFromZero;  // distance from last reference point ( always as steps in HALFSTEP mode )
@@ -90,6 +91,7 @@ class Stepper4
                                     // e.g. 10 means, 'angle' is angle in .1 degrees
 	void writeSteps( long stepPos );// Go to position stepPos steps from zeropoint
     void setZero();                 // actual position is set as 0 angle (zeropoint)
+    void setZero( long zeroPoint);  // new zeropoint ist zeroPoint steps apart from actual position
     int setSpeed(int rpm10 );       // Set movement speed, rpm*10
     uint16_t setSpeedSteps( uint16_t speed10 ); // set speed withput changing ramp, returns ramp length
     uint16_t setSpeedSteps( uint16_t speed10, int16_t rampLen ); // set speed and ramp, returns ramp length
