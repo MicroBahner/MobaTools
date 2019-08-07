@@ -10,6 +10,10 @@
 
 #define WITHSTEPPER
 
+#ifdef __STM32F1__
+    void ISR_Stepper(void);
+#endif
+
 /////////////////////////////////////////////////////////////////////////////////
 // global stepper data ( used in ISR )
 enum rampStats_t:byte { INACTIVE, STOPPED, RAMPSTART, RAMPACCEL, CRUISING, RAMPDECEL, SPEEDDECEL  };

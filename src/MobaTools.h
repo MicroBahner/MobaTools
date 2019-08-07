@@ -55,7 +55,7 @@
 #define MAX_STEPPER     6       // 
 #define DEF_SPEEDSTEPS  3000    // default speed after attach
 #define DEF_RAMP        0       // default ramp after attach       
-#define CYCLETIME       200     // Min. irq-periode in us.
+#define CYCLETIME       200     // Min. irq-periode in us ( default is 200, change only if you know what you are doing ).
 #define MIN_STEP_CYCLE  4       // Minimum number of cycles per step
 #define RAMPOFFSET      16      // startvalue of rampcounter
 

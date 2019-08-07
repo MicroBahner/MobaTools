@@ -142,12 +142,12 @@ static bool searchNextPulse() {
 #ifdef __AVR_MEGA__
 ISR ( TIMERx_COMPA_vect) {
     uint8_t saveTIMSK;
+    saveTIMSK = TIMSKx; // restore IE for stepper later ( maybe it is not enabled)
 #elif defined __STM32F1__
 void ISR_Servo( void) {
     uint16_t OCRxA;
 #endif
     SET_SV3;
-    saveTIMSK = TIMSKx; // restore IE for stepper later ( maybe it is not enabled)
     // Timer1 Compare A, used for servo motor
     if ( IrqType == POFF ) { // Pulse OFF time
         //SET_TP1; // Oszimessung Dauer der ISR-Routine OFF

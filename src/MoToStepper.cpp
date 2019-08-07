@@ -144,7 +144,7 @@ void stepperISR(uint8_t cyclesLastIRQ) {
                         #endif
                     }    
                     // Set step pulse 
-                    nextCycle = 1; // will be resettet in next cycle
+                    nextCycle = MIN_STEP_CYCLE/2; // will be resettet in max 2 cycles
                     #ifdef FAST_PORTWRT
                     *stepperDataP->portPins[0].Adr |= stepperDataP->portPins[0].Mask;
                     #else
