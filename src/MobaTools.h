@@ -9,6 +9,9 @@
    (C) 08-2019 fpm fpm@mnet-online.de
    
   History:
+  V1.1.3 08-2019
+      - no more warnings when compiling
+      - fix error (overflow) when converting angle to steps
   V1.1.2 08-2019
       - fix error when only servo objects are defined ( sketch crashed )
       - two more stepper examples ( thanks to 'agmue' from german arduino.cc forum )

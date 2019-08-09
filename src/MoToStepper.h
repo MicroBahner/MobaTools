@@ -75,13 +75,12 @@ class Stepper4
     
     long getSFZ();                  // get step-distance from last reference point
     bool _chkRunning();             // check if stepper is running
-    void initialize(int,uint8_t,uint8_t);
+    void initialize(int,uint8_t);
     uint16_t  _setRampValues();
   public:
-    Stepper4(int steps);            // steps per 360 degree in FULLSTEP mode
+    Stepper4(int steps);            // steps per 360 degree in HALFSTEP mode
     Stepper4(int steps, uint8_t mode ); 
                                     // mode means HALFSTEP or FULLSTEP
-    Stepper4(int steps, uint8_t mode, uint8_t minStepTime ); // min StepTim in ms
     
     uint8_t attach( uint8_t,uint8_t,uint8_t,uint8_t); //single pins definition for output
     uint8_t attach( uint8_t stepP, uint8_t dirP); // Port for step and direction in A4988 mode

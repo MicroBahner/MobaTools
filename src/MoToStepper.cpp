@@ -382,21 +382,16 @@ outUsed_t Stepper4::outputsUsed;
 // constructor -------------------------
 Stepper4::Stepper4(int steps ) {
     // constuctor for stepper Class, initialize data
-    Stepper4::initialize ( steps, HALFSTEP, 1 );
+    Stepper4::initialize ( steps, HALFSTEP );
 }
 
 Stepper4::Stepper4(int steps, uint8_t mode ) {
     // constuctor for stepper Class, initialize data
-    Stepper4::initialize ( steps, mode, 1 );
-}
-
-Stepper4::Stepper4(int steps, uint8_t mode,uint8_t minStepTime ) {
-    // constuctor for stepper Class, initialize data
-    Stepper4::initialize ( steps, mode, minStepTime );
+    Stepper4::initialize ( steps, mode );
 }
 
 // private functions ---------------
-void Stepper4::initialize ( int steps360, uint8_t mode, uint8_t minStepTime ) {
+void Stepper4::initialize ( int steps360, uint8_t mode ) {
     // create new instance
     stepperIx = stepperCount ;
     stepsRev = steps360;       // number of steps for full rotation in fullstep mode
