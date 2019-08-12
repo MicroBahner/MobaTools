@@ -6,6 +6,9 @@ MobaTools
 
 | Version |  Release Date  | Description
 | ------- |  ------------  | -----------
+| 1.1.3 | 2019-??-?? | fix errors when converting angle to microseconds and vice versa in servo class
+| | | fix errors when converting angle to steps and vice versa in stepper class
+| | | no more warnings
 | 1.1.2 | 2019-08-03 | fix error, when only servo objects are defined (sketch crashed), 2 more Stepper examples
 | 1.1.1 | 2019-07-29 | acceleration/deceleration for steppermotors is now possible
 | | | optimized flash usage when only part of the functionality is used
