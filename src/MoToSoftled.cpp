@@ -22,27 +22,21 @@ static ledData_t*  ledDataP;              // pointer to active Led in ISR
     
 void softledISR(uint8_t cyclesLastIRQ) {
     // ---------------------- softleds -----------------------------------------------
-    SET_TP2;
-    //CLR_TP3;
     ledCycleCnt += cyclesLastIRQ;
-    //SET_TP3;
     if ( ledCycleCnt >= ledNextCyc ) {
         // this IRQ is relevant for softleds
         //SET_TP3;
         ledNextCyc = LED_CYCLE_MAX; // there must be atleast one IRQ per PWM Cycle
         if ( ledCycleCnt >= LED_CYCLE_MAX ) {
+            SET_TP2;
             // start of a new PWM Cycle - switch all leds with rising/falling state to on
             ledCycleCnt = 0;
             for ( ledDataP=ledRootP; ledDataP!=NULL; ledDataP = ledDataP->nextLedDataP ) {
-                //SET_TP1;
+                SET_TP1;
                 // loop over led-objects
-                // yes it's ugly, but because of performance reasons this is done a little bit assembler like
-                static const void * pwm0tab[]  { &&pwm0end,&&pwm0end,&&pwm0end,         // NOTATTACHED, STATE_OFF, STATE_ON
-                            &&incfast0,&&decfast0,&&incslow0,&&decslow0,&&inclin0,&&declin0 };
-                goto  *pwm0tab[ledDataP->state] ;
-                  incfast0:
-                  incslow0:
-                  inclin0:
+                switch ( ledDataP->state ) {
+                  case INCBULB:
+                  case INCLIN:
                     // switch on led with linear characteristic
                     if (ledDataP->invFlg  ) {
                         #ifdef FAST_PORTWRT
@@ -57,9 +51,9 @@ void softledISR(uint8_t cyclesLastIRQ) {
                         digitalWrite( ledDataP->pin, HIGH );
                         #endif
                     }
-                    // check if led off is reached
-                    if ( ledDataP->aCycle >=  LED_CYCLE_MAX-1 ) {
-                        // led is full on, remove from active-chain
+                    // check if led on is reached
+                    //if ( ledDataP->aStep >=  LED_STEP_MAX-1 ) {
+                    if ( ledDataP->aCycle >=  LED_CYCLE_MAX ) {    // led is full on, remove from active-chain
                         //SET_TP2;
                         ledDataP->state = STATE_ON;
                         *ledDataP->backLedDataPP = ledDataP->nextLedDataP;
@@ -71,19 +65,19 @@ void softledISR(uint8_t cyclesLastIRQ) {
                         if ( ledNextCyc > ledDataP->aCycle ) ledNextCyc = ledDataP->aCycle;
                         ledDataP->actPulse = true;
                     }
-                    goto pwm0end;
-                  decfast0:
-                  decslow0:
-                  declin0:
+                    break;
+                  case DECBULB:
+                  case DECLIN:
                     // switch off led 
-                   if ( ledDataP->aCycle <= 0  ) {
+                    //if ( ledDataP->aStep >=  LED_STEP_MAX-1  ) {
+                    if ( ledDataP->aCycle ==  0  ) {
                         // led is full off, remove from active-chain
                         //SET_TP2;
                         ledDataP->state = STATE_OFF;
                         *ledDataP->backLedDataPP = ledDataP->nextLedDataP;
                         if ( ledDataP->nextLedDataP ) ledDataP->nextLedDataP->backLedDataPP = ledDataP->backLedDataPP;
                         //CLR_TP2;
-                        ledDataP->aCycle = 0;
+                        //ledDataP->aCycle = 0;
                     } else { // switch to next PWM step
                         if (ledDataP->invFlg  ) {
                             #ifdef FAST_PORTWRT
@@ -101,15 +95,20 @@ void softledISR(uint8_t cyclesLastIRQ) {
                         if ( ledNextCyc > ledDataP->aCycle ) ledNextCyc = ledDataP->aCycle;
                         ledDataP->actPulse = true;
                     }
-                pwm0end: // end of 'switch'
-                ;//CLR_TP1;
+                    break;
+                  default: ;
+                } // end of 'switch'
+                CLR_TP1;
             } // end of led loop
+            CLR_TP2;
         } else { // is switchofftime within PWM cycle
+            SET_TP3;
             for ( ledDataP=ledRootP; ledDataP!=NULL; ledDataP = ledDataP->nextLedDataP ) {
                 //SET_TP4;
                 if ( ledDataP->actPulse ) {
                     // led is within PWM cycle with output high
                     if ( ledDataP->aCycle <= ledCycleCnt ) {
+                        // End of ON-time is reached
                         //SET_TP4;
                         if (ledDataP->invFlg  ) {
                             #ifdef FAST_PORTWRT
@@ -127,49 +126,35 @@ void softledISR(uint8_t cyclesLastIRQ) {
                         //CLR_TP4;
                         ledDataP->actPulse = false;
                         // determine length of next PWM Cyle
+                        SET_TP1;
+                        ledDataP->aStep += ledDataP->speed;
+                        //if ( ledDataP->aStep > LED_STEP_MAX ) ledDataP->aStep = LED_STEP_MAX;
+                        //ledDataP->aStep = constrain(ledDataP->aStep, 0, LED_STEP_MAX );
                         switch ( ledDataP->state ) {
-                          case INCFAST:
-                            ledDataP->aStep += ledDataP->speed;
-                            if ( ledDataP->aStep > LED_STEP_MAX ) ledDataP->aStep = LED_STEP_MAX;
-                            ledDataP->aCycle = iSteps[ledDataP->aStep];
+                          case INCBULB:
+                            ledDataP->aCycle = pgm_read_byte(&(iSteps[(ledDataP->aStep/DELTASTEPS)]));
                             break;
-                          case DECFAST:
-                            ledDataP->aStep += ledDataP->speed;
-                            if ( ledDataP->aStep > LED_STEP_MAX ) ledDataP->aStep = LED_STEP_MAX;
-                            ledDataP->aCycle = LED_CYCLE_MAX-iSteps[ledDataP->aStep];
-                            break;
-                          case INCSLOW:
-                            if ( --ledDataP->stpCnt < ledDataP->speed ) {
-                                ledDataP->aStep += 1;
-                                ledDataP->stpCnt = 1;
-                            }
-                            if ( ledDataP->aStep > LED_STEP_MAX ) ledDataP->aStep = LED_STEP_MAX;
-                            ledDataP->aCycle = iSteps[ledDataP->aStep];
-                            break;
-                          case DECSLOW:
-                            if ( --ledDataP->stpCnt < ledDataP->speed ) {
-                                ledDataP->aStep += 1;
-                                ledDataP->stpCnt = 1;
-                            }
-                            if ( ledDataP->aStep > LED_STEP_MAX ) ledDataP->aStep = LED_STEP_MAX;
-                            ledDataP->aCycle = LED_CYCLE_MAX-iSteps[ledDataP->aStep];
+                          case DECBULB:
+                            CLR_TP1;
+                            ledDataP->aCycle = LED_CYCLE_MAX-pgm_read_byte(&(iSteps[(ledDataP->aStep/DELTASTEPS)]));
+                            SET_TP1;
                             break;
                           case INCLIN:
-                            ledDataP->aCycle += ledDataP->speed;
-                            if ( ledDataP->aCycle > LED_CYCLE_MAX-1 ) ledDataP->aCycle = LED_CYCLE_MAX-1;
+                            ledDataP->aCycle = ledDataP->aStep/DELTASTEPS+1;
                             //ledNextCyc = min( ledDataP->aCycle, ledNextCyc);
                             break;
                           case DECLIN:
-                            ledDataP->aCycle -= ledDataP->speed;
-                            if ( ledDataP->aCycle <= 0 ) ledDataP->aCycle = 0;
+                            ledDataP->aCycle = (LED_CYCLE_MAX-1) - ledDataP->aStep/DELTASTEPS;
                             //ledNextCyc = min( ledDataP->aCycle, ledNextCyc);
                             break;
                           default:
                             // no action if state is one of NOTATTACHED, STATE_ON, STATE_OFF
                             break;
                         }
-                        
-                    } else { // next necessary step
+                        //ledDataP->aCycle = constrain( ledDataP->aCycle, 1, LED_CYCLE_MAX-1 );
+                        CLR_TP1;
+                    } else { 
+                       // End of ON-time not yet reached, compute next necessary step
                        //SET_TP2;
                        ledNextCyc = min( ledDataP->aCycle, ledNextCyc);
                        //CLR_TP2;
@@ -177,14 +162,14 @@ void softledISR(uint8_t cyclesLastIRQ) {
                 }
                 //CLR_TP4;
             }
+            CLR_TP3;
         }
         //CLR_TP3;
      } // end of softleds 
     //CLR_TP3;
     nextCycle = min( nextCycle, ( ledNextCyc-ledCycleCnt ) );
     //SET_TP3;
-    CLR_TP2;
-} //=============================== End of softledISR ========================================
+ } //=============================== End of softledISR ========================================
 /////////////////////////////////////////////////////////////////////////////
 //Class SoftLed - for Led with soft on / soft off ---------------------------
 // Version with Software PWM
@@ -194,7 +179,6 @@ SoftLed::SoftLed() {
     ledData.speed    = 0;           // defines rising/falling timer
     ledData.aStep    = 0 ;          // actual PWM step
     ledData.aCycle   = 0;           // actual cycle ( =length of PWM pule )
-    ledData.stpCnt   = 0;           // counter for PWM cycles on same step (for low speed)
     ledData.actPulse = false;       // PWM pulse is active
     ledData.state    = NOTATTACHED; // initialize 
     setpoint = OFF ;                // initialize to off
@@ -259,7 +243,7 @@ uint8_t SoftLed::attach(uint8_t pinArg, uint8_t invArg ){
     #elif defined __STM32F1__
         timer_cc_enable(MT_TIMER, STEP_CHN);
     #endif
-
+    DB_PRINT("IX_MAX=%d, CYCLE_MAX=%d, STEP_MAX=%d, PWMTIME=%d", LED_IX_MAX, LED_CYCLE_MAX, LED_STEP_MAX, LED_PWMTIME );
     return true;
 }
 
@@ -270,18 +254,12 @@ void SoftLed::on(){
     if ( setpoint != ON  ) {
         setpoint        = ON ;
         ledData.aStep   = 0;
-        ledData.stpCnt  = 0; 
+        ledData.speed   = ledSpeed;
         if ( ledType == LINEAR ) {
             stateT          = INCLIN;
-            ledData.speed   = ledSpeed;
             ledData.aCycle  = 1;
         } else { // is bulb simulation
-            stateT          = INCFAST;
-            ledData.speed   = ledSpeed==1? -1 : ledSpeed / 3;
-            if ( ledData.speed <= 0 ) {
-                stateT      = INCSLOW;
-                ledData.stpCnt = 1;
-            }
+            stateT          = INCBULB;
             ledData.aCycle  = iSteps[0];
         }
         mount(stateT);
@@ -297,21 +275,14 @@ void SoftLed::off(){
         //SET_TP3;
         setpoint            = OFF;
         ledData.aStep       = 0;
-        ledData.stpCnt      = 0; 
+        ledData.speed   = ledSpeed;
         if ( ledType == LINEAR ) {
             stateT          = DECLIN;
-            ledData.speed   = ledSpeed;
             ledData.aCycle  = LED_CYCLE_MAX-1;
         } else { // is bulb simulation
             //CLR_TP3;
-            stateT = DECFAST;
-            ledData.speed = ledSpeed==1? -1 : ledSpeed / 3;
-            //SET_TP3;
-            if ( ledData.speed <= 0 ) {
-                stateT          = DECSLOW;
-                ledData.stpCnt  = 1;
-            }
-            ledData.aCycle = LED_CYCLE_MAX + 1 - iSteps[0];
+            stateT = DECBULB;
+            ledData.aCycle = LED_CYCLE_MAX  - iSteps[0];
         }
         //CLR_TP3;
         mount(stateT);
@@ -343,7 +314,7 @@ void SoftLed::write( uint8_t setpntVal ){
     #endif
 }
 
-void SoftLed::riseTime( int riseTime ) {
+void SoftLed::riseTime( uint16_t riseTime ) {
     if ( ledValid != LEDVALID ) return;
     // length of startphase in ms (min 20ms, max 1200ms )
     // the real risetime is only a rough approximate to this time
@@ -352,10 +323,10 @@ void SoftLed::riseTime( int riseTime ) {
     // risetime = (LED_CYCLE_MAX * LED_PWMTIME) / speed
     // 
     // toDo: a better approximation to 'riseTime'
-    int riseMax = (int)( LED_CYCLE_MAX * (int)LED_PWMTIME);
+    long riseMax = ((long) LED_STEP_MAX * LED_PWMTIME);
     if ( riseTime <= 20 ) riseTime = 20;
-    if ( riseTime >= riseMax ) riseTime = riseMax;
-    int tmp = ( (riseMax  *10) / ( riseTime  ) +5 ) /10;
+    if ( riseTime >= riseMax/16 ) riseTime = riseMax/16;
+    int tmp = ( ((long)riseMax  *10) / ( riseTime  ) +5 ) /10;
     ledSpeed = tmp;
-    //DB_PRINT( "ledSpeed[%d] = %d ( risetime=%d, riseMax=%d )", ledIx, ledSpeed, riseTime, riseMax );
+    DB_PRINT( "ledSpeed[%d] = %d ( risetime=%d, riseMax=%d, STEPMAX=%d, PWMTIME=%d )", ledIx, ledSpeed, riseTime, riseMax, LED_STEP_MAX, LED_PWMTIME );
 }

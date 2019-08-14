@@ -29,16 +29,16 @@ void ISR_Stepper(void) {
 #endif
   // Timer1 Compare B, used for stepper motor, starts every CYCLETIME us
     // 26-09-15 An Interrupt is only created at timeslices, where data is to output
-    SET_TP4;SET_TP3;
+    SET_TP4;//SET_TP3;
     nextCycle = TIMERPERIODE  / CYCLETIME ;// min ist one cycle per Timeroverflow
-    CLR_TP4;
+    //CLR_TP4;
     if ( stepperISR ) stepperISR(cyclesLastIRQ);
     //============  End of steppermotor ======================================
-    SET_TP4;
-    CLR_TP4;
+    //SET_TP4;
+    //CLR_TP4;
     if ( softledISR ) softledISR(cyclesLastIRQ);
     // ======================= end of softleds =====================================
-    SET_TP4;
+    //SET_TP4;
     cyclesLastIRQ = nextCycle;
     // set compareregister to next interrupt time;
     // compute next IRQ-Time in us, not in tics, so we don't need long
@@ -58,7 +58,7 @@ void ISR_Stepper(void) {
             tmp = OCRxB + CYCLETICS;
         }
         OCRxB = ( tmp > TIMER_OVL_TICS ) ? tmp -= TIMER_OVL_TICS : tmp ;
-        CLR_TP3;
+        //CLR_TP3;
     } else {
         // time till next IRQ is more then one cycletime
         // compute next IRQ-Time in us, not in tics, so we don't need long
@@ -66,12 +66,12 @@ void ISR_Stepper(void) {
         if ( tmp > TIMERPERIODE ) tmp = tmp - TIMERPERIODE;
         OCRxB = tmp * TICS_PER_MICROSECOND;
     }
-    CLR_TP3;
+    //CLR_TP3;
     #elif defined __STM32F1__
     long tmpL = ( timer_get_compare(MT_TIMER, STEP_CHN) + nextCycle * CYCLETICS );
     if ( tmpL > TIMER_OVL_TICS ) tmpL = tmpL - TIMER_OVL_TICS;
     timer_set_compare( MT_TIMER, STEP_CHN, tmpL ) ;
     #endif
     CLR_TP4; // Oszimessung Dauer der ISR-Routine
-    CLR_TP3;
+    //CLR_TP3;
 }
