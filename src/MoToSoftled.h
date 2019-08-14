@@ -88,7 +88,7 @@ class SoftLed
     uint8_t ledIx;
     uint8_t ledValid;       // Flag that this is a valid instance
     #define LEDVALID 0x55
-    uint8_t ledSpeed;       // speed with IRQ based softleds
+    int16_t ledSpeed;       // speed with IRQ based softleds
     
 };
 
