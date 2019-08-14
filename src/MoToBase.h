@@ -23,11 +23,18 @@
 #include <libmaple/nvic.h>
 #endif
 
+// changing Class names ( in later versions this will be the native classnames ):
+#define MotoStepper Stepper4
+#define MotoServo   Servo8
+#define MotoSoftled Softleds
+#define MotoTimer   Eggtimer
+
 
 // defines for the stepper motor
 #define HALFSTEP    1
 #define FULLSTEP    2
 #define A4988       3   // using motordriver A4988
+#define FULL2Wire   4   // not yet used
 #define NOSTEP      0   // invalid-flag
 
 #define NO_OUTPUT   0

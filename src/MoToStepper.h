@@ -14,6 +14,13 @@
     void ISR_Stepper(void);
 #endif
 
+//some AccelStepper compatible method names ( maybe sligtly different in functionality
+#define moveTo              writeSteps
+#define move                doSteps
+#define setMaxSpeed( speed) setSpeedSteps( speed*10 )
+#define distanceToGo        stepsToDo
+#define currentPosition     readSteps
+
 /////////////////////////////////////////////////////////////////////////////////
 // global stepper data ( used in ISR )
 enum rampStats_t:byte { INACTIVE, STOPPED, RAMPSTART, RAMPACCEL, CRUISING, RAMPDECEL, SPEEDDECEL  };

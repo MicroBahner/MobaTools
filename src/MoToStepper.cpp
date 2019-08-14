@@ -563,7 +563,9 @@ void Stepper4::detach() {   // no more moving, detach from output
     if ( _stepperData.output == NO_OUTPUT ) return ; // not attached
     // reconfigure stepper pins as INPUT ( state of RESET )
     // in FAST_PORTWRT mode this is not done, because the necessary Information is not stored
+    #ifdef FAST_PORTWRT
     byte nPins=2;
+    #endif
     switch ( _stepperData.output ) {
       #ifdef __AVR_MEGA__
       case PIN4_7:

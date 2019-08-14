@@ -337,9 +337,7 @@ void SoftLed::write( uint8_t setpntVal ){
     if ( setpntVal == ON ) on(); else off();
     #ifdef debug
     // im Debugmode hier die Led-Daten ausgeben
-    //DB_PRINT( "LedData[%d]\n\speed=%d, Type=%d, aStep=%d, stpCnt=%d, state=%d, setpoint= %d",
-            ledValid, ledSpeed, ledType, ledData.aStep, ledData.stpCnt, ledData.state
-                    , setpoint);
+    //DB_PRINT( "LedData[%d]\n\speed=%d, Type=%d, aStep=%d, stpCnt=%d, state=%d, setpoint= %d", ledValid, ledSpeed, ledType, ledData.aStep, ledData.stpCnt, ledData.state, setpoint);
     //DB_PRINT( "ON=%d, NextCyc=%d, CycleCnt=%d, StepIx=%d, NextStep=%d", 
     //         ON, ledNextCyc, ledCycleCnt, ledStepIx, ledNextStep);
     #endif

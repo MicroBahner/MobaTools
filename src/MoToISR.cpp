@@ -23,12 +23,12 @@ static uint8_t cyclesLastIRQ = 1;  // cycles since last IRQ
 // ---------- OCRxB Compare Interrupt used for stepper motor and Softleds ----------------
 #ifdef __AVR_MEGA__
 ISR ( TIMERx_COMPB_vect) {
+    uint16_t tmp;
 #elif defined __STM32F1__
 void ISR_Stepper(void) {
 #endif
   // Timer1 Compare B, used for stepper motor, starts every CYCLETIME us
     // 26-09-15 An Interrupt is only created at timeslices, where data is to output
-    uint16_t tmp;
     SET_TP4;SET_TP3;
     nextCycle = TIMERPERIODE  / CYCLETIME ;// min ist one cycle per Timeroverflow
     CLR_TP4;

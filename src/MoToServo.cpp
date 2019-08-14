@@ -414,10 +414,8 @@ void Servo8::write(uint16_t angleArg)
             newpos = map( angleArg, 0,180, _minPw, _maxPw ) * TICS_PER_MICROSECOND * SPEED_RES;
         } else {
             // pulsewidth as microseconds
-            //if ( angleArg < _minPw ) angleArg = _minPw;
-            //if ( angleArg > _maxPw ) angleArg = _maxPw;
-            angleArg = constrain( angleArg, _minPw, _maxPw );
-            newpos = angleArg * TICS_PER_MICROSECOND * SPEED_RES;
+            newpos = constrain( angleArg, _minPw, _maxPw ) * TICS_PER_MICROSECOND * SPEED_RES;
+            
         }
         if ( _servoData.soll < 0 ) {
             // Serial.println( "first write");
