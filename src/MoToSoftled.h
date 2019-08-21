@@ -14,25 +14,16 @@
 // global data for softleds ( used in ISR )
 // the PWM pulses are created together with stepper pulses
 //
-// table of pwm-steps for soft on/off in CYCLETIME units ( bulb simulation). The last value means pwm cycletime
-//14ms cycletime
-//const uint8_t iSteps[] = { 2, 3 , 4, 6, 8, 11, 14, 17, 21, 25, 30, 36, 43, 55, 70 };
-//16ms cycletime ( 60Hz )
-//const uint8_t iSteps[] = {2, 8 ,14 ,20, 25,30, 35, 39, 43, 47, 50, 53, 56, 58, 60, 62, 64,66,68,70,72,73,74,75,76,78,79,80 };
-//const uint8_t iSteps[] = {9, 16 ,23 ,29, 35,41, 45, 49, 53, 56, 59, 62, 64, 66, 68, 70, 71,72,73,74,75,76,77,77,78,78,79,80 };
-const uint8_t iSteps[] PROGMEM = { 1, 4, 6,10,13,15,17,19,21,23,25,27,29,31,33,35,36,37,38,39,
+// table of pwm-steps for soft on/off in CYCLETIME units ( bulb simulation). The first value means pwm cycletime
+const uint8_t iSteps[] PROGMEM = { 80, 1, 4, 6,10,13,15,17,19,21,23,25,27,29,31,33,35,36,37,38,39,
                           40,41,42,43,44,45,46,47,48,49,50,51,52,53,54,55,56,57,58,59,
                           60,61,62,63,64,65,65,66,66,67,67,68,68,69,69,70,70,71,71,72,
-                          72,73,73,74,74,75,75,76,76,77,77,77,78,78,78,78,79,79,79,80 };
+                          72,73,73,74,74,75,75,76,76,77,77,77,78,78,78,78,79,79,79 };
 
-// 20ms cycletime ( 50Hz )
-//const uint8_t iSteps[] = { 2,4, 6, 9, 12, 15, 20, 25, 30, 35, 40, 45,50,55,65,80,100 };
 #define DELTASTEPS 128  // this MUST be a power of 2
 #define LED_IX_MAX    ((int16_t)sizeof(iSteps) -1) // int16_t to suppress warnings when comparing to aCycle
-#define LED_CYCLE_MAX   (iSteps[(int16_t)sizeof(iSteps) -1])
-#define LED_STEP_MAX    LED_CYCLE_MAX *DELTASTEPS
-#define LED_PWMTIME     (iSteps[(int16_t)sizeof(iSteps) -1] / 5)  // PWM refreshrate in ms
-                                        // todo: dies gilt nur bei einer CYCLETIME von 200us (derzeit default)
+#define LED_CYCLE_MAX   (iSteps[0])
+#define LED_PWMTIME     LED_CYCLE_MAX * CYCLETIME / 1000  // PWM refreshrate in ms
                                         
 enum LedStats_t:byte { NOTATTACHED, STATE_OFF, STATE_ON, ACTIVE, INCBULB, DECBULB, INCLIN, DECLIN };
                         // values >= ACTIVE means active in ISR routine
