@@ -141,12 +141,12 @@ static bool searchNextPulse() {
 #ifdef __AVR_MEGA__
 ISR ( TIMERx_COMPA_vect) {
     uint8_t saveTIMSK;
+    saveTIMSK = TIMSKx; // restore IE for stepper later ( maybe it is not enabled)
 #elif defined __STM32F1__
 void ISR_Servo( void) {
     uint16_t OCRxA;
 #endif
     SET_SV3;
-    saveTIMSK = TIMSKx; // restore IE for stepper later ( maybe it is not enabled)
     // Timer1 Compare A, used for servo motor
     if ( IrqType == POFF ) { // Pulse OFF time
         //SET_TP1; // Oszimessung Dauer der ISR-Routine OFF
@@ -309,25 +309,20 @@ Servo8::Servo8() //: _servoData.pin(NO_PIN),_angle(NO_ANGLE),_min16(1000/16),_ma
 {   _servoData.servoIx = servoCount++;
     _servoData.soll = -1;    // = not initialized
     _servoData.pin = NO_PIN;
-    _angle = NO_ANGLE;
-    _min16 = MINPULSEWIDTH / 16;
-    _max16 = MAXPULSEWIDTH / 16;
-    noInterrupts();
+    _minPw = MINPULSEWIDTH ;
+    _maxPw = MAXPULSEWIDTH ;
+    noInterrupts(); // Add to servo-chain
     _servoData.prevServoDataP = lastServoDataP;
     lastServoDataP = &_servoData;
     interrupts();
 }
 
 void Servo8::setMinimumPulse(uint16_t t)
-{
-    t = t/16;
-    if ( t >= MINPULSEWIDTH/16 && t < _max16 ) _min16 = t;
+{   _minPw = constrain( t, MINPULSEWIDTH,MAXPULSEWIDTH);
 }
 
 void Servo8::setMaximumPulse(uint16_t t)
-{
-    t = t/16;
-    if ( t > _min16 && t <= MAXPULSEWIDTH/16 ) _max16 = t;
+{   _maxPw = constrain( t, MINPULSEWIDTH,MAXPULSEWIDTH);
 }
 
 
@@ -337,16 +332,16 @@ uint8_t Servo8::attach(int pinArg) {
 uint8_t Servo8::attach(int pinArg, bool autoOff ) {
     return attach( pinArg, MINPULSEWIDTH, MAXPULSEWIDTH, autoOff );
 }
-uint8_t Servo8::attach(int pinArg, int pmin, int pmax ) {
+uint8_t Servo8::attach(int pinArg, uint16_t pmin, uint16_t pmax ) {
     return attach( pinArg, pmin, pmax, false );
 }
 
-uint8_t Servo8::attach( int pinArg, int pmin, int pmax, bool autoOff ) {
+uint8_t Servo8::attach( int pinArg, uint16_t pmin, uint16_t pmax, bool autoOff ) {
     // return false if already attached or too many servos
     if ( _servoData.pin != NO_PIN ||  _servoData.servoIx >= MAX_SERVOS ) return 0;
     // set pulselength for angle 0 and 180
-    if ( pmin >= MINPULSEWIDTH && pmin <= MAXPULSEWIDTH) _min16 = pmin/16;
-    if ( pmax >= MINPULSEWIDTH && pmax <= MAXPULSEWIDTH ) _max16 = pmax/16;
+    _minPw = constrain( pmin, MINPULSEWIDTH, MAXPULSEWIDTH );
+    _maxPw = constrain( pmax, MINPULSEWIDTH, MAXPULSEWIDTH );
 	//DB_PRINT( "pin: %d, pmin:%d pmax%d autoOff=%d, _min16=%d, _max16=%d", pinArg, pmin, pmax, autoOff, _min16, _max16);
     
     // intialize objectspecific data
@@ -363,7 +358,6 @@ uint8_t Servo8::attach( int pinArg, int pmin, int pmax, bool autoOff ) {
     _servoData.bitMask = pgm_read_byte_near(&digital_pin_to_bit_mask_PGM[pinArg]);
     //DB_PRINT( "Idx: %d Portadr: 0x%x, Bitmsk: 0x%x", _servoData.servoIx, _servoData.portAdr, _servoData.bitMask );
 	#endif
-    _angle = NO_ANGLE;
     pinMode (_servoData.pin,OUTPUT);
     digitalWrite( _servoData.pin,LOW);
 
@@ -400,7 +394,7 @@ void Servo8::detach()
     _servoData.pin = NO_PIN;  
 }
 
-void Servo8::write(int angleArg)
+void Servo8::write(uint16_t angleArg)
 {   // set position to move to
     // values between 0 and 180 are interpreted as degrees,
     // values between MINPULSEWIDTH and MAXPULSEWIDTH are interpreted as microseconds
@@ -413,18 +407,14 @@ void Servo8::write(int angleArg)
         #ifdef __AVR_MEGA__
 		//DB_PRINT( "Stack=0x%04x, &sIx=0x%04x", ((SPH&0x7)<<8)|SPL, &servoData.servoIx );
         #endif
-        if ( angleArg < 0) angleArg = 0;
         if ( angleArg <= 255) {
             // pulse width as degrees (byte values are always degrees) 09-02-2017
-            _angle = min( 180,angleArg);
-
-            newpos = map( _angle, 0,180, _min16*16, _max16*16 ) * TICS_PER_MICROSECOND * SPEED_RES;
+            angleArg = min( 180,angleArg);
+            newpos = map( angleArg, 0,180, _minPw, _maxPw ) * TICS_PER_MICROSECOND * SPEED_RES;
         } else {
             // pulsewidth as microseconds
-            if ( angleArg < MINPULSEWIDTH ) angleArg = MINPULSEWIDTH;
-            if ( angleArg > MAXPULSEWIDTH ) angleArg = MAXPULSEWIDTH;
-            newpos = angleArg * TICS_PER_MICROSECOND * SPEED_RES;
-            _angle = map( angleArg, _min16*16, _max16*16, 0, 180 );  // angle in degrees
+            newpos = constrain( angleArg, _minPw, _maxPw ) * TICS_PER_MICROSECOND * SPEED_RES;
+            
         }
         if ( _servoData.soll < 0 ) {
             // Serial.println( "first write");
@@ -468,12 +458,10 @@ void Servo8::setSpeed( int speed ) {
 
 uint8_t Servo8::read() {
     // get position in degrees
-    int value;
+    int offset;
     if ( _servoData.pin == NO_PIN ) return -1; // Servo not attached
-    noInterrupts();
-    value = _servoData.ist;
-    interrupts();
-    return map( value/TICS_PER_MICROSECOND/SPEED_RES, _min16*16, _max16*16, 0, 180 );
+    offset = (_maxPw - _minPw)/180/2;
+    return map( readMicroseconds() + offset, _minPw, _maxPw, 0, 180 );
 }
 
 int Servo8::readMicroseconds() {
@@ -483,8 +471,8 @@ int Servo8::readMicroseconds() {
     noInterrupts();
     value = _servoData.ist;
     interrupts();
+    if ( value < 0 ) value = _servoData.soll; // there is no valid actual vlaue
     return value/TICS_PER_MICROSECOND/SPEED_RES;   
-
 }
 
 uint8_t Servo8::moving() {
@@ -498,6 +486,7 @@ uint8_t Servo8::moving() {
     if ( remaining == 0 ) return 0;
     return ( remaining * 100 ) /  total +1;
 }
+
 uint8_t Servo8::attached()
 {
     return ( _servoData.pin != NO_PIN );

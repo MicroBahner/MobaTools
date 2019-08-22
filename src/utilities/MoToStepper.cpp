@@ -140,7 +140,7 @@ void stepperISR(uint8_t cyclesLastIRQ) {
                         #endif
                     }    
                     // Set step pulse 
-                    nextCycle = 1; // will be resettet in next cycle
+                    nextCycle = MIN_STEP_CYCLE/2; // will be resettet in max 2 cycles
                     #ifdef FAST_PORTWRT
                     *stepperDataP->portPins[0].Adr |= stepperDataP->portPins[0].Mask;
                     #else
@@ -408,7 +408,6 @@ Stepper4::Stepper4(int steps, uint8_t mode ) {
     Stepper4::initialize ( steps, mode );
 }
 
-
 // private functions ---------------
 void Stepper4::initialize ( int steps360, uint8_t mode ) {
     // create new instance
@@ -580,7 +579,9 @@ void Stepper4::detach() {   // no more moving, detach from output
     if ( _stepperData.output == NO_OUTPUT ) return ; // not attached
     // reconfigure stepper pins as INPUT ( state of RESET )
     // in FAST_PORTWRT mode this is not done, because the necessary Information is not stored
+    #ifdef FAST_PORTWRT
     byte nPins=2;
+    #endif
     switch ( _stepperData.output ) {
       #ifdef __AVR_MEGA__
       case PIN4_7:
@@ -878,11 +879,15 @@ void Stepper4::doSteps( long stepValue ) {
 }
 
 
-void Stepper4::setZero( long zeroPoint ) {
-    // set reference point for absolute positioning
+// set reference point for absolute positioning
+void Stepper4::setZero() {
+    setZero(0);
+}
+
+void Stepper4::setZero(long zeroPoint) {
     if ( _stepperData.output == NO_OUTPUT ) return; // not attached
     noInterrupts();
-    _stepperData.stepsFromZero = -zeroPoint ;
+    _stepperData.stepsFromZero = -zeroPoint;
     interrupts();
 }
 
@@ -897,13 +902,17 @@ void Stepper4::write( long angleArg, byte fact ) {
     // typical: fact = 10, angleArg in .1 degrees
     if ( _stepperData.output == NO_OUTPUT ) return ; // not attached
     bool negative;
-    long angel2steps;
+    long angle2steps;
     negative =  ( angleArg < 0 ) ;
     //DB_PRINT( "angleArg: %d",angleArg ); //DB_PRINT( " getSFZ: ", getSFZ() );
     //Serial.print( "Write: " ); Serial.println( angleArg );
-    angel2steps =  ( (abs(angleArg) * (long)stepsRev*10) / ( 360L * fact) +5) /10 ;
-    if ( negative ) angel2steps = -angel2steps;
-    doSteps(angel2steps  - getSFZ() );
+    // full revolutions:
+    angle2steps = abs(angleArg) / (360L * fact ) * (long)stepsRev;
+    // + remaining steps in last revolution ( with rounding )
+    angle2steps += (( abs(angleArg % (360L * fact) ) * (long)stepsRev ) + 180L*fact )/ ( 360L * fact)  ;
+    //angle2steps =  ( (abs(angleArg) * (long)stepsRev*10) / ( 360L * fact) +5) /10 ;
+    if ( negative ) angle2steps = -angle2steps;
+    doSteps(angle2steps  - getSFZ() );
 }
 
 void Stepper4::writeSteps( long stepPos ) {

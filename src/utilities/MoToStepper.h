@@ -33,6 +33,17 @@
 #define MIN_STEPTIME    (CYCLETIME * MIN_STEP_CYCLE) 
 #define MAXRAMPLEN      16000       // Do not change!
 
+#ifdef __STM32F1__
+    void ISR_Stepper(void);
+#endif
+
+//some AccelStepper compatible method names ( maybe sligtly different in functionality
+#define moveTo              writeSteps
+#define move                doSteps
+#define setMaxSpeed( speed) setSpeedSteps( speed*10 )
+#define distanceToGo        stepsToDo
+#define currentPosition     readSteps
+
 /////////////////////////////////////////////////////////////////////////////////
 // global stepper data ( used in ISR )
 enum rampStats_t:byte { INACTIVE, STOPPED, STOPPING, STARTING, CRUISING, RAMPACCEL, RAMPDECEL, SPEEDDECEL  };
@@ -48,8 +59,9 @@ typedef struct stepperData_t {
   volatile uint16_t aCycSteps;           // nbr of IRQ cycles per step ( actual motorspeed  )
   uint16_t aCycRemain;          // accumulate tCycRemain when cruising
   uint16_t cyctXramplen;        // precompiled  tCycSteps*(rampLen+RAMPOFFSET)
-  int16_t  stepRampLen;         // Length of ramp in steps
-  int16_t  stepsInRamp;         // stepcounter within ramp ( counting from stop: incrementing in startramp, decrementing in stopramp
+  uint16_t  stepRampLen;        // Length of ramp in steps
+  uint16_t  stepsInRamp;        // stepcounter within ramp ( counting from stop ( = 0 ): incrementing in startramp, decrementing in stopramp
+                                // max value is stepRampLen
   rampStats_t rampState;        // State of acceleration/deceleration
   volatile uint16_t cycCnt;     // counting cycles until cycStep
   volatile long stepsFromZero;  // distance from last reference point ( always as steps in HALFSTEP mode )
@@ -100,7 +112,7 @@ class Stepper4
     void initialize(int,uint8_t);
     uint16_t  _setRampValues();
   public:
-    Stepper4(int steps);            // steps per 360 degree in FULLSTEP mode
+    Stepper4(int steps);            // steps per 360 degree in HALFSTEP mode
     Stepper4(int steps, uint8_t mode ); 
                                     // mode means HALFSTEP or FULLSTEP
     
@@ -116,7 +128,8 @@ class Stepper4
     void write(long angle, uint8_t factor);        // factor specifies resolution of parameter angle
                                     // e.g. 10 means, 'angle' is angle in .1 degrees
 	void writeSteps( long stepPos );// Go to position stepPos steps from zeropoint
-    void setZero(long zeroPos=0);  // set zeropoint to zeroPos in steps ( default is 0 )
+    void setZero();                 // actual position is set as 0 angle (zeropoint)
+    void setZero( long zeroPoint);  // new zeropoint ist zeroPoint steps apart from actual position
     int setSpeed(int rpm10 );       // Set movement speed, rpm*10
     uint16_t setSpeedSteps( uint16_t speed10 ); // set speed withput changing ramp, returns ramp length
     uint16_t setSpeedSteps( uint16_t speed10, int16_t rampLen ); // set speed and ramp, returns ramp length

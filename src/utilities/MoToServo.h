@@ -54,9 +54,9 @@ class Servo8
   private:
     int16_t _lastPos;     // startingpoint of movement
     //uint8_t pin;
-    uint8_t _angle;       // in degrees
-    uint8_t _min16;       // minimum pulse, 16uS units  (default is 34)
-    uint8_t _max16;       // maximum pulse, 16uS units, (default is 150)
+    //uint8_t _angle;       // in degrees
+    uint16_t _minPw;       // minimum pulse, uS units  
+    uint16_t _maxPw;       // maximum pulse, uS units
     servoData_t _servoData;  // Servo data to be used in ISR
 
 	public:
@@ -64,10 +64,10 @@ class Servo8
     uint8_t attach(int pin); // attach to a pin, sets pinMode, returns 0 on failure, won't
                              // position the servo until a subsequent write() happens
     uint8_t attach( int pin, bool autoOff );        // automatic switch off pulses with constant length
-    uint8_t attach(int pin, int pos0, int pos180 ); // also sets position values (in us) for angele 0 and 180
-    uint8_t attach(int pin, int pos0, int pos180, bool autoOff );
+    uint8_t attach(int pin, uint16_t pos0, uint16_t pos180 ); // also sets position values (in us) for angele 0 and 180
+    uint8_t attach(int pin, uint16_t pos0, uint16_t pos180, bool autoOff );
     void detach();
-    void write(int);         // specify the angle in degrees, 0 to 180. Values obove 180 are interpreted
+    void write(uint16_t);         // specify the angle in degrees, 0 to 180. Values obove 180 are interpreted
                              // as microseconds, limited to MaximumPulse and MinimumPulse
     void setSpeed(int);      // Set Movement speed, the higher the faster
                              // Zero means no speed control (default)

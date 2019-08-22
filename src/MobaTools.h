@@ -12,6 +12,11 @@
   V1.2 08-2019
       - it is possible to define an enable pin for steppers. This is active
         only when the stepper is moving.
+  V1.1.3 08-2019
+      - no more warnings when compiling
+      - fix error (overflow) when converting angle to steps
+      - fix error when converting angle to microseconds in servo class
+      - reworked softleds. Risetimes unitl 10 sec are possible.
   V1.1.2 08-2019
       - fix error when only servo objects are defined ( sketch crashed )
       - two more stepper examples ( thanks to 'agmue' from german arduino.cc forum )
@@ -58,14 +63,18 @@
 #define MAX_STEPPER     6       // 
 #define DEF_SPEEDSTEPS  3000    // default speed after attach
 #define DEF_RAMP        0       // default ramp after attach       
-#define CYCLETIME       200     // Min. irq-periode in us.
-#define MIN_STEP_CYCLE  4       // Minimum number of cycles per step
+#define CYCLETIME       200     // Min. irq-periode in us ( default is 200, change only if you know what you are doing ).
+#define MIN_STEP_CYCLE  4       // Minimum number of cycles per step. Reducing to 3 allows higher steprates at the 
+                                // cost of an increased jitter at high steprates.
 #define RAMPOFFSET      16      // startvalue of rampcounter
 
 // servo related defines
-// #define FIXED_POSITION_SERVO_PULSES
+// #define FIXED_POSITION_SERVO_PULSES  // does not work yet - leave commented out
 #define MINPULSEWIDTH   700     // don't make it shorter than 700
 #define MAXPULSEWIDTH   2300    // don't make it longer than 2300
+
+// softled related defines
+#define LED_DEFAULT_RISETIME   50
 
 
 #include <utilities/MoToBase.h>
