@@ -39,7 +39,7 @@ Stepper4  myStepper(800, A4988 );
 // Definition der Pins für verschiedene Platformen
 //==========================================================================
 #ifdef __STM32F1__  //===================== STM32F1 ========================
-const byte A4988Step=PA2, A4988Dir=PA3 ;
+const byte A4988Step=PB8, A4988Dir=PB5 ;
 // SPI1 = Pins MOSI=PA7, MISO=PA6, SCK=PA5, NSS=PA4
 // LA-Pins: TP1=PB12, TP2=PB13, TP3= PB14,  TP4=BP15
 //............................................................................
@@ -168,16 +168,16 @@ void loop() {
                 execCmd( autoCom );
              } else if ( autoCom.bedingung == '>' ) {
                 // verzögerte Ausführung
-                printf(" warte bis Steppos > %d ->", autoCom.bedParam );
+                printf(" warte bis Steppos > %ld ->", autoCom.bedParam );
                 autoZustand = WAITGT;
              } else if ( autoCom.bedingung == '<' ) {
-                printf(" warte bis Steppos < %d ->", autoCom.bedParam );
+                printf(" warte bis Steppos < %ld ->", autoCom.bedParam );
                 autoZustand = WAITLT;
              } else if ( autoCom.bedingung == 'm' ) {
-                printf( " warte bis Restweg <= %d%% ->", autoCom.bedParam );
+                printf( " warte bis Restweg <= %ld%% ->", autoCom.bedParam );
                 autoZustand = WAITMV;
              } else if ( autoCom.bedingung == 't' ) {
-                printf(" warte %d ms ->", autoCom.bedParam );
+                printf(" warte %ld ms ->", autoCom.bedParam );
                 autoZustand = WAITTM;
                 waitTimer.setTime( autoCom.bedParam );
              } else {

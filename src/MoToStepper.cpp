@@ -824,8 +824,11 @@ void Stepper4::doSteps( long stepValue ) {
         _stepperData.stepCnt = abs(stepsToMove);
         _stepperData.cycCnt         = 0;            // start with the next IRQ
         _stepperData.aCycSteps      = _stepperData.tCycSteps;
-        _stepperData.aCycRemain     = _stepperData.tCycRemain;   
-        _stepperData.rampState      = CRUISING;
+        _stepperData.aCycRemain     = _stepperData.tCycRemain;
+        if ( stepsToMove == 0 )
+            _stepperData.rampState      = STOPPED;
+        else
+            _stepperData.rampState      = CRUISING;
         _stepIRQ();
         DB_PRINT( "NoRamp:, sCnt=%ld, sCnt2=%ld, sMove=%ld, aCyc=%d", _stepperData.stepCnt, _stepperData.stepCnt2, stepsToMove, _stepperData.aCycSteps );
 
