@@ -6,6 +6,7 @@ MobaTools
 
 | Version |  Release Date  | Description
 | ------- |  ------------  | -----------
+| 1.1.4 | 2019-??-?? |
 | 1.1.3 | 2019-08-22 | fix errors when converting angle to microseconds and vice versa in servo class
 | | | fix errors when converting angle to steps and vice versa in stepper class
 | | | no more warnings
