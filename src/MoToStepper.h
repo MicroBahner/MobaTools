@@ -106,7 +106,7 @@ class Stepper4
     uint16_t setSpeedSteps( uint16_t speed10 ); // set speed withput changing ramp, returns ramp length
     uint16_t setSpeedSteps( uint16_t speed10, int16_t rampLen ); // set speed and ramp, returns ramp length
     uint16_t setRampLen( uint16_t rampLen ); // set new ramplen in steps without changing speed
-    uint16_t getSpeedSteps();		// returns actual speed ( even in ramp )
+    uint16_t getSpeedSteps();		// returns actual speed in steps/10sec ( even in ramp )
     void doSteps(long count);       // rotate count steps. May be positive or negative
                                     // angle is updated internally, so the next call to 'write'
                                     // will move to the correct angle
