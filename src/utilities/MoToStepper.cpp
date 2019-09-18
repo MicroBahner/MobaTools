@@ -778,6 +778,27 @@ uint16_t Stepper4::setSpeedSteps( uint16_t speed10, int16_t rampLen ) {
     return _stepperData.stepRampLen;
 }
 
+uint16_t Stepper4::getSpeedSteps( ) {
+	// return actual speed in steps/ 10sec 
+	
+    if ( _stepperData.output == NO_OUTPUT ) return; // not attached
+	uint16_t actSpeedSteps = 0;
+	// get actual values from ISR
+	_noStepIRQ();
+	uint16_t aCycSteps = _stepperData.aCycSteps;
+	uint16_t aCycRemain = _stepperData.aCycRemain;
+	uint16_t stepsInRamp = _stepperData.stepsInRamp;
+	rampStats_t rampState = _stepperData.rampState;
+	_stepIRQ();
+	if ( rampState == CRUISING ) {
+		// stepper is moving with target speed
+		actSpeedSteps = _stepSpeed10;
+	} else if ( rampState > STOPPED ) {
+		// we are in a ramp
+		actSpeedSteps = 1000000L * 10 / ( (long)aCycSteps*CYCLETIME + (long)aCycRemain*CYCLETIME/(stepsInRamp + RAMPOFFSET ) );
+	}
+	return actSpeedSteps;
+}
 void Stepper4::doSteps( long stepValue ) {
     // rotate stepValue steps
     // if the motor is already moving, this is counted from the actual position.

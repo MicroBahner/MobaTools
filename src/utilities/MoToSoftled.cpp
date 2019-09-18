@@ -260,7 +260,7 @@ uint8_t SoftLed::attach(uint8_t pinArg, uint8_t invArg ){
     #elif defined __STM32F1__
         timer_cc_enable(MT_TIMER, STEP_CHN);
     #endif
-    DB_PRINT("IX_MAX=%d, CYCLE_MAX=%d, STEP_MAX=%d, PWMTIME=%d", LED_IX_MAX, LED_CYCLE_MAX, LED_STEP_MAX, LED_PWMTIME );
+    DB_PRINT("IX_MAX=%d, CYCLE_MAX=%d, PWMTIME=%d", LED_IX_MAX, LED_CYCLE_MAX, LED_PWMTIME );
     return true;
 }
 
@@ -344,5 +344,5 @@ void SoftLed::riseTime( uint16_t riseTime ) {
     if ( riseTime >= riseMax/16 ) riseTime = riseMax/16;
     int tmp = ( ((long)riseMax  *10) / ( riseTime  ) +5 ) /10;
     ledSpeed = tmp;
-    DB_PRINT( "ledSpeed[%d] = %d ( risetime=%d, riseMax=%d, PWMTIME=%d )", ledIx, ledSpeed, riseTime, riseMax, LED_PWMTIME );
+    DB_PRINT( "ledSpeed = %d ( risetime=%d, riseMax=%d, PWMTIME=%d )", ledSpeed, riseTime, riseMax, LED_PWMTIME );
 }

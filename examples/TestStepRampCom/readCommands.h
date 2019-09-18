@@ -118,7 +118,7 @@ void execCmd( eeBefehl_t &cmdBuf ) {
     uint16_t ramp;
     switch ( cmdBuf.command ) {
       case szpT:
-        printf(" Pos %d -> neuer Nullpunkt\n\r", myStepper.readSteps() );
+        printf(" Pos %ld -> neuer Nullpunkt\n\r", myStepper.readSteps() );
         myStepper.setZero();
         break;
       case dstT: // ===============================  dst nnn     -> doSteps( +/-nnnL ) ==========
@@ -139,7 +139,7 @@ void execCmd( eeBefehl_t &cmdBuf ) {
         myStepper.writeSteps( steps );
         break;
       case rotT: // ===============================  rot d       -> rotate( +/-direction ); =======
-        printf(" rotate: %d\n\r",cmdBuf.comPar1  );
+        printf(" rotate: %ld\n\r",cmdBuf.comPar1  );
         myStepper.rotate( cmdBuf.comPar1  );
         break;
       case sspT: // ===============================  ssp nn      -> setSpeed( rpm10 ) ===============================
@@ -178,7 +178,7 @@ void execCmd( eeBefehl_t &cmdBuf ) {
        break;
      case estT: // =============================== est -> Programm bei schritt nn fortführen ========
        if ( cmdBuf.comPar1 >= 0 && cmdBuf.comPar1 < EEMAX ) {
-           printf( " Goto %d\n\r", cmdBuf.comPar1 );
+           printf( " Goto %ld\n\r", cmdBuf.comPar1 );
            if ( comIx != -1 ) comIx = cmdBuf.comPar1 ;
        }
        break;

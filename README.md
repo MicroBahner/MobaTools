@@ -7,7 +7,9 @@ MobaTools
 | Version |  Release Date  | Description
 | ------- |  ------------  | -----------
 | 1.2.0 | 2019-08-?? | managing an enable pin for steppers is possible
-| 1.1.3 | 2019-??-?? | fix errors when converting angle to microseconds and vice versa in servo class
+| | | new method 'getSpeedSteps' returns actual speed
+| | | MIN_STEP_CYCLE reduces to '2' what allows speeds upt 2500 steps/sec
+| 1.1.3 | 2019-08-22 | fix errors when converting angle to microseconds and vice versa in servo class
 | | | fix errors when converting angle to steps and vice versa in stepper class
 | | | no more warnings
 | 1.1.2 | 2019-08-03 | fix error, when only servo objects are defined (sketch crashed), 2 more Stepper examples
