@@ -8,7 +8,7 @@ MobaTools
 | ------- |  ------------  | -----------
 | 1.2.0 | 2019-08-?? | managing an enable pin for steppers is possible
 | | | new method 'getSpeedSteps' returns actual speed
-| | | MIN_STEP_CYCLE reduces to '2' what allows speeds upt 2500 steps/sec
+| | | by default MIN_STEP_CYCLE is set to '2'.  This allows speeds up to 2500 steps/sec
 | 1.1.3 | 2019-08-22 | fix errors when converting angle to microseconds and vice versa in servo class
 | | | fix errors when converting angle to steps and vice versa in stepper class
 | | | no more warnings
@@ -20,20 +20,20 @@ MobaTools
 
 The lib contains 4 classes:
 
-#### Servo8: 
+#### MoToServo: 
 Can control up to 16 servos. Compatible with arduino servo lib, but allows to control 
 the speed of the servo.
 
-#### Stepper4: 
+#### MoToStepper: 
 A class to control stepper motors. The arduino sketch is not blocked while 
 the stepper is moving. After setting a reference point, the stepper can be positioned 
 absolutely just like a servo. But without the angle limitation of 0--180 degrees.
 V1.1: Ramps can be defined to accelerate/decelerate the Stepper.
 
-#### Softled: 
+#### MoToSoftled: 
 Allows easy softon / softoff of leds. It works on all digital outputs.
 
-#### Eggtimer: 
+#### MoToTimer: 
 Allows easy nonblocking timedelays in sketches. You don't have to bother with millis() directly
 
 #### Additional Info:

@@ -13,10 +13,10 @@ MobaTools	KEYWORD1
 #SoftLed	KEYWORD1   
 #Stepper4	KEYWORD1
 
-MotoServo	KEYWORD1
-MotoTimer	KEYWORD1    
-MotoSoftLed	KEYWORD1   
-MotoStepper	KEYWORD1
+MoToServo	KEYWORD1
+MoToTimer	KEYWORD1    
+MoToSoftLed	KEYWORD1   
+MoToStepper	KEYWORD1
  
 #######################################
 # Methods and Functions (KEYWORD2)

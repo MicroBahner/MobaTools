@@ -26,10 +26,10 @@
 #define ISR_IDLETIME    5000        // max time between two Stepper/Softled ISRs
 
 // changing Class names ( in later versions this will be the native classnames ):
-#define MotoStepper Stepper4
-#define MotoServo   Servo8
-#define MotoSoftled Softleds
-#define MotoTimer   Eggtimer
+#define MoToStepper Stepper4
+#define MoToServo   Servo8
+#define MoToSoftled Softleds
+#define MoToTimer   Eggtimer
 
 
 // defines for the stepper motor
