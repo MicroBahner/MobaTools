@@ -6,9 +6,15 @@
   Copyright (c) 2019 All right reserved.
 
   MobaTools V1.1
-   (C) 08-2019 fpm fpm@mnet-online.de
+   (C) 09-2019 fpm fpm@mnet-online.de
    
   History:
+  V1.1.4 09-2019
+      - speed = 0 is not allowsed( it is set to 1 internally )
+	  - fix error when repeatedly setting target position very fast
+	  - allow higher steprates up to 2500 steps/sec.
+	    ( relative jitter increases with higher rates, abs. jitter is 200µs )
+	  - typo corrected in MoToBase.h 
   V1.1.3 08-2019
       - no more warnings when compiling
       - fix error (overflow) when converting angle to steps
@@ -61,7 +67,7 @@
 #define DEF_SPEEDSTEPS  3000    // default speed after attach
 #define DEF_RAMP        0       // default ramp after attach       
 #define CYCLETIME       200     // Min. irq-periode in us ( default is 200, change only if you know what you are doing ).
-#define MIN_STEP_CYCLE  4       // Minimum number of cycles per step. Reducing to 3 allows higher steprates at the 
+#define MIN_STEP_CYCLE  2      // Minimum number of cycles per step. Reducing to 3 allows higher steprates at the 
                                 // cost of an increased jitter at high steprates.
 #define RAMPOFFSET      16      // startvalue of rampcounter
 

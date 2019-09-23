@@ -644,6 +644,7 @@ uint16_t Stepper4::setSpeedSteps( uint16_t speed10, int16_t rampLen ) {
     if (rampLen<0) newRampLen--;
     if (newRampLen > MAXRAMPLEN ) newRampLen = MAXRAMPLEN;
     newSpeed10 = min( 1000000L / MIN_STEPTIME * 10, speed10 );
+	if ( newSpeed10 == 0 ) newSpeed10 = 1; // minimum speed
     
     DB_PRINT( "rampLen-new=%u, ramplenParam=%u", newRampLen, rampLen );
     // compute target steplength and check whether speed and ramp fit together: 
@@ -822,9 +823,12 @@ void Stepper4::doSteps( long stepValue ) {
         _noStepIRQ();
         _stepperData.patternIxInc = patternIxInc;
         _stepperData.stepCnt = abs(stepsToMove);
-        _stepperData.cycCnt         = 0;            // start with the next IRQ
-        _stepperData.aCycSteps      = _stepperData.tCycSteps;
-        _stepperData.aCycRemain     = _stepperData.tCycRemain;
+		if ( _stepperData.rampState <= STOPPED ) {
+			// the stepper is not moving
+			_stepperData.cycCnt         = 0;            // start with the next IRQ
+			_stepperData.aCycSteps      = _stepperData.tCycSteps;
+			_stepperData.aCycRemain     = _stepperData.tCycRemain;
+		}
         if ( stepsToMove == 0 )
             _stepperData.rampState      = STOPPED;
         else
