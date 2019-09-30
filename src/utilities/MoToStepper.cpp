@@ -6,7 +6,7 @@
   Functions for the stepper part of MobaTools
 */
 #include <MobaTools.h>
-#include <MoToDbg.h>
+#include <utilities/MoToDbg.h>
 
 // Global Data for all instances and classes  --------------------------------
 extern uint8_t timerInitialized;
@@ -783,7 +783,7 @@ uint16_t Stepper4::setSpeedSteps( uint16_t speed10, int16_t rampLen ) {
 uint16_t Stepper4::getSpeedSteps( ) {
 	// return actual speed in steps/ 10sec 
 	
-    if ( _stepperData.output == NO_OUTPUT ) return; // not attached
+    if ( _stepperData.output == NO_OUTPUT ) return -1; // not attached
 	uint16_t actSpeedSteps = 0;
 	// get actual values from ISR
 	_noStepIRQ();
