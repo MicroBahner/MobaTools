@@ -7,6 +7,7 @@
 */
 
 #include <MobaTools.h>
+#include <MoToDbg.h>
 
 // Debug-defines
 #include <MoToDbg.h>
