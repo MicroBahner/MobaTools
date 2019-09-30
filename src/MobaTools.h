@@ -12,6 +12,12 @@
   V1.2 08-2019
       - it is possible to define an enable pin for steppers. This is active
         only when the stepper is moving.
+  V1.1.4 09-2019
+      - speed = 0 is not allowsed( it is set to 1 internally )
+	  - fix error when repeatedly setting target position very fast
+	  - allow higher steprates up to 2500 steps/sec.
+	    ( relative jitter increases with higher rates, abs. jitter is 200µs )
+	  - typo corrected in MoToBase.h 
   V1.1.3 08-2019
       - no more warnings when compiling
       - fix error (overflow) when converting angle to steps

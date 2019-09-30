@@ -7,6 +7,7 @@
 */
 
 #include <MobaTools.h>
+#include <MoToDbg.h>
 
 void stepperISR(uint8_t cyclesLastIRQ) __attribute__ ((weak));
 void softledISR(uint8_t cyclesLastIRQ) __attribute__ ((weak));
