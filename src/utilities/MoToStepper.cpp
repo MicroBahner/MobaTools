@@ -786,19 +786,29 @@ uint16_t Stepper4::getSpeedSteps( ) {
     if ( _stepperData.output == NO_OUTPUT ) return -1; // not attached
 	uint16_t actSpeedSteps = 0;
 	// get actual values from ISR
+	uint16_t aCycSteps ;
+	uint16_t aCycRemain ;
 	_noStepIRQ();
-	uint16_t aCycSteps = _stepperData.aCycSteps;
-	uint16_t aCycRemain = _stepperData.aCycRemain;
 	uint16_t stepsInRamp = _stepperData.stepsInRamp;
 	rampStats_t rampState = _stepperData.rampState;
+    #ifdef debugPrint
+	//uint16_t aCycSteps = _stepperData.aCycSteps;
+	//uint16_t aCycRemain = _stepperData.aCycRemain;
+	uint16_t tCycSteps = _stepperData.tCycSteps;
+	uint16_t tCycRemain = _stepperData.tCycRemain;
+    #endif
 	_stepIRQ();
 	if ( rampState == CRUISING ) {
 		// stepper is moving with target speed
 		actSpeedSteps = _stepSpeed10;
 	} else if ( rampState > STOPPED ) {
 		// we are in a ramp
+        aCycSteps = _stepperData.cyctXramplen / (stepsInRamp + RAMPOFFSET ) ;
+        aCycRemain = _stepperData.cyctXramplen % (stepsInRamp + RAMPOFFSET);
+
 		actSpeedSteps = 1000000L * 10 / ( (long)aCycSteps*CYCLETIME + (long)aCycRemain*CYCLETIME/(stepsInRamp + RAMPOFFSET ) );
 	}
+    DB_PRINT( "Acyc=%5d, Arem=%5d, SiR=%d, ( Tcyc=%5d, Trem=%5d ) ", aCycSteps, aCycRemain, stepsInRamp, tCycSteps, tCycRemain );
 	return actSpeedSteps;
 }
 void Stepper4::doSteps( long stepValue ) {
