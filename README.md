@@ -1,6 +1,6 @@
 MobaTools
 =========
-### Arduino library for model railroaders ( and maybe for others too 😉 )
+### Arduino library for model railroaders ( and maybe for others too :) )
 
 **Latest changes:**
 
@@ -11,7 +11,7 @@ MobaTools
 | 1.1.4 | 2019-09-25 | check for setting speed to 0 ( this is not allowed, will be changed to '1' internally )
 | | | fix error when setting targetposition repetitive very fast
 | | | allow higher steprates (up to 2500 steps/sec)at the expense of higher relative jitter at these rates
-| | | ( absolute jitter is 200�s )
+| | | ( absolute jitter is 200µs )
 | 1.1.3 | 2019-08-22 | fix errors when converting angle to microseconds and vice versa in servo class
 | | | fix errors when converting angle to steps and vice versa in stepper class
 | | | no more warnings
