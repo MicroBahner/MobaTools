@@ -46,7 +46,7 @@
 
 /////////////////////////////////////////////////////////////////////////////////
 // global stepper data ( used in ISR )
-enum rampStats_t:byte { INACTIVE, STOPPED, STOPPING, STARTING, CRUISING, RAMPACCEL, RAMPDECEL, SPEEDDECEL  };
+enum class rampStat:byte { INACTIVE, STOPPED, STOPPING, STARTING, CRUISING, RAMPACCEL, RAMPDECEL, SPEEDDECEL  };
 // states from CRUISING and above mean that the motor is moving
 typedef struct stepperData_t {
   struct stepperData_t *nextStepperDataP;    // chain pointer
@@ -62,7 +62,7 @@ typedef struct stepperData_t {
   uint16_t  stepRampLen;        // Length of ramp in steps
   uint16_t  stepsInRamp;        // stepcounter within ramp ( counting from stop ( = 0 ): incrementing in startramp, decrementing in stopramp
                                 // max value is stepRampLen
-  rampStats_t rampState;        // State of acceleration/deceleration
+  rampStat rampState;        // State of acceleration/deceleration
   volatile uint16_t cycCnt;     // counting cycles until cycStep
   volatile long stepsFromZero;  // distance from last reference point ( always as steps in HALFSTEP mode )
                                 // in FULLSTEP mode this is twice the real step number
