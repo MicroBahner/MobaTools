@@ -36,6 +36,8 @@ void ISR_Stepper(void) {
     #ifdef __AVR_MEGA__
     //noInterrupts(); // when manipulating 16bit Timerregisters IRQ must be disabled
     if ( nextCycle == 1 )  {
+        CLR_TP1;
+        noInterrupts();
         // this is timecritical: Was the ISR running longer then CYCELTIME?
         // compute length of current IRQ ( which startet at OCRxB )
         // we assume a max. runtime of 1000 Tics ( = 500µs , what nevver should happen )
@@ -49,6 +51,8 @@ void ISR_Stepper(void) {
             tmp = OCRxB + CYCLETICS;
         }
         OCRxB = ( tmp > TIMER_OVL_TICS ) ? tmp -= TIMER_OVL_TICS : tmp ;
+        interrupts();
+        SET_TP1;
     } else {
         // time till next IRQ is more then one cycletime
         // compute next IRQ-Time in us, not in tics, so we don't need long

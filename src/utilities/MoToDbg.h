@@ -1,6 +1,6 @@
 #ifndef MOTODEBUG_H
 #define MOTODEBUG_H
-//#define debugTP
+#define debugTP
 //#define debugPrint
 
 #ifdef debugTP 
@@ -21,7 +21,7 @@
         #define MODE_TP1 DDRF |= (1<<4) //A3
         #define SET_TP1 PORTF |= (1<<4)
         #define CLR_TP1 PORTF &= ~(1<<4)
-        #define MODE_TP2 DDRF |= (1<<5) //A2
+        /*#define MODE_TP2 DDRF |= (1<<5) //A2
         #define SET_TP2 PORTF |= (1<<5)
         #define CLR_TP2 PORTF &= ~(1<<5)
         #define MODE_TP3 DDRD |= (1<<3) //D1
@@ -29,13 +29,16 @@
         #define CLR_TP3 PORTD &= ~(1<<3)
         #define MODE_TP4 DDRD |= (1<<2) //D0
         #define SET_TP4 PORTD |= (1<<2)
-        #define CLR_TP4 PORTD &= ~(1<<2)
-        /*#define MODE_TP3 
+        #define CLR_TP4 PORTD &= ~(1<<2)*/
+        #define MODE_TP2 
+        #define SET_TP2 
+        #define CLR_TP2 
+        #define MODE_TP3 
         #define SET_TP3 
         #define CLR_TP3 
         #define MODE_TP4 
         #define SET_TP4 
-        #define CLR_TP4 */
+        #define CLR_TP4 
     #elif defined(__AVR_ATmega328P__) 
         #define MODE_TP1 DDRC |= (1<<1) //A1
         #define SET_TP1 PORTC |= (1<<1)
@@ -66,7 +69,7 @@
         #define CLR_TP4  REG_PIOA_CODR = (1<<6)
     #elif defined (__STM32F1__)
         // STM32F103... ( SPI2-Pins! pin 31-28 maple mini )
-        #define MODE_TP1 pinMode( PB12,OUTPUT )   // TP1= PB12
+        /*#define MODE_TP1 pinMode( PB12,OUTPUT )   // TP1= PB12
         #define SET_TP1  gpio_write_bit( GPIOB,12, HIGH );
         #define CLR_TP1  gpio_write_bit( GPIOB,12, LOW );
         #define MODE_TP2 pinMode( PB13,OUTPUT )   // TP2= PB13
@@ -77,7 +80,20 @@
         #define CLR_TP3  gpio_write_bit( GPIOB,14, LOW );
         #define MODE_TP4 pinMode( PB15,OUTPUT )   // TP4 = PB15
         #define SET_TP4  gpio_write_bit( GPIOB,15, HIGH );
-        #define CLR_TP4  gpio_write_bit( GPIOB,15, LOW );
+        #define CLR_TP4  gpio_write_bit( GPIOB,15, LOW );*/
+        //Test-HW füer Stepper:
+        #define MODE_TP1 pinMode( PA3,OUTPUT )   // TP1= PB12
+        #define SET_TP1  digitalWrite( PA3, HIGH );
+        #define CLR_TP1  digitalWrite( PA3, LOW );
+        #define MODE_TP2 //pinMode( PA2,OUTPUT )   // TP1= PB12
+        #define SET_TP2  //digitalWrite( PA2, HIGH );
+        #define CLR_TP2  //digitalWrite( PA2, LOW );
+        #define MODE_TP3 
+        #define SET_TP3 
+        #define CLR_TP3
+        #define MODE_TP4 
+        #define SET_TP4 
+        #define CLR_TP4 
     #else
         #define MODE_TP1 DDRC |= (1<<3) //A3
         #define SET_TP1 PORTC |= (1<<3)

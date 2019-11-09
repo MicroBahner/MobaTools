@@ -40,7 +40,7 @@ void stepperISR(uint8_t cyclesLastIRQ) {
     SET_TP4;
     stepperData_t *stepperDataP;         // actual stepper data in IRQ
     uint8_t spiChanged, changedPins, bitNr;
-    SET_TP1;SET_TP4; // Oszimessung Dauer der ISR-Routine
+    //SET_TP1;SET_TP4; // Oszimessung Dauer der ISR-Routine
     spiChanged = false;
     #ifdef __AVR_MEGA__
     interrupts(); // allow nested interrupts, because this IRQ may take long
@@ -48,7 +48,7 @@ void stepperISR(uint8_t cyclesLastIRQ) {
     stepperDataP = stepperRootP;
     // ---------------Stepper motors ---------------------------------------------
     while ( stepperDataP != NULL ) {
-        CLR_TP1;    // spike for recognizing start of each stepper
+        //CLR_TP1;    // spike for recognizing start of each stepper
         if ( stepperDataP->output == A4988_PINS ) {
             // reset step pulse - pulse is max one cycle lenght
             #ifdef FAST_PORTWRT
@@ -290,7 +290,7 @@ void stepperISR(uint8_t cyclesLastIRQ) {
 
         //CLR_TP1;
         stepperDataP = stepperDataP->nextStepperDataP;
-        SET_TP1; //CLR_TP3;
+        //SET_TP1; //CLR_TP3;
     } // end of stepper-loop
     
     // shift out spiData, if SPI is active
@@ -310,7 +310,7 @@ void stepperISR(uint8_t cyclesLastIRQ) {
         #endif
         #endif
     }
-    CLR_TP1;
+    //CLR_TP1;
 } // ==================== End of stepper ISR ======================================
 #pragma GCC optimize "Os"
 // ---------- SPI interupt used for output stepper motor data -------------
