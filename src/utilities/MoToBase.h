@@ -13,13 +13,19 @@
 
 #ifndef  __AVR_MEGA__
 #ifndef __STM32F1__
-#error "Only AVR AtMega  or STM32F1 processors are supported"
+#ifndef ESP8266
+#error "Only AVR AtMega, ESP8266  or STM32F1 processors are supported"
+#endif
 #endif
 #endif
 #ifdef __STM32F1__
 #include <libmaple/timer.h>
 #include <libmaple/spi.h>
 #include <libmaple/nvic.h>
+#endif
+
+#ifdef ESP8266
+#include <core_esp8266_waveform.h>
 #endif
 
 #define ISR_IDLETIME    5000        // max time between two Stepper/Softled ISRs
@@ -56,6 +62,11 @@ extern uint8_t nextCycle;   // to be used in ISR for stepper and softled
 #elif defined __STM32F1__
     //defines only for STM32
     #define TICS_PER_MICROSECOND (clockCyclesPerMicrosecond() / 36 ) // prescaler is 36 = 0.5us
+    
+#elif defined ESP8266
+    //on ESP8266 all values are in µsec
+    #define TICS_PER_MICROSECOND 1
+
 #endif
 #define TIMERPERIODE    20000   // Timer Overflow in µs
 #define TIMER_OVL_TICS  ( TIMERPERIODE*TICS_PER_MICROSECOND )
@@ -118,7 +129,23 @@ typedef struct {    // portaddress and bitmask for direkt pin set/reset
 #endif
 
 
-                            
+#ifdef ESP8266 ////////////// only ESP8266 /////////////////////
+bool gpioUsed( unsigned int gpio );
+void setGpio( unsigned int gpio ) ;
+void clrGpio( unsigned int gpio ) ;
+
+// struct for gpio ISR Routines ( needs one struct elemet per GPIO
+typedef struct {
+    void (*gpioISR)();
+    void (*MoToISR)(void *Data);
+    void *IsrData;
+}gpioISR_t;
+
+extern gpioISR_t gpioTab[MAX_GPIO];
+//convert gpio nbr to index in gpioTab:
+#define gpio2ISRx(gpio) (gpio>5?gpio-6:gpio) // gpio 6..11 are not allowed
+
+#else    //////// end of  ESP8266 cpecific defiens //////////////////////                        
 void seizeTimer1();
 
 inline void _noStepIRQ() {
@@ -143,6 +170,7 @@ inline void  _stepIRQ() {
         #endif
 }
 
+#endif
 
 class EggTimer
 {

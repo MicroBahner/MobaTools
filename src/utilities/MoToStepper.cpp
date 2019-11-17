@@ -9,11 +9,15 @@
 #include <utilities/MoToDbg.h>
 
 // Global Data for all instances and classes  --------------------------------
+#ifdef ESP8266
+#else
 extern uint8_t timerInitialized;
 static uint8_t spiInitialized = false;
 
 // constants
 static const int stepPattern[8] = {0b0011, 0b0010, 0b0110, 0b0100, 0b1100, 0b1000, 0b1001,0b0001 };
+#endif
+
 #ifdef debugPrint
      const char *rsC[] = { "INACTIVE", "STOPPED", "STOPPING", "STARTING", "CRUISING", "RAMPACCEL", "RAMPDECEL", "SPEEDDECEL" };    
 #endif
@@ -34,7 +38,11 @@ static int rxData;      // dummy for STM32
 
 // global functions / Interrupts
 
+#ifdef ESP8266
+// ISR for ESP8266 ( edge triggerd from Step pulse )
 
+#else
+// ISR for AVR and arm based controllers
 #pragma GCC optimize "O3"   // optimize ISR for speed
 void stepperISR(uint8_t cyclesLastIRQ) {
     SET_TP4;
@@ -395,6 +403,7 @@ static void initSPI() {
 #endif
     spiInitialized = true;  
 }
+#endif // esp8266 <-> other
 
 // --------- Class Stepper ---------------------------------
 // Class-specific Variables

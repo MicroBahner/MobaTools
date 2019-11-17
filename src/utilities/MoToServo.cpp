@@ -14,16 +14,45 @@ extern uint8_t timerInitialized;
 // Variables for servos
 static servoData_t* lastServoDataP = NULL; //start of ServoData-chain
 static byte servoCount = 0;
-static servoData_t* pulseP = NULL;         // pulse Ptr in IRQ
-static servoData_t* activePulseP = NULL;   // Ptr to pulse to stop
-static servoData_t* stopPulseP = NULL;     // Ptr to Pulse whose stop time is already in OCR1
-static servoData_t* nextPulseP = NULL;
-static enum { PON, POFF } IrqType = PON; // Cycle starts with 'pulse on'
-static word activePulseOff = 0;     // OCR-value of pulse end 
-static word nextPulseLength = 0;
 static bool speedV08 = true;    // Compatibility-Flag for speed method
+#ifndef ESP8266 // following variables used only in 'classic' ISR
+    static servoData_t* pulseP = NULL;         // pulse Ptr in IRQ
+    static servoData_t* activePulseP = NULL;   // Ptr to pulse to stop
+    static servoData_t* stopPulseP = NULL;     // Ptr to Pulse whose stop time is already in OCR1
+    static servoData_t* nextPulseP = NULL;
+    static enum { PON, POFF } IrqType = PON; // Cycle starts with 'pulse on'
+    static word activePulseOff = 0;     // OCR-value of pulse end 
+    static word nextPulseLength = 0;
+#endif // no ESP8266
 
 ///////////////////////  Interrupt for Servos ////////////////////////////////////////////////////////////////////
+#ifdef ESP8266
+#define startServoPulse(pin,width) startWaveform(pin, width/TICS_PER_MICROSECOND/SPEED_RES, TIMERPERIODE-width/TICS_PER_MICROSECOND/SPEED_RES,0)
+// --------------------- Pulse-interrupt for ESP8266 --------------------------
+// This ISR is fired at the falling edge of the servo pulse. It is specific to every servo Objekt and
+// computes the length of the next pulse. The pulse itself is created by the core_esp8266_waveform routines.
+void ICACHE_RAM_ATTR ISR_Servo( servoData_t *_servoData ) {
+    if ( _servoData->ist != _servoData->soll ) {
+        //SetGPIO(0b100000);
+        if ( _servoData->ist > _servoData->soll ) {
+            _servoData->ist -= _servoData->inc;
+            if ( _servoData->ist < _servoData->soll ) _servoData->ist = _servoData->soll;
+        } else {
+            _servoData->ist += _servoData->inc;
+            if ( _servoData->ist > _servoData->soll ) _servoData->ist = _servoData->soll;
+        }
+        startServoPulse(_servoData->pin, _ServoData->ist)
+
+        //ClearGPIO(0b100000);
+    } else if ( !_servoData->noAutooff { // no change in pulse length, look for autooff
+        if ( --_servoData->offcnt == 0 ) {
+            // switch off pulses
+            stopWaveform( _servoData->pin );
+        }
+    }
+    
+}
+#else //---------------------- Timer-interrupt for non ESP8266 -----------------------------
 #ifdef FIXED_POSITION_SERVO_PULSES
 // ---------- OCRxA Compare Interrupt used for servo motor ----------------
 // Positions of servopulses within 20ms cycle are fixed -  8 servos
@@ -297,7 +326,7 @@ void ISR_Servo( void) {
 }
 
 #endif // VARIABLE_POSITION_SERVO_PULSES
-
+#endif // not ESP8266
 // ------------ end of Interruptroutines ------------------------------
 ///////////////////////////////////////////////////////////////////////////////////
 // --------- Class Servo8 ---------------------------------
@@ -312,10 +341,12 @@ Servo8::Servo8() //: _servoData.pin(NO_PIN),_angle(NO_ANGLE),_min16(1000/16),_ma
     _servoData.pin = NO_PIN;
     _minPw = MINPULSEWIDTH ;
     _maxPw = MAXPULSEWIDTH ;
+    #ifndef ESP8266 // there is no servochain on ESP8266
     noInterrupts(); // Add to servo-chain
     _servoData.prevServoDataP = lastServoDataP;
     lastServoDataP = &_servoData;
     interrupts();
+    #endif
 }
 
 void Servo8::setMinimumPulse(uint16_t t)
@@ -340,13 +371,17 @@ uint8_t Servo8::attach(int pinArg, uint16_t pmin, uint16_t pmax ) {
 uint8_t Servo8::attach( int pinArg, uint16_t pmin, uint16_t pmax, bool autoOff ) {
     // return false if already attached or too many servos
     if ( _servoData.pin != NO_PIN ||  _servoData.servoIx >= MAX_SERVOS ) return 0;
+    #ifdef ESP8266 // check pinnumber
+        if ( pinArg <0 || pinArg >15 || gpioUsed(pinArg ) return 0;
+        setGpio(pinArg);    // mark pin as used
+    #endif   
     // set pulselength for angle 0 and 180
     _minPw = constrain( pmin, MINPULSEWIDTH, MAXPULSEWIDTH );
     _maxPw = constrain( pmax, MINPULSEWIDTH, MAXPULSEWIDTH );
 	//DB_PRINT( "pin: %d, pmin:%d pmax%d autoOff=%d, _min16=%d, _max16=%d", pinArg, pmin, pmax, autoOff, _min16, _max16);
     
     // intialize objectspecific data
-    _lastPos = 3000*SPEED_RES ;    // initalize to middle position
+    _lastPos = 1500*TICS_PER_MICROSECONDS*SPEED_RES ;    // initalize to middle position
     _servoData.soll = -1;  // invalid position -> no pulse output
     _servoData.ist = -1;   
     _servoData.inc = 2000*SPEED_RES;  // means immediate movement
@@ -361,28 +396,34 @@ uint8_t Servo8::attach( int pinArg, uint16_t pmin, uint16_t pmax, bool autoOff )
 	#endif
     pinMode (_servoData.pin,OUTPUT);
     digitalWrite( _servoData.pin,LOW);
-
-    if ( !timerInitialized) seizeTimer1();
-    // initialize servochain pointer and ISR if not done already
-    noInterrupts();
-    if ( pulseP == NULL ) {
-        pulseP = lastServoDataP;
-        #ifdef __STM32F1__
-        timer_attach_interrupt(MT_TIMER, TIMER_SERVOCH_IRQ, ISR_Servo );
-        #endif
-    
-        // enable compare-A interrupt
-        #if defined(__AVR_ATmega8__)|| defined(__AVR_ATmega128__)
-        TIMSK |=  _BV(OCIExA);   
-        #elif defined __AVR_MEGA__
-        //DB_PRINT( "IniOCR: %d", OCRxA );
-        TIMSKx |=  _BV(OCIExA) ; 
-        //DB_PRINT( "AttOCR: %d", OCRxA );
-        #elif defined __STM32F1__
-            timer_cc_enable(MT_TIMER, SERVO_CHN);
-        #endif
-    }
-     interrupts();
+    #ifdef ESP8266
+        // assign an ISR to the pin
+        gpioTab[gpio2ISRx(_servoData.pin)].MoToISR = &ISR_Servo;
+        gpioTab[gpio2ISRx(_servoData.pin)].IsrData = &_servoData;
+        attachInterrupt( _servoData.pin, gpioTab[gpio2ISRx(_servoData.pin)].gpiooISR, FALLING );
+    #else
+        if ( !timerInitialized) seizeTimer1();
+        // initialize servochain pointer and ISR if not done already
+        noInterrupts();
+        if ( pulseP == NULL ) {
+            pulseP = lastServoDataP;
+            #ifdef __STM32F1__
+            timer_attach_interrupt(MT_TIMER, TIMER_SERVOCH_IRQ, ISR_Servo );
+            #endif
+        
+            // enable compare-A interrupt
+            #if defined(__AVR_ATmega8__)|| defined(__AVR_ATmega128__)
+            TIMSK |=  _BV(OCIExA);   
+            #elif defined __AVR_MEGA__
+            //DB_PRINT( "IniOCR: %d", OCRxA );
+            TIMSKx |=  _BV(OCIExA) ; 
+            //DB_PRINT( "AttOCR: %d", OCRxA );
+            #elif defined __STM32F1__
+                timer_cc_enable(MT_TIMER, SERVO_CHN);
+            #endif
+        }
+         interrupts();
+    #endif // no ESP8266
    return 1;
 }
 
@@ -391,6 +432,11 @@ void Servo8::detach()
     _servoData.on = false;  
     _servoData.soll = -1;  
     _servoData.ist = -1;  
+    #ifdef ESP8266
+        stopWaveform(_servoData.pin); //stop creating pulses
+        clrGpio(_servoData.pin);
+        detachInterrupt( _servoData.pin );
+    #endif
     pinMode( _servoData.pin, INPUT );
     _servoData.pin = NO_PIN;  
 }
@@ -434,6 +480,12 @@ void Servo8::write(uint16_t angleArg)
             _servoData.soll= newpos ;
             interrupts();
         }
+        #ifdef ESP8266 // start creating pulses?
+            if ( _servoData.on && (_servoData.offcnt+_servoData.noAutoff) == 0 ) {
+                // currently there are no pulses, start creating:
+                startServoPulse(_servoData.pin, _ServoData.ist)
+            }
+        #endif
         _servoData.offcnt = OFF_COUNT;   // auf jeden Fall wieder Pulse ausgeben
     }
 }

@@ -3,18 +3,18 @@
   Author: fpm, fpm@mnet-mail.de
   Copyright (c) 2019 All right reserved.
 
-  ISR for stepper and softleds
+  ISR for stepper and softleds ( only for AVR and STM32F1 processors )
 */
 
 #include <MobaTools.h>
 #include <utilities/MoToDbg.h>
 
+#ifndef ESP8266
 void stepperISR(uint8_t cyclesLastIRQ) __attribute__ ((weak));
 void softledISR(uint8_t cyclesLastIRQ) __attribute__ ((weak));
 
 uint8_t nextCycle;
 static uint8_t cyclesLastIRQ = 1;  // cycles since last IRQ
-
 // ---------- OCRxB Compare Interrupt used for stepper motor and Softleds ----------------
 #ifdef __AVR_MEGA__
 ISR ( TIMERx_COMPB_vect) {
@@ -67,3 +67,5 @@ void ISR_Stepper(void) {
     #endif
     CLR_TP1; // Oszimessung Dauer der ISR-Routine
 }
+
+#endif

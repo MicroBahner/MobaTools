@@ -68,8 +68,20 @@
 // stepper related defines
 #define MAX_STEPPER     6       // 
 #define DEF_SPEEDSTEPS  3000    // default speed after attach
-#define DEF_RAMP        0       // default ramp after attach       
-#define CYCLETIME       200     // Min. irq-periode in us ( default is 200, change only if you know what you are doing ).
+#define DEF_RAMP        0       // default ramp after attach     
+// default CYCLETIME is processordependent, change only if you know what you are doing ).
+#ifdef  ESP8266
+#define CYCLETIME       80      // Min. irq-periode in us ( ESP-default is 80 )
+#define MAX_GPIO        10      // max number of usable gpios
+// at max 10 gpio's can be used at an ESP12: gpio 0,1,2,3,4,5,12,13,14,15
+// gpio 6-10 is internally used für flash
+// gpio16 has no interrupt capability ( but can be used as dir-pin for a stepper)
+
+#elif defined ( STM32F1 )
+#define CYCLETIME       100     // Min. irq-periode in us ( STM-default is 100 )
+#else
+#define CYCLETIME       200     // Min. irq-periode in us ( default is 200 ), 
+#endif
 #define MIN_STEP_CYCLE  2       // Minimum number of cycles per step. 
 #define RAMPOFFSET      16      // startvalue of rampcounter
 
