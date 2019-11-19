@@ -100,6 +100,8 @@ bool EggTimer::running() {
     return active;
 }
 
+bool EggTimer::expired() { return !running(); }
+
 long EggTimer::getTime() {
     // return remaining time
     if ( running() ) return endtime - (long)millis();
