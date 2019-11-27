@@ -6,7 +6,7 @@ MobaTools
 
 | Version |  Release Date  | Description
 | ------- |  ------------  | -----------
-| 1.2.0 | 2019-08-?? | managing an enable pin for steppers is possible
+| 2.0.0 | 2019-12-?? | managing an enable pin for steppers is possible, ESP8266 supported
 | | | new method 'getSpeedSteps' returns actual speed
 | 1.1.4 | 2019-09-25 | check for setting speed to 0 ( this is not allowed, will be changed to '1' internally )
 | | | fix error when setting targetposition repetitive very fast
@@ -42,6 +42,7 @@ Allows easy nonblocking timedelays in sketches. You don't have to bother with mi
 #### Additional Info:
 The library uses Timer1 for all classes. V1.0: from this version on, timer 3 is used instead of timer 1 if available.
 On the STM32F1 platform, timer 4 is used.
+With ESP8266 the core waveform creating fuctions, and IO-interrupts are used.
 
 There is no special function that has to be
 called in the loop frequently. You can even use the delay() function in the loop while

@@ -8,13 +8,13 @@
 #include <MobaTools.h>
 #include <utilities/MoToDbg.h>
 
-
+#ifndef ESP8266 // don't compile as long as it is not adapted to ESP
 // Global Data for all instances and classes  --------------------------------
 extern uint8_t timerInitialized;
 
 
 // variables for softLeds
-static ledData_t* ledRootP = NULL; //start of ledData-chain
+static ledData_t* ledRootP = NULL; //start of _ledData-chain
 static uint8_t ledNextCyc = TIMERPERIODE  / CYCLETIME;     // next Cycle that is relevant for leds
 static uint8_t ledCycleCnt = 0;    // count IRQ cycles within PWM cycle
 
@@ -196,15 +196,15 @@ void softledISR(uint8_t cyclesLastIRQ) {
 //Class SoftLed - for Led with soft on / soft off ---------------------------
 // Version with Software PWM
 SoftLed::SoftLed() {
-    ledData.speed    = 0;           // defines rising/falling timer
-    ledData.aStep    = DELTASTEPS ;          // actual PWM step
-    ledData.aCycle   = 0;           // actual cycle ( =length of PWM pule )
-    ledData.actPulse = false;       // PWM pulse is active
-    ledData.state    = NOTATTACHED; // initialize 
-    setpoint = OFF ;                // initialize to off
-    ledType = LINEAR;
-    ledData.nextLedDataP = NULL;    // don't put in ISR chain
-    ledData.invFlg = false;
+    _ledData.speed    = 0;           // defines rising/falling timer
+    _ledData.aStep    = DELTASTEPS ;          // actual PWM step
+    _ledData.aCycle   = 0;           // actual cycle ( =length of PWM pule )
+    _ledData.actPulse = false;       // PWM pulse is active
+    _ledData.state    = NOTATTACHED; // initialize 
+    _setpoint = OFF ;                // initialize to off
+    _ledType = LINEAR;
+    _ledData.nextLedDataP = NULL;    // don't put in ISR chain
+    _ledData.invFlg = false;
 }
 
 void SoftLed::mount( LedStats_t stateVal ) {
@@ -215,17 +215,17 @@ void SoftLed::mount( LedStats_t stateVal ) {
     SET_TP2;
     // check if it's not already active (mounted)
     // Leds must not be mounted twice!
-    if ( ledData.state < ACTIVE ) {
+    if ( _ledData.state < ACTIVE ) {
         // write backward reference into the existing first entry 
         // only if the chain is not empty
-        if ( ledRootP ) ledRootP->backLedDataPP = &ledData.nextLedDataP;
+        if ( ledRootP ) ledRootP->backLedDataPP = &_ledData.nextLedDataP;
         CLR_TP2;
-        ledData.nextLedDataP = ledRootP;
-        ledRootP = &ledData;
-        ledData.backLedDataPP = &ledRootP;
+        _ledData.nextLedDataP = ledRootP;
+        ledRootP = &_ledData;
+        _ledData.backLedDataPP = &ledRootP;
         SET_TP2;
     }
-    ledData.state = stateVal;
+    _ledData.state = stateVal;
     CLR_TP2;
     interrupts();
 }   
@@ -234,22 +234,22 @@ void SoftLed::mount( LedStats_t stateVal ) {
 uint8_t SoftLed::attach(uint8_t pinArg, uint8_t invArg ){
     // Led-Ausgang mit Softstart. 
     
-    ledData.invFlg  = invArg;
+    _ledData.invFlg  = invArg;
     pinMode( pinArg, OUTPUT );
     //DB_PRINT( "Led attached, ledIx = 0x%x, Count = %d", ledIx, ledCount );
-    ledData.state   = STATE_OFF ;   // initialize 
+    _ledData.state   = STATE_OFF ;   // initialize 
     riseTime( LED_DEFAULT_RISETIME );
-    if ( ledData.invFlg ) { 
+    if ( _ledData.invFlg ) { 
         digitalWrite( pinArg, HIGH );
     } else {
         digitalWrite( pinArg, LOW );
     }
     
     #ifdef FAST_PORTWRT
-    ledData.portPin.Adr = (byte *) pgm_read_word_near(&port_to_output_PGM[pgm_read_byte_near(&digital_pin_to_port_PGM[pinArg])]);
-    ledData.portPin.Mask = pgm_read_byte_near(&digital_pin_to_bit_mask_PGM[pinArg]);
+    _ledData.portPin.Adr = (byte *) pgm_read_word_near(&port_to_output_PGM[pgm_read_byte_near(&digital_pin_to_port_PGM[pinArg])]);
+    _ledData.portPin.Mask = pgm_read_byte_near(&digital_pin_to_bit_mask_PGM[pinArg]);
     #else
-    ledData.pin=pinArg ;      // Pin-Nbr 
+    _ledData.pin=pinArg ;      // Pin-Nbr 
     #endif
     
     if ( !timerInitialized ) seizeTimer1();
@@ -266,74 +266,74 @@ uint8_t SoftLed::attach(uint8_t pinArg, uint8_t invArg ){
 }
 
 void SoftLed::on(){
-    if ( ledData.state ==  NOTATTACHED ) return;  // this is not a valid instance
+    if ( _ledData.state ==  NOTATTACHED ) return;  // this is not a valid instance
     LedStats_t stateT;
     // Don't do anything if its already ON 
-    if ( setpoint != ON  ) {
-        setpoint        = ON ;
-        ledData.aStep   = DELTASTEPS;
-        ledData.speed   = ledSpeed;
-        if ( ledType == LINEAR ) {
+    if ( _setpoint != ON  ) {
+        _setpoint        = ON ;
+        _ledData.aStep   = DELTASTEPS;
+        _ledData.speed   = _ledSpeed;
+        if ( _ledType == LINEAR ) {
             stateT          = INCLIN;
-            ledData.aCycle  = 1;
+            _ledData.aCycle  = 1;
         } else { // is bulb simulation
             stateT          = INCBULB;
-            ledData.aCycle  = iSteps[1];
+            _ledData.aCycle  = iSteps[1];
         }
         mount(stateT);
     }
-    //DB_PRINT( "Led %d On, state=%d", ledIx, ledData.state);
+    //DB_PRINT( "Led %d On, state=%d", ledIx, _ledData.state);
 }
 
 void SoftLed::off(){
-    if ( ledData.state ==  NOTATTACHED ) return; // this is not a valid instance
+    if ( _ledData.state ==  NOTATTACHED ) return; // this is not a valid instance
     LedStats_t stateT;
     // Dont do anything if its already OFF 
-    if ( setpoint != OFF ) {
+    if ( _setpoint != OFF ) {
         //SET_TP3;
-        setpoint            = OFF;
-        ledData.aStep       = DELTASTEPS;
-        ledData.speed   = ledSpeed;
-        if ( ledType == LINEAR ) {
+        _setpoint            = OFF;
+        _ledData.aStep       = DELTASTEPS;
+        _ledData.speed   = _ledSpeed;
+        if ( _ledType == LINEAR ) {
             stateT          = DECLIN;
-            ledData.aCycle  = LED_IX_MAX;
+            _ledData.aCycle  = LED_IX_MAX;
         } else { // is bulb simulation
             //CLR_TP3;
             stateT = DECBULB;
-            ledData.aCycle = LED_CYCLE_MAX  - iSteps[1];
+            _ledData.aCycle = LED_CYCLE_MAX  - iSteps[1];
         }
         //CLR_TP3;
         mount(stateT);
     }
-    //DB_PRINT( "Led %d Off, state=%d", ledIx, ledData.state);
+    //DB_PRINT( "Led %d Off, state=%d", ledIx, _ledData.state);
 }
 
 void SoftLed::toggle( void ) {
-    if ( ledData.state ==  NOTATTACHED ) return; // this is not a valid instance
-    if ( setpoint == ON  ) off();
+    if ( _ledData.state ==  NOTATTACHED ) return; // this is not a valid instance
+    if ( _setpoint == ON  ) off();
     else on();
 }
 
 void SoftLed::write( uint8_t setpntVal, uint8_t ledPar ){
-    if ( ledData.state ==  NOTATTACHED ) return; // this is not a valid instance
-    ledType = ledPar;
+    if ( _ledData.state ==  NOTATTACHED ) return; // this is not a valid instance
+    _ledType = ledPar;
     write( setpntVal ) ;
 }
 
 void SoftLed::write( uint8_t setpntVal ){
-    //DB_PRINT( "LedWrite ix= %d, valid= 0x%x, sp=%d, lT=%d", ledIx, ledValid, setpntVal, ledType );
-    if ( ledData.state ==  NOTATTACHED ) return; // this is not a valid instance
+    //DB_PRINT( "LedWrite ix= %d, valid= 0x%x, sp=%d, lT=%d", ledIx, ledValid, setpntVal, _ledType );
+    if ( _ledData.state ==  NOTATTACHED ) return; // this is not a valid instance
     if ( setpntVal == ON ) on(); else off();
     #ifdef debug
     // im Debugmode hier die Led-Daten ausgeben
-    //DB_PRINT( "LedData[%d]\n\speed=%d, Type=%d, aStep=%d, stpCnt=%d, state=%d, setpoint= %d", ledValid, ledSpeed, ledType, ledData.aStep, ledData.stpCnt, ledData.state, setpoint);
+    //DB_PRINT( "_ledData[%d]\n\speed=%d, Type=%d, aStep=%d, stpCnt=%d, state=%d, _setpoint= %d", ledValid, _ledSpeed, _ledType, _ledData.aStep, _ledData.stpCnt, _ledData.state, _setpoint);
     //DB_PRINT( "ON=%d, NextCyc=%d, CycleCnt=%d, StepIx=%d, NextStep=%d", 
     //         ON, ledNextCyc, ledCycleCnt, ledStepIx, ledNextStep);
     #endif
 }
 
 void SoftLed::riseTime( uint16_t riseTime ) {
-    if ( ledData.state ==  NOTATTACHED ) return;
+    if ( _ledData.state ==  NOTATTACHED ) return;
     // length of startphase in ms (min 20ms, max 10240ms )
     // The max value ist slower, if CYCLETIME is reduced.
     // risetime is computed to a 'speed' Value with 16 beeing the slowest 
@@ -344,6 +344,8 @@ void SoftLed::riseTime( uint16_t riseTime ) {
     if ( riseTime <= 20 ) riseTime = 20;
     if ( riseTime >= riseMax/16 ) riseTime = riseMax/16;
     int tmp = ( ((long)riseMax  *10) / ( riseTime  ) +5 ) /10;
-    ledSpeed = tmp;
-    DB_PRINT( "ledSpeed = %d ( risetime=%d, riseMax=%d, PWMTIME=%d )", ledSpeed, riseTime, riseMax, LED_PWMTIME );
+    _ledSpeed = tmp;
+    DB_PRINT( "_ledSpeed = %d ( risetime=%d, riseMax=%d, PWMTIME=%d )", _ledSpeed, riseTime, riseMax, LED_PWMTIME );
 }
+
+#endif // ESP

@@ -9,7 +9,9 @@
 */
 #include <inttypes.h>
 #include <Arduino.h>
+#ifndef ESP8266
 #include <avr/interrupt.h>
+#endif
 
 #ifndef  __AVR_MEGA__
 #ifndef __STM32F1__
@@ -18,6 +20,7 @@
 #endif
 #endif
 #endif
+
 #ifdef __STM32F1__
 #include <libmaple/timer.h>
 #include <libmaple/spi.h>
@@ -144,10 +147,13 @@ typedef struct {
 extern gpioISR_t gpioTab[MAX_GPIO];
 //convert gpio nbr to index in gpioTab:
 #define gpio2ISRx(gpio) (gpio>5?gpio-6:gpio) // gpio 6..11 are not allowed
-
-#else    //////// end of  ESP8266 cpecific defiens //////////////////////                        
+#define pin2Ix(gpio) (gpio>5?gpio-6:gpio) // gpio 6..11 are not allowed
+#define chkGpio(gpio) ( (gpio<=5) || ( gpio>11 && gpio<=16 ) );
+#else    //////// end of  ESP8266 cpecific defines //////////////////////                        
 void seizeTimer1();
+#endif
 
+/* moved to MoToStepper.cpp
 inline void _noStepIRQ() {
         #if defined(__AVR_ATmega8__)|| defined(__AVR_ATmega128__)
             TIMSK &= ~( _BV(OCIExB) );    // enable compare interrupts
@@ -156,6 +162,9 @@ inline void _noStepIRQ() {
         #elif defined __STM32F1__
             timer_disable_irq(MT_TIMER, TIMER_STEPCH_IRQ);
             //*bb_perip(&(MT_TIMER->regs).adv->DIER, TIMER_STEPCH_IRQ) = 0;
+		#else
+			noInterrupts();
+            SET_TP2;
         #endif
 }
 inline void  _stepIRQ() {
@@ -167,17 +176,19 @@ inline void  _stepIRQ() {
             //timer_enable_irq(MT_TIMER, TIMER_STEPCH_IRQ) cannot be used, because this also clears pending irq's
             *bb_perip(&(MT_TIMER->regs).adv->DIER, TIMER_STEPCH_IRQ) = 1;
             interrupts();
+		#else
+            CLR_TP2;
+			interrupts();
         #endif
 }
-
-#endif
-
+*/
 class EggTimer
 {
   public:
     EggTimer();
     void setTime( long);
     bool running();
+    bool expired();
     long getTime();
 
   private:

@@ -26,17 +26,17 @@
 // definition of gpio ISR's ( there is one ISR entrypoint per gpio )
 // at max 10 gpio's can be used at an ESP12: gpio 0,1,2,3,4,5,12,13,14,15
 // gpio 6-11 is used for flash
-// gpio16 has no interruptcapability ( but can be used as dir-pin for a stepper)
-void ICACHE_RAM_ATTR gpioISR0() { gpioTab[0].MoToISR( gpioTab[0].IsrData ); ); }
-void ICACHE_RAM_ATTR gpioISR1() { gpioTab[1].MoToISR( gpioTab[1].IsrData ); ); }
-void ICACHE_RAM_ATTR gpioISR2() { gpioTab[2].MoToISR( gpioTab[2].IsrData ); ); }
-void ICACHE_RAM_ATTR gpioISR3() { gpioTab[3].MoToISR( gpioTab[3].IsrData ); ); }
-void ICACHE_RAM_ATTR gpioISR4() { gpioTab[4].MoToISR( gpioTab[4].IsrData ); ); }
-void ICACHE_RAM_ATTR gpioISR5() { gpioTab[5].MoToISR( gpioTab[5].IsrData ); ); }
-void ICACHE_RAM_ATTR gpioISR12() { gpioTab[6].MoToISR( gpioTab[6].IsrData ); ); }
-void ICACHE_RAM_ATTR gpioISR13() { gpioTab[7].MoToISR( gpioTab[7].IsrData ); ); }
-void ICACHE_RAM_ATTR gpioISR14() { gpioTab[8].MoToISR( gpioTab[8].IsrData ); ); }
-void ICACHE_RAM_ATTR gpioISR15() { gpioTab[9].MoToISR( gpioTab[9].IsrData ); ); }
+// gpio16 has no interruptcapability ( but can be used as dir- or enable-pin for a stepper)
+void ICACHE_RAM_ATTR gpioISR0() { gpioTab[0].MoToISR( gpioTab[0].IsrData ); }
+void ICACHE_RAM_ATTR gpioISR1() { gpioTab[1].MoToISR( gpioTab[1].IsrData ); }
+void ICACHE_RAM_ATTR gpioISR2() { gpioTab[2].MoToISR( gpioTab[2].IsrData ); }
+void ICACHE_RAM_ATTR gpioISR3() { gpioTab[3].MoToISR( gpioTab[3].IsrData ); }
+void ICACHE_RAM_ATTR gpioISR4() { gpioTab[4].MoToISR( gpioTab[4].IsrData ); }
+void ICACHE_RAM_ATTR gpioISR5() { gpioTab[5].MoToISR( gpioTab[5].IsrData ); }
+void ICACHE_RAM_ATTR gpioISR12() { gpioTab[6].MoToISR( gpioTab[6].IsrData ); }
+void ICACHE_RAM_ATTR gpioISR13() { gpioTab[7].MoToISR( gpioTab[7].IsrData ); }
+void ICACHE_RAM_ATTR gpioISR14() { gpioTab[8].MoToISR( gpioTab[8].IsrData ); }
+void ICACHE_RAM_ATTR gpioISR15() { gpioTab[9].MoToISR( gpioTab[9].IsrData ); }
 
 gpioISR_t gpioTab[MAX_GPIO] = {
         &gpioISR0,NULL,NULL
@@ -64,7 +64,7 @@ void clrGpio( unsigned int gpio ) {
     gpioUsedMask |= mask6_11;   // gpio 6...11 must never be cleared
 }
 
-#else
+#else // for AVR and arm based processors
 uint8_t timerInitialized = false;
 void ISR_Stepper(void);     // defined in MoToISR.cpp
 
@@ -124,6 +124,8 @@ bool EggTimer::running() {
     if ( active ) active =  ( endtime - (long)millis() > 0 );
     return active;
 }
+
+bool EggTimer::expired() { return !running(); }
 
 long EggTimer::getTime() {
     // return remaining time

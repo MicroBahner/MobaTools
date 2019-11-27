@@ -1,6 +1,6 @@
 #ifndef MOTODEBUG_H
 #define MOTODEBUG_H
-#define debugTP
+//#define debugTP
 //#define debugPrint
 
 #ifdef debugTP 
@@ -94,6 +94,20 @@
         #define MODE_TP4 
         #define SET_TP4 
         #define CLR_TP4 
+    #elif defined ESP8266
+        #define MODE_TP1 pinmode(16,OUTPUT);
+        #define SET_TP1  digitalWrite( 16, HIGH );
+        #define CLR_TP1  digitalWrite( 16, LOW );
+        #define MODE_TP2 pinMode( 5,OUTPUT )  
+        #define SET_TP2  digitalWrite( 5, HIGH );
+        #define CLR_TP2  digitalWrite( 5, LOW );
+        #define MODE_TP3 
+        #define SET_TP3 
+        #define CLR_TP3
+        #define MODE_TP4 
+        #define SET_TP4 
+        #define CLR_TP4 
+         
     #else
         #define MODE_TP1 DDRC |= (1<<3) //A3
         #define SET_TP1 PORTC |= (1<<3)

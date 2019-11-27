@@ -9,7 +9,6 @@
 */
 const int FULLROT1 = 400;
 Stepper4 Step1(FULLROT1);           // HALFSTEP ist default
-Stepper4 Step1(400);           // HALFSTEP ist default
 Stepper4 Step2(2048,FULLSTEP);
 
 //const byte stPn[] = { 16,17,18,19 }; // für unipolaren Stepper (5-Draht)

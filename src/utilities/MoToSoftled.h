@@ -18,28 +18,42 @@
 // the PWM pulses are created together with stepper pulses
 //
 // table of pwm-steps for soft on/off in CYCLETIME units ( bulb simulation). The first value means pwm cycletime
-const uint8_t iSteps[] PROGMEM = { 80, 1, 4, 6,10,13,15,17,19,21,23,25,27,29,31,33,35,36,37,38,39,
-                          40,41,42,43,44,45,46,47,48,49,50,51,52,53,54,55,56,57,58,59,
-                          60,61,62,63,64,65,65,66,66,67,67,68,68,69,69,70,70,71,71,72,
-                          72,73,73,74,74,75,75,76,76,77,77,77,78,78,78,78,79,79,79 };
+#ifdef ESP8266
+    #define PWMCYC  10000   // Cycletime in µs ( = 100Hz )
+    #define MIN_PULSE  100    // = min time between ISR's
+    #define MAX_PULSE PWMCYC-MIN_PULSE
+#else
+    const uint8_t iSteps[] PROGMEM = { 80, 1, 4, 6,10,13,15,17,19,21,23,25,27,29,31,33,35,36,37,38,39,
+                              40,41,42,43,44,45,46,47,48,49,50,51,52,53,54,55,56,57,58,59,
+                              60,61,62,63,64,65,65,66,66,67,67,68,68,69,69,70,70,71,71,72,
+                              72,73,73,74,74,75,75,76,76,77,77,77,78,78,78,78,79,79,79 };
 
-#define DELTASTEPS 128  // this MUST be a power of 2
-#define LED_IX_MAX    ((int16_t)sizeof(iSteps) -1) // int16_t to suppress warnings when comparing to aCycle
-#define LED_CYCLE_MAX   (iSteps[0])
-#define LED_PWMTIME     LED_CYCLE_MAX * CYCLETIME / 1000  // PWM refreshrate in ms
+    #define DELTASTEPS 128  // this MUST be a power of 2
+    #define LED_IX_MAX    ((int16_t)sizeof(iSteps) -1) // int16_t to suppress warnings when comparing to aCycle
+    #define LED_CYCLE_MAX   (iSteps[0])
+    #define LED_PWMTIME     LED_CYCLE_MAX * CYCLETIME / 1000  // PWM refreshrate in ms
+#endif
                                         
-enum LedStats_t:byte { NOTATTACHED, STATE_OFF, STATE_ON, ACTIVE, INCBULB, DECBULB, INCLIN, DECLIN };
-                        // values >= ACTIVE means active in ISR routine
+enum LedStats_t:byte { NOTATTACHED, STATE_OFF, STATE_ON, ACTIVE, INCBULB, DECBULB, INCLIN, DECLIN, STOPPING };
+                        // values >= ACTIVE means active in ISR routine ( pulses are generated )
                         
 typedef struct ledData_t {          // global led values ( used in IRQ )
-  struct ledData_t*  nextLedDataP;  // chaining the active Leds
-  struct ledData_t** backLedDataPP; // adress of pointer, that points to this led (backwards reference)
-  int16_t speed;                    // > 0 : steps per cycle switching on
-                                    // < 0 : steps per cycle switching off
-                                    // 0: led is inactive (not attached)
-  int16_t   aStep;                  // actual step (brightness)
-  int8_t    aCycle;                 // actual cycle ( =length of PWM pule )
-  uint8_t   actPulse;               // PWM pulse is active
+  #ifdef ESP8266
+      uint16_t aPwm;                    // actual PWM value ( µs )
+      uint16_t tPwmOn;                // target PWM value (µs )
+      uint16_t tPwmOff;                 // target PWM value (µs )
+      uint16_t stepI;                   // actual step during rising/falling   
+      uint16_t stepMax;                 // max nbr of steps between ON/OFF  
+  #else
+      struct ledData_t*  nextLedDataP;  // chaining the active Leds
+      struct ledData_t** backLedDataPP; // adress of pointer, that points to this led (backwards reference)
+      int16_t speed;                    // > 0 : steps per cycle switching on
+                                        // < 0 : steps per cycle switching off
+                                        // 0: led is inactive (not attached)
+      int16_t   aStep;                  // actual step (brightness)
+      int8_t    aCycle;                 // actual cycle ( =length of PWM pule )
+      uint8_t   actPulse;               // PWM pulse is active
+  #endif
   LedStats_t state;	                // actual state: steady or incementing/decrementing
     
   volatile uint8_t invFlg;
@@ -61,19 +75,24 @@ class SoftLed
     void riseTime( uint16_t );       // in millisec - falltime is the same
     void on();                   // 
     void off();                  // 
+    #ifdef ESP8266
+    void on(uint8_t);           // pwm value for ON ( in % )
+    void off(uint8_t);           //  pwmValue for OFF ( in % )
+    #endif
 	void write( uint8_t );			// is ON or OFF
     void write( uint8_t time, uint8_t type  ); //whether it is a linear or bulb type
     void toggle( void ); 
   private:
     void mount( LedStats_t state );
-    ledData_t ledData;
-    uint8_t	setpoint;
+    ledData_t _ledData;
+    uint8_t	_setpoint;
     #define OFF 0
     #define ON  1
-    uint8_t ledType;        // Type of lamp (linear or bulb)
+    
+    uint8_t _ledType;        // Type of lamp (linear or bulb)
     #define LINEAR  0
     #define BULB    1
-    int16_t ledSpeed;       // speed with IRQ based softleds
+    int16_t _ledSpeed;       // speed with IRQ based softleds
     
 };
 

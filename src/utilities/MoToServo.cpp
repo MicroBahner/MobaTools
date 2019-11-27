@@ -14,7 +14,6 @@ extern uint8_t timerInitialized;
 // Variables for servos
 static servoData_t* lastServoDataP = NULL; //start of ServoData-chain
 static byte servoCount = 0;
-static bool speedV08 = true;    // Compatibility-Flag for speed method
 #ifndef ESP8266 // following variables used only in 'classic' ISR
     static servoData_t* pulseP = NULL;         // pulse Ptr in IRQ
     static servoData_t* activePulseP = NULL;   // Ptr to pulse to stop
@@ -23,11 +22,15 @@ static bool speedV08 = true;    // Compatibility-Flag for speed method
     static enum { PON, POFF } IrqType = PON; // Cycle starts with 'pulse on'
     static word activePulseOff = 0;     // OCR-value of pulse end 
     static word nextPulseLength = 0;
+    static bool speedV08 = true;    // Compatibility-Flag for speed method
+#else
+    static bool speedV08 = false;    // ESP8266 uses alwas high res speed
 #endif // no ESP8266
 
 ///////////////////////  Interrupt for Servos ////////////////////////////////////////////////////////////////////
 #ifdef ESP8266
 #define startServoPulse(pin,width) startWaveform(pin, width/TICS_PER_MICROSECOND/SPEED_RES, TIMERPERIODE-width/TICS_PER_MICROSECOND/SPEED_RES,0)
+
 // --------------------- Pulse-interrupt for ESP8266 --------------------------
 // This ISR is fired at the falling edge of the servo pulse. It is specific to every servo Objekt and
 // computes the length of the next pulse. The pulse itself is created by the core_esp8266_waveform routines.
@@ -41,10 +44,10 @@ void ICACHE_RAM_ATTR ISR_Servo( servoData_t *_servoData ) {
             _servoData->ist += _servoData->inc;
             if ( _servoData->ist > _servoData->soll ) _servoData->ist = _servoData->soll;
         }
-        startServoPulse(_servoData->pin, _ServoData->ist)
+        startServoPulse(_servoData->pin, _servoData->ist);
 
         //ClearGPIO(0b100000);
-    } else if ( !_servoData->noAutooff { // no change in pulse length, look for autooff
+    } else if ( !_servoData->noAutoff ) { // no change in pulse length, look for autooff
         if ( --_servoData->offcnt == 0 ) {
             // switch off pulses
             stopWaveform( _servoData->pin );
@@ -372,7 +375,7 @@ uint8_t Servo8::attach( int pinArg, uint16_t pmin, uint16_t pmax, bool autoOff )
     // return false if already attached or too many servos
     if ( _servoData.pin != NO_PIN ||  _servoData.servoIx >= MAX_SERVOS ) return 0;
     #ifdef ESP8266 // check pinnumber
-        if ( pinArg <0 || pinArg >15 || gpioUsed(pinArg ) return 0;
+        if ( pinArg <0 || pinArg >15 || gpioUsed(pinArg ) ) return 0;
         setGpio(pinArg);    // mark pin as used
     #endif   
     // set pulselength for angle 0 and 180
@@ -381,7 +384,7 @@ uint8_t Servo8::attach( int pinArg, uint16_t pmin, uint16_t pmax, bool autoOff )
 	//DB_PRINT( "pin: %d, pmin:%d pmax%d autoOff=%d, _min16=%d, _max16=%d", pinArg, pmin, pmax, autoOff, _min16, _max16);
     
     // intialize objectspecific data
-    _lastPos = 1500*TICS_PER_MICROSECONDS*SPEED_RES ;    // initalize to middle position
+    _lastPos = 1500*TICS_PER_MICROSECOND*SPEED_RES ;    // initalize to middle position
     _servoData.soll = -1;  // invalid position -> no pulse output
     _servoData.ist = -1;   
     _servoData.inc = 2000*SPEED_RES;  // means immediate movement
@@ -398,9 +401,9 @@ uint8_t Servo8::attach( int pinArg, uint16_t pmin, uint16_t pmax, bool autoOff )
     digitalWrite( _servoData.pin,LOW);
     #ifdef ESP8266
         // assign an ISR to the pin
-        gpioTab[gpio2ISRx(_servoData.pin)].MoToISR = &ISR_Servo;
+        gpioTab[gpio2ISRx(_servoData.pin)].MoToISR = (void (*)(void*))ISR_Servo;
         gpioTab[gpio2ISRx(_servoData.pin)].IsrData = &_servoData;
-        attachInterrupt( _servoData.pin, gpioTab[gpio2ISRx(_servoData.pin)].gpiooISR, FALLING );
+        attachInterrupt( _servoData.pin, gpioTab[gpio2ISRx(_servoData.pin)].gpioISR, FALLING );
     #else
         if ( !timerInitialized) seizeTimer1();
         // initialize servochain pointer and ISR if not done already
@@ -456,7 +459,7 @@ void Servo8::write(uint16_t angleArg)
         #endif
         if ( angleArg <= 255) {
             // pulse width as degrees (byte values are always degrees) 09-02-2017
-            angleArg = min( 180,angleArg);
+            angleArg = min( 180,(int)angleArg);
             newpos = map( angleArg, 0,180, _minPw, _maxPw ) * TICS_PER_MICROSECOND * SPEED_RES;
         } else {
             // pulsewidth as microseconds
@@ -481,9 +484,12 @@ void Servo8::write(uint16_t angleArg)
             interrupts();
         }
         #ifdef ESP8266 // start creating pulses?
-            if ( _servoData.on && (_servoData.offcnt+_servoData.noAutoff) == 0 ) {
-                // currently there are no pulses, start creating:
-                startServoPulse(_servoData.pin, _ServoData.ist)
+            if ( (_servoData.ist == -1) || (_servoData.offcnt+_servoData.noAutoff) == 0  ) {
+                // first pulse after attach, or pulses have been switch off by autoff
+                // if this is first time after attach then ist = soll
+                if ( _servoData.ist == -1 ) _servoData.ist = _servoData.soll;
+                startServoPulse(_servoData.pin, _servoData.ist);
+                DB_PRINT( "start pulses at pin %d, ist=%d, soll=%d", _servoData.pin, _servoData.ist, _servoData.soll );
             }
         #endif
         _servoData.offcnt = OFF_COUNT;   // auf jeden Fall wieder Pulse ausgeben
@@ -492,17 +498,21 @@ void Servo8::write(uint16_t angleArg)
 
 void Servo8::setSpeed( int speed, bool compatibility ) {
     // set global compatibility-Flag
-    speedV08 = compatibility;
+    #ifndef ESP8266
+    speedV08 = compatibility;   // not on ESP8266
+    #endif
     setSpeed( speed );
 }
 
 void Servo8::setSpeed( int speed ) {
     // Set increment value for movement to new angle
     if ( _servoData.pin != NO_PIN ) { // only if servo is attached
+        #ifndef ESP8266
         if ( speedV08 ) speed *= SPEED_RES;
+        #endif
         noInterrupts();
         if ( speed == 0 )
-            _servoData.inc = 2000*SPEED_RES;  // means immiediate movement
+            _servoData.inc = 2000*SPEED_RES;  // means immediate movement
         else
             _servoData.inc = speed;
         interrupts();

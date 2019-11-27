@@ -8,12 +8,26 @@
   Definitions and declarations for the stepper part of MobaTools
 */
 
+// type definitions ( different for the platforms)
+#ifdef ESP8266
+	#define uintxx_t uint32_t
+	#define intxx_t	int32_t
+#else
+	#define uintxx_t	uint16_t
+	#define  intxx_t	int16_t
+#endif
+
 // defines for the stepper motor
+#define NOSTEP      0   // invalid-flag
+#ifndef ESP8266
 #define HALFSTEP    1
 #define FULLSTEP    2
+#endif
 #define A4988       3   // using motordriver A4988
-#define NOSTEP      0   // invalid-flag
+#define STEPDIR		3	// all motordrivers with a step und dir input ( same as A4988 )
 
+
+// Output modes ( outarg in attach method )
 #define NO_OUTPUT   0
 
 #ifdef __AVR_MEGA__
@@ -21,11 +35,13 @@
 #define PIN4_7      2
 #endif
 
+#ifndef ESP8266
 #define SPI_1           3
 #define SPI_2           4
 #define SPI_3           5
 #define SPI_4           6
 #define SINGLE_PINS     7
+#endif
 #define A4988_PINS      8
 
 
@@ -54,23 +70,33 @@ typedef struct stepperData_t {
   long stepCnt2;                // nmbr of steps to take after automatic reverse
   volatile int8_t patternIx;    // Pattern-Index of actual Step (0-7)
   int8_t   patternIxInc;        // halfstep: +/-1, fullstep: +/-2, A4988 +1/-1  the sign defines direction
-  uint16_t tCycSteps;           // nbr of IRQ cycles per step ( target value of motorspeed  )
-  uint16_t tCycRemain;          // Remainder of division when computing tCycSteps
-  volatile uint16_t aCycSteps;           // nbr of IRQ cycles per step ( actual motorspeed  )
-  uint16_t aCycRemain;          // accumulate tCycRemain when cruising
-  uint16_t cyctXramplen;        // precompiled  tCycSteps*(rampLen+RAMPOFFSET)
+  #ifdef ESP8266
+	// on the ESP platform all time values are in µs
+	uint32_t tUsSteps;           // µseconds per step ( target value of motorspeed  )
+	volatile uint32_t aUsSteps;  // nµseconds per step ( actual motorspeed  )
+	uint32_t ustXramplen;        // precompiled  tUsSteps*(rampLen+RAMPOFFSET)
+    uint16_t usDelay;            // delay time: enable -> stepping
+    boolean  dirChange;          // Flag: Dir has to be changed ( at falling edge )
+  #else
+	// on the other platforms the time values count in cycles
+	uint16_t tCycSteps;           // nbr of IRQ cycles per step ( target value of motorspeed  )
+	uint16_t tCycRemain;          // Remainder of division when computing tCycSteps
+	volatile uint16_t aCycSteps;           // nbr of IRQ cycles per step ( actual motorspeed  )
+	uint16_t aCycRemain;          // accumulate tCycRemain when cruising
+	uint16_t cyctXramplen;        // precompiled  tCycSteps*(rampLen+RAMPOFFSET)
+    volatile uint16_t cycCnt;     // counting cycles until cycStep
+	uint16_t cycDelay;            // delay time enable -> stepping
+  #endif
   uint16_t  stepRampLen;        // Length of ramp in steps
   uint16_t  stepsInRamp;        // stepcounter within ramp ( counting from stop ( = 0 ): incrementing in startramp, decrementing in stopramp
                                 // max value is stepRampLen
   rampStat rampState;        // State of acceleration/deceleration
-  volatile uint16_t cycCnt;     // counting cycles until cycStep
   volatile long stepsFromZero;  // distance from last reference point ( always as steps in HALFSTEP mode )
                                 // in FULLSTEP mode this is twice the real step number
   uint8_t output  :6 ;             // PORTB(pin8-11), PORTD (pin4-7), SPI0,SPI1,SPI2,SPI3, SINGLE_PINS, A4988_PINS
   uint8_t activ :1;  
   uint8_t enable:1;             // true: enablePin=HIGH is active, false: enablePin=LOW is active
   uint8_t enablePin;            // define an enablePin, which is active while the stepper is moving (255: no pin defined)
-  uint16_t cycDelay;            // delay time enable -> stepping
   #ifdef FAST_PORTWRT
   portBits_t portPins[4];       // Outputpins as Portaddress and Bitmask for faster writing
   #else
@@ -101,9 +127,9 @@ class Stepper4
     stepperData_t _stepperData;      // Variables that are used in IRQ
     uint8_t _stepperIx;              // Objectnumber ( 0 ... MAX_STEPPER )
     int stepsRev;                   // steps per full rotation
-    uint16_t _stepSpeed10;          // speed in steps/10sec
+    uintxx_t _stepSpeed10;      	// speed in steps/10sec
     uint16_t _lastRampLen ;         // last manually set ramplen
-    uint16_t _lastRampSpeed;        // speed when ramp was set manually
+    uintxx_t _lastRampSpeed;        // speed when ramp was set manually
     long stepsToMove;               // from last point
     uint8_t stepMode;               // FULLSTEP or HALFSTEP
     
@@ -111,15 +137,16 @@ class Stepper4
     bool _chkRunning();             // check if stepper is running
     void initialize(int,uint8_t);
     uint16_t  _setRampValues();
+    uint8_t attach(uint8_t outArg, uint8_t*  ); // internal attach function ( called by one of the public attach
   public:
-    Stepper4(int steps);            // steps per 360 degree in HALFSTEP mode
+    Stepper4(int steps);            // steps per 360 degree in HALFSTEP mode or A4988 Mode on ESP
+	#ifndef ESP8266 				// there are no different modes with ESP8266
     Stepper4(int steps, uint8_t mode ); 
-                                    // mode means HALFSTEP or FULLSTEP
-    
+                                    // mode means A4988 ( Step/Dir), HALFSTEP or FULLSTEP
     uint8_t attach( uint8_t,uint8_t,uint8_t,uint8_t); //single pins definition for output
-    uint8_t attach( uint8_t stepP, uint8_t dirP); // Port for step and direction in A4988 mode
     uint8_t attach(uint8_t outArg);    // stepMode defaults to halfstep
-    uint8_t attach(uint8_t outArg, uint8_t*  ); 
+    #endif
+    uint8_t attach( uint8_t stepP, uint8_t dirP); // Port for step and direction in A4988 mode
                                     // returns 0 on failure
     void    attachEnable( uint8_t enableP, uint16_t delay, bool active ); // define an enable pin and the delay (µs) between enable and starting the motor
     void detach();                  // detach from output, motor will not move anymore
@@ -131,10 +158,10 @@ class Stepper4
     void setZero();                 // actual position is set as 0 angle (zeropoint)
     void setZero( long zeroPoint);  // new zeropoint ist zeroPoint steps apart from actual position
     int setSpeed(int rpm10 );       // Set movement speed, rpm*10
-    uint16_t setSpeedSteps( uint16_t speed10 ); // set speed withput changing ramp, returns ramp length
-    uint16_t setSpeedSteps( uint16_t speed10, int16_t rampLen ); // set speed and ramp, returns ramp length
+    uint16_t setSpeedSteps( uintxx_t speed10 ); // set speed withput changing ramp, returns ramp length
+    uint16_t setSpeedSteps( uintxx_t speed10, int16_t rampLen ); // set speed and ramp, returns ramp length
     uint16_t setRampLen( uint16_t rampLen ); // set new ramplen in steps without changing speed
-    uint16_t getSpeedSteps();		// returns actual speed in steps/10sec ( even in ramp )
+    uintxx_t getSpeedSteps();		// returns actual speed in steps/10sec ( even in ramp )
     void doSteps(long count);       // rotate count steps. May be positive or negative
                                     // angle is updated internally, so the next call to 'write'
                                     // will move to the correct angle
