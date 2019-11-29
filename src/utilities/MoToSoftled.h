@@ -20,8 +20,13 @@
 // table of pwm-steps for soft on/off in CYCLETIME units ( bulb simulation). The first value means pwm cycletime
 #ifdef ESP8266
     #define PWMCYC  10000   // Cycletime in µs ( = 100Hz )
-    #define MIN_PULSE  100    // = min time between ISR's
-    #define MAX_PULSE PWMCYC-MIN_PULSE
+    //#define MIN_PULSE  50    // = min time between ISR's
+    //#define MAX_PULSE PWMCYC-MIN_PULSE
+    const uint16_t MIN_PULSE = 50;
+    const uint16_t MAX_PULSE = PWMCYC-MIN_PULSE;
+    // following values determin characteristics of bulb simulation
+    const int  stepRef = 5000;
+    const int  stepOfs = 1000;
 #else
     const uint8_t iSteps[] PROGMEM = { 80, 1, 4, 6,10,13,15,17,19,21,23,25,27,29,31,33,35,36,37,38,39,
                               40,41,42,43,44,45,46,47,48,49,50,51,52,53,54,55,56,57,58,59,
@@ -32,6 +37,8 @@
     #define LED_IX_MAX    ((int16_t)sizeof(iSteps) -1) // int16_t to suppress warnings when comparing to aCycle
     #define LED_CYCLE_MAX   (iSteps[0])
     #define LED_PWMTIME     LED_CYCLE_MAX * CYCLETIME / 1000  // PWM refreshrate in ms
+    
+    
 #endif
                                         
 enum LedStats_t:byte { NOTATTACHED, STATE_OFF, STATE_ON, ACTIVE, INCBULB, DECBULB, INCLIN, DECLIN, STOPPING };
@@ -44,6 +51,11 @@ typedef struct ledData_t {          // global led values ( used in IRQ )
       uint16_t tPwmOff;                 // target PWM value (µs )
       uint16_t stepI;                   // actual step during rising/falling   
       uint16_t stepMax;                 // max nbr of steps between ON/OFF  
+      //computing of bulb-simulation (hyperbolic ramp): 
+      // this values must be recomputed if tPwmon, tPwmoff changes
+      // formula: pwm = hypPo + hypB/(stepOfs+(stepRef-stepI))
+      int hypB;
+      int hypPo;
   #else
       struct ledData_t*  nextLedDataP;  // chaining the active Leds
       struct ledData_t** backLedDataPP; // adress of pointer, that points to this led (backwards reference)
@@ -83,6 +95,7 @@ class SoftLed
     void write( uint8_t time, uint8_t type  ); //whether it is a linear or bulb type
     void toggle( void ); 
   private:
+    void _computeBulbValues();    // used only with ESP8266
     void mount( LedStats_t state );
     ledData_t _ledData;
     uint8_t	_setpoint;

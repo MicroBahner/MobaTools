@@ -23,17 +23,22 @@ void startLedPulse( uint8_t pin, uint8_t invFlg, uint32_t pulseLen ){
 
 void ICACHE_RAM_ATTR ISR_Softled( ledData_t *_ledData ) {
     // ---------------------- softleds -----------------------------------------------
-    bool changePulse = false;
     SET_TP2;
+    int changePulse = BULB; // change LINEAR or BULB ( -1: don't change )
+    uint32_t pwm ;   // new value
+    
     switch ( _ledData->state ) {
       case STATE_ON: // last ISR ( at leading edge )
+        changePulse = -1; // nothing to change
         stopWaveform( _ledData->pin );
         attachInterrupt( _ledData->pin, gpioTab[gpio2ISRx(_ledData->pin)].gpioISR, _ledData->invFlg?RISING:FALLING ); //trailing edge 
         break;
       case INCLIN:
+        changePulse = LINEAR;
       case INCBULB: // no difference in first version 
         if ( ++_ledData->stepI >= _ledData->stepMax ) {
             // full on is reached
+            changePulse = -1; // nothing to change
             _ledData->stepI = _ledData->stepMax;
             if ( _ledData->tPwmOn == PWMCYC ) {
                 // switch on static after pulse end (leading edge)
@@ -45,17 +50,16 @@ void ICACHE_RAM_ATTR ISR_Softled( ledData_t *_ledData ) {
                 _ledData->state = ACTIVE;
                 detachInterrupt( _ledData->pin );
             }
-        } else {
-            // increasing, 
-            changePulse = true;
         }
         break;
       case DECLIN:
+        changePulse = LINEAR;
       case DECBULB:
         if ( _ledData->stepI > 0 ) --_ledData->stepI;
         if ( _ledData->stepI == 0 ) {
             // full off is reached
-            if ( _ledData->tPwmOff == 0 ) {
+             changePulse = -1; // nothing to change
+           if ( _ledData->tPwmOff == 0 ) {
                 // switch on static
                 stopWaveform( _ledData->pin );
                 digitalWrite( _ledData->pin , _ledData->invFlg );
@@ -66,20 +70,22 @@ void ICACHE_RAM_ATTR ISR_Softled( ledData_t *_ledData ) {
                 _ledData->state = ACTIVE;
                 detachInterrupt( _ledData->pin );
             }
-        } else {
-            // decreasing, 
-            changePulse = true;
         }
         break;
       default:
         // nothing to do in all other cases
         ;
-     
     }
     
-    if ( changePulse ) {
+    if ( changePulse >= 0 ) {
         // inc- / decreasing, set pwm according to actual step
-        uint32_t pwm = _ledData->tPwmOff + ( (_ledData->tPwmOn - _ledData->tPwmOff) * _ledData->stepI / _ledData->stepMax );
+        uint16_t pOff = max( MIN_PULSE, _ledData->tPwmOff );
+        uint16_t pOn = min ( MAX_PULSE, _ledData->tPwmOn );
+        if ( changePulse == LINEAR ) {
+            pwm = pOff + ( (pOn - pOff) * _ledData->stepI / _ledData->stepMax );
+        } else {
+            pwm = _ledData->hypPo + _ledData->hypB/(stepOfs+stepRef - (stepRef * _ledData->stepI / _ledData->stepMax) );
+        }
         startLedPulse(_ledData->pin,_ledData->invFlg, pwm );
     }  
 
@@ -88,6 +94,37 @@ void ICACHE_RAM_ATTR ISR_Softled( ledData_t *_ledData ) {
 /////////////////////////////////////////////////////////////////////////////
 //Class SoftLed - for Led with soft on / soft off ---------------------------
 // Version with Software PWM
+
+void SoftLed::_computeBulbValues() {
+     // recompute parameter for bulb simulation ( hyperbolic approximation of pwm ramp )
+    int hypB;
+    int hypPo;
+    //hypB = ( _ledData.tPwmOn - _ledData.tPwmOff )*_ledData.stepOfs*(_ledData.hypF*_ledData.stepRef+_ledData.stepOfs)/(_ledData.hypF*_ledData.stepRef);
+    //hypPo = _ledData.tPwmOn - hypB/_ledData.stepOfs;
+    hypB = (stepOfs*(stepRef+stepOfs)/(stepRef)) * ( _ledData.tPwmOn - _ledData.tPwmOff );
+    //hypPo = _ledData.tPwmOn - hypB/stepOfs;
+    hypPo = _ledData.tPwmOff - hypB/(stepOfs+stepRef);
+    noInterrupts();
+    _ledData.hypPo = hypPo;
+    _ledData.hypB = hypB;
+    interrupts();
+    #ifdef debugPrint
+    // print pwmval for step= 0, step=max/2, step=max
+    int pwmOff = hypPo + hypB/(stepOfs+(stepRef - 0 ));
+    int pwm2 = hypPo + hypB/(stepOfs+(stepRef/2 ));
+    int pwmOn = hypPo + hypB/(stepOfs);
+    DB_PRINT("Hyperbolic ramp ( pwmOff=%d, pwmOn=%d, stepRef=%d  .. B=%d, Po=%d", _ledData.tPwmOff,_ledData.tPwmOn,stepRef, hypB, hypPo);
+    DB_PRINT("Pwm-0=%d,  Pwm1/2=%d, PwmMax=%d", pwmOff, pwm2, pwmOn);
+    for( byte ix=0; ix<=20; ix++ ) {
+        SET_TP2;CLR_TP2;SET_TP2;
+        int step = stepRef * ix / 20;
+        int pwm = hypPo + hypB/(stepOfs+stepRef - step );
+        CLR_TP2;
+        DB_PRINT(" Step %5d - pwm = %6d", step, pwm );
+    }
+    #endif
+}
+
 SoftLed::SoftLed() {
     _ledData.aPwm     = 0 ;          // initialize to OFF
     _ledData.tPwmOn = PWMCYC;      // target PWM value (µs )
@@ -121,7 +158,7 @@ uint8_t SoftLed::attach(uint8_t pinArg, uint8_t invArg ){
         digitalWrite( pinArg, LOW );
     }
     _ledData.pin=pinArg ;      // Pin-Nbr 
-    
+    _computeBulbValues();
     // assign an ISR to the pin
     gpioTab[gpio2ISRx(_ledData.pin)].MoToISR = (void (*)(void*))ISR_Softled;
     gpioTab[gpio2ISRx(_ledData.pin)].IsrData = &_ledData;
@@ -144,6 +181,7 @@ void SoftLed::on(uint8_t brightness ){
     } else {
         _ledData.tPwmOn = tmp;
     }
+    _computeBulbValues();
     on();
     DB_PRINT("On: Br=%d, PwmOn=%d ( %d ), PwmOff=%d", brightness, _ledData.tPwmOn, tmp, _ledData.tPwmOff);
 }
@@ -161,6 +199,7 @@ void SoftLed::off(uint8_t brightness ){
     } else {
         _ledData.tPwmOff = tmp;
     }
+    _computeBulbValues();
     off();
 }
 
@@ -253,6 +292,7 @@ void SoftLed::riseTime( uint16_t riseTime ) {
     _ledSpeed = riseTime;
     stepMax = riseTime * 1000L / PWMCYC; // Nbr of pwm steps from ON to OFF and vice versa
     // adjust stepnumbers for ISR
+    _computeBulbValues();
     noInterrupts();
     _ledData.stepI = (long)_ledData.stepI * stepMax / _ledData.stepMax;
     _ledData.stepMax = stepMax;
