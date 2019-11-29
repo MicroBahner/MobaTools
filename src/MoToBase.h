@@ -189,6 +189,7 @@ class EggTimer
   public:
     EggTimer();
     void setTime( long);
+    void stop();
     bool running();
     bool expired();
     long getTime();
