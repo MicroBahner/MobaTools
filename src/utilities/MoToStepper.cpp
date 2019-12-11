@@ -364,7 +364,7 @@ int Stepper4::setSpeed( int rpm10 ) {
     return setSpeedSteps( min( 1000000L / MIN_STEPTIME * 10, (long)rpm10 * stepsRev / 60 ) ) ;
 }
 
-uint16_t Stepper4::setSpeedSteps( unsigned int speed10 ) {
+uint16_t Stepper4::setSpeedSteps( uintxx_t speed10 ) {
     // Speed in steps per sec * 10
     // without a new ramplen, the ramplen is adjusted according to the speedchange
     //DB_PRINT("sSS2: sRL=%u, spd=%u", stepRampLen, _stepSpeed10 );

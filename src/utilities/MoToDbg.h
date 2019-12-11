@@ -95,12 +95,12 @@
         #define SET_TP4 
         #define CLR_TP4 
     #elif defined ESP8266
-        #define MODE_TP1 pinmode(16,OUTPUT);
-        #define SET_TP1  digitalWrite( 16, HIGH );
-        #define CLR_TP1  digitalWrite( 16, LOW );
-        #define MODE_TP2 pinMode( 5,OUTPUT )  
-        #define SET_TP2  digitalWrite( 5, HIGH );
-        #define CLR_TP2  digitalWrite( 5, LOW );
+        #define MODE_TP1 pinMode( 13,OUTPUT )  // GPIO 13
+        #define SET_TP1  GPOS = (1 << 13)
+        #define CLR_TP1  GPOC = (1 << 13)
+        #define MODE_TP2 //pinMode( 5,OUTPUT )  
+        #define SET_TP2  //digitalWrite( 5, HIGH );
+        #define CLR_TP2  //digitalWrite( 5, LOW );
         #define MODE_TP3 
         #define SET_TP3 
         #define CLR_TP3
