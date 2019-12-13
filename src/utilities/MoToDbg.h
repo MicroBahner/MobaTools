@@ -1,5 +1,7 @@
 #ifndef MOTODEBUG_H
 #define MOTODEBUG_H
+// die folgenden defines werden im aufrufenden cpp-File gesetzt.
+// so können die debugs klassenspezifisch eingeschaltet werden
 //#define debugTP
 //#define debugPrint
 
@@ -40,6 +42,7 @@
         #define SET_TP4 
         #define CLR_TP4 
     #elif defined(__AVR_ATmega328P__) 
+        #warning "Debug-Ports active"
         #define MODE_TP1 DDRC |= (1<<1) //A1
         #define SET_TP1 PORTC |= (1<<1)
         #define CLR_TP1 PORTC &= ~(1<<1)
@@ -122,43 +125,7 @@
         #define SET_TP4 
         #define CLR_TP4 
     #endif 
-// special Testpoint for Servo-testing
-    #define SET_SV3     SET_TP3
-    #define CLR_SV3     CLR_TP3
-    /*    #define SET_SV3 PORTC |= (1<<3)  //A3
-        #define CLR_SV3 PORTC &= ~(1<<3) */
-    #define SET_SV4     SET_TP4
-    #define CLR_SV4     CLR_TP4
-    //#define SET_SV3
-    //#define CLR_SV3
-    //#define SET_SV4     
-    //#define CLR_SV4     
 
-// switch off Testpoints temporarily
- /*   #undef  MODE_TP4
-    #undef  SET_TP4 
-    #undef  CLR_TP4 
-    #define MODE_TP4 
-    #define SET_TP4 
-    #define CLR_TP4 
-    //#undef  MODE_TP3
-    //#define MODE_TP3 
-    #undef  SET_TP3 
-    #undef  CLR_TP3 
-    #define SET_TP3 
-    #define CLR_TP3 
-    #undef  MODE_TP2 
-    #undef  SET_TP2 
-    #undef  CLR_TP2 
-    #define MODE_TP2 
-    #define SET_TP2 
-    #define CLR_TP2 
-    #undef  MODE_TP1 
-    #undef  SET_TP1 
-    #undef  CLR_TP1 
-    #define MODE_TP1 
-    #define SET_TP1 
-    #define CLR_TP1 */
     
 #else
     #define MODE_TP1 
@@ -191,6 +158,7 @@
 
 
 #ifdef debugPrint
+    #warning "Debug-printing is active"
     #define DB_PRINT( x, ... ) {char dbgBuf[80]; sprintf_P( dbgBuf, PSTR( x ), ##__VA_ARGS__ ) ; Serial.println( dbgBuf ); }
     extern const char *rsC[] ;    
 #else

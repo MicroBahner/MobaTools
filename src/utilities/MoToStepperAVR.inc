@@ -488,6 +488,6 @@ uint16_t Stepper4::setSpeedSteps( uint16_t speed10, int16_t rampLen ) {
     
     DB_PRINT( "RampValues:, Spd=%u, rmpLen=%u, tcyc=%u, trest=%u, acyc=%u", _stepSpeed10, _stepperData.stepRampLen,
                    _stepperData.tCycSteps, _stepperData.tCycRemain, _stepperData.aCycSteps );
-    DB_PRINT( "   - State=%s, Rampsteps=%u" , rsC[_stepperData.rampState], _stepperData.stepsInRamp );
+    DB_PRINT( "   - State=%s, Rampsteps=%u" , rsC[(int)_stepperData.rampState], _stepperData.stepsInRamp );
     return _stepperData.stepRampLen;
 }

@@ -6,6 +6,8 @@
   Functions for the stepper part of MobaTools
 */
 #include <MobaTools.h>
+//#define debugTP
+//#define debugPrint
 #include <utilities/MoToDbg.h>
 
 // Global Data for all instances and classes  --------------------------------
@@ -37,7 +39,6 @@ inline void _noStepIRQ() {
             //*bb_perip(&(MT_TIMER->regs).adv->DIER, TIMER_STEPCH_IRQ) = 0;
 		#else
 			noInterrupts();
-            SET_TP2;
         #endif
 }
 inline void  _stepIRQ() {
@@ -50,7 +51,6 @@ inline void  _stepIRQ() {
             *bb_perip(&(MT_TIMER->regs).adv->DIER, TIMER_STEPCH_IRQ) = 1;
             interrupts();
 		#else
-            CLR_TP2;
 			interrupts();
         #endif
 }
@@ -84,90 +84,14 @@ void ICACHE_RAM_ATTR ISR_Servo( servoData_t *_servoData ) {
     
 }
 #else //---------------------- Timer-interrupt for non ESP8266 -----------------------------
-#ifdef FIXED_POSITION_SERVO_PULSES
-// ---------- OCRxA Compare Interrupt used for servo motor ----------------
-// Positions of servopulses within 20ms cycle are fixed -  8 servos
-#define PULSESTEP ( 40000 / MAX_SERVOS )
-#ifdef __AVR_MEGA__
-ISR ( TIMERx_COMPA_vect) {
-#elif defined __STM32F1__
-void ISR_Servo( void) {
-    uint16_t OCRxA;
-#endif
-    // Timer1 Compare A, used for servo motor
-    if ( IrqType == POFF ) {
-        SET_TP1; // Oszimessung Dauer der ISR-Routine OFF
-        IrqType = PON ; // it's always alternating
-        // switch off previous started pulse
-        #ifdef FAST_PORTWRT
-        *pulseP->portAdr &= ~pulseP->bitMask;
-        #else
-        digitalWrite( pulseP->pin, LOW );
-        #endif
-        // Set next startpoint of servopulse
-        if ( (pulseP = pulseP->prevServoDataP) == NULL ) {
-            // Start over
-            OCRxA = FIRST_PULSE;
-            pulseP = lastServoDataP;
-        } else {
-            // The pointerchain comes from the end of the servos, but servoIx is incremented starting
-            // from the first servo. Pulses must be sorted in ascending order.
-            OCRxA = FIRST_PULSE + (servoCount-1-pulseP->servoIx) * PULSESTEP;
-        }
-        //CLR_TP1; // Oszimessung Dauer der ISR-Routine OFF
-    } else {
-        SET_TP2; // Oszimessung Dauer der ISR-Routine ON
-        // look for next pulse to start
-        if ( pulseP->soll < 0 ) {
-            // no pulse to output, switch to next startpoint
-            if ( (pulseP = pulseP->prevServoDataP) == NULL ) {
-                // Start over
-                OCRxA = FIRST_PULSE;
-                pulseP = lastServoDataP;
-            } else {
-                OCRxA = FIRST_PULSE + (servoCount-1-pulseP->servoIx) * PULSESTEP;
-            }
-        } else { // found pulse to output
-            if ( pulseP->ist == pulseP->soll ) {
-                // no change of pulselength
-                if ( pulseP->offcnt > 0 ) pulseP->offcnt--;
-            } else if ( pulseP->ist < pulseP->soll ) {
-                pulseP->offcnt = OFF_COUNT;
-                if ( pulseP->ist < 0 ) pulseP->ist = pulseP->soll; // first position after attach
-                else pulseP->ist += pulseP->inc;
-                if ( pulseP->ist > pulseP->soll ) pulseP->ist = pulseP->soll;
-            } else {
-                pulseP->offcnt = OFF_COUNT;
-                pulseP->ist -= pulseP->inc;
-                if ( pulseP->ist < pulseP->soll ) pulseP->ist = pulseP->soll;
-            } 
-            OCRxA = (pulseP->ist/SPEED_RES) + GET_COUNT - 4; // compensate for computing time
-            if ( pulseP->on && (pulseP->offcnt+pulseP->noAutoff) > 0 ) {
-                //CLR_TP1;
-                #ifdef FAST_PORTWRT
-                *pulseP->portAdr |= pulseP->bitMask;
-                #else
-                digitalWrite( pulseP->pin, HIGH );
-                #endif
-                //SET_TP1;
-            }
-            IrqType = POFF;
-        } 
-        CLR_TP2; // Oszimessung Dauer der ISR-Routine ON
-    } //end of 'pulse ON'
-    #ifdef __STM32F1__
-    timer_set_compare(MT_TIMER,  SERVO_CHN, OCRxA);
-    #endif 
-}
-
-#else // create overlapping servo pulses
+// create overlapping servo pulses
 // Positions of servopulses within 20ms cycle are variable, max 2 pulses at the same time
 // 27.9.15 with variable overlap, depending on length of next pulse: 16 Servos
 // 2.1.16 Enable interrupts after timecritical path (e.g. starting/stopping servo pulses)
 //        so other timecritical tasks can interrupt (nested interrupts)
 // 6.6.19 Because stepper IRQ now can last very long, it is disabled during servo IRQ
 static bool searchNextPulse() {
-    //SET_TP2;
+    SET_TP4;
    while ( pulseP != NULL && pulseP->soll < 0 ) {
         //SET_TP4;
         pulseP = pulseP->prevServoDataP;
@@ -176,7 +100,7 @@ static bool searchNextPulse() {
     //CLR_TP2;
     if ( pulseP == NULL ) {
         // there is no more pulse to start, we reached the end
-        //SET_TP2; CLR_TP2;
+        CLR_TP4;
         return false;
     } else { // found pulse to output
         //SET_TP2;
@@ -193,7 +117,7 @@ static bool searchNextPulse() {
             pulseP->ist -= pulseP->inc;
             if ( pulseP->ist < pulseP->soll ) pulseP->ist = pulseP->soll;
         } 
-        //CLR_TP2;
+        CLR_TP4;
         return true;
     } 
 } //end of 'searchNextPulse'
@@ -207,10 +131,10 @@ ISR ( TIMERx_COMPA_vect) {
 void ISR_Servo( void) {
     uint16_t OCRxA;
 #endif
-    SET_SV3;
+    SET_TP3;
     // Timer1 Compare A, used for servo motor
     if ( IrqType == POFF ) { // Pulse OFF time
-        //SET_TP1; // Oszimessung Dauer der ISR-Routine OFF
+        SET_TP2; // Oszimessung Dauer der ISR-Routine OFF
         //SET_TP3; // Oszimessung Dauer der ISR-Routine
         IrqType = PON ; // it's (nearly) always alternating
         // switch off previous started pulse
@@ -248,7 +172,7 @@ void ISR_Servo( void) {
                 OCRxA = FIRST_PULSE;
             }
         }
-        //CLR_TP1; // Oszimessung Dauer der ISR-Routine OFF
+        CLR_TP2; // Oszimessung Dauer der ISR-Routine OFF
     } else { // Pulse ON - time
         //SET_TP2; // Oszimessung Dauer der ISR-Routine ON
         //if ( pulseP == lastServoDataP ) SET_TP3;
@@ -353,10 +277,9 @@ void ISR_Servo( void) {
     #ifdef __AVR_MEGA__
     TIMSKx = saveTIMSK;      // retore Interrupt enable reg
     #endif
-    CLR_SV3;
+    CLR_TP3;
 }
 
-#endif // VARIABLE_POSITION_SERVO_PULSES
 #endif // not ESP8266
 // ------------ end of Interruptroutines ------------------------------
 ///////////////////////////////////////////////////////////////////////////////////
@@ -455,7 +378,7 @@ uint8_t Servo8::attach( int pinArg, uint16_t pmin, uint16_t pmax, bool autoOff )
         }
          interrupts();
     #endif // no ESP8266
-   return 1;
+    return 1;
 }
 
 void Servo8::detach()
@@ -477,13 +400,14 @@ void Servo8::write(uint16_t angleArg)
     // values between 0 and 180 are interpreted as degrees,
     // values between MINPULSEWIDTH and MAXPULSEWIDTH are interpreted as microseconds
     static int newpos;
+    SET_TP1;
     #ifdef __AVR_MEGA__
-	//DB_PRINT( "Write: angleArg=%d, Soll=%d, OCR=%u", angleArg, servoData.soll, OCRxA );
+	//DB_PRINT( "Write: angleArg=%d, Soll=%d, OCR=%u", angleArg, _servoData.soll, OCRxA );
     #endif
     if ( _servoData.pin != NO_PIN ) { // only if servo is attached
         //Serial.print( "Pin:" );Serial.print (_servoData.pin);Serial.print("Wert:");Serial.println(angleArg);
         #ifdef __AVR_MEGA__
-		//DB_PRINT( "Stack=0x%04x, &sIx=0x%04x", ((SPH&0x7)<<8)|SPL, &servoData.servoIx );
+		//DB_PRINT( "Stack=0x%04x, &sIx=0x%04x", ((SPH&0x7)<<8)|SPL, &_servoData.servoIx );
         #endif
         if ( angleArg <= 255) {
             // pulse width as degrees (byte values are always degrees) 09-02-2017
@@ -522,6 +446,8 @@ void Servo8::write(uint16_t angleArg)
         #endif
         _servoData.offcnt = OFF_COUNT;   // auf jeden Fall wieder Pulse ausgeben
     }
+    DB_PRINT( "Soll=%d, Ist=%d, Ix=%d, inc=%d, SR=%d", _servoData.soll,_servoData.ist, _servoData.servoIx, _servoData.inc, SPEED_RES );
+    CLR_TP1;
 }
 
 void Servo8::setSpeed( int speed, bool compatibility ) {
@@ -563,6 +489,7 @@ int Servo8::readMicroseconds() {
     value = _servoData.ist;
     interrupts();
     if ( value < 0 ) value = _servoData.soll; // there is no valid actual vlaue
+    DB_PRINT( "Ist=%d, Soll=%d, TpM=%d, SR=%d", value, _servoData.soll, TICS_PER_MICROSECOND, SPEED_RES );
     return value/TICS_PER_MICROSECOND/SPEED_RES;   
 }
 

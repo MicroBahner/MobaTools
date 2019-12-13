@@ -20,6 +20,8 @@
 */
 
 #include <MobaTools.h>
+#define debugTP
+//#define debugPrint
 #include <utilities/MoToDbg.h>
 
 #ifdef ESP8266

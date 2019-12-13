@@ -6,6 +6,8 @@
   Functions for the stepper part of MobaTools
 */
 #include <MobaTools.h>
+//#define debugTP
+//#define debugPrint
 #include <utilities/MoToDbg.h>
 #define TODO	// ignore 
 // Global Data for all instances and classes  --------------------------------
@@ -449,7 +451,7 @@ void Stepper4::doSteps( long stepValue ) {
                     _stepperData.stepCnt = stepCnt;
                 }
                 _stepIRQ();
-                DB_PRINT( "StateErr1:, sCnt=%ld, sCnt2=%ld, sMove=%ld, aCyc=%d", _stepperData.stepCnt, _stepperData.stepCnt2, stepsToMove, _stepperData.aUsSteps );
+                //DB_PRINT( "StateErr1:, sCnt=%ld, sCnt2=%ld, sMove=%ld, aCyc=%d", _stepperData.stepCnt, _stepperData.stepCnt2, stepsToMove, _stepperData.aUsSteps );
             } else {
                 // direction changes, stop and go backwards
                 _noStepIRQ();

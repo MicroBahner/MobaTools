@@ -74,19 +74,19 @@
 #define CYCLETIME       80      // Min. irq-periode in us ( ESP-default is 80 )
 #define MAX_GPIO        10      // max number of usable gpios
 // at max 10 gpio's can be used at an ESP12: gpio 0,1,2,3,4,5,12,13,14,15
-// gpio 6-10 is internally used für flash
+// gpio 6-10 is internally used for flash
 // gpio16 has no interrupt capability ( but can be used as dir-pin for a stepper)
 
-#elif defined ( STM32F1 )
-#define CYCLETIME       100     // Min. irq-periode in us ( STM-default is 100 )
+#elif defined ( __STM32F1__ )
+#define CYCLETIME       66     // Min. irq-periode in us ( STM-default is 66 )
+#define MIN_STEP_CYCLE  3       // Minimum number of cycles per step. 
 #else
 #define CYCLETIME       200     // Min. irq-periode in us ( default is 200 ), 
-#endif
 #define MIN_STEP_CYCLE  2       // Minimum number of cycles per step. 
+#endif
 #define RAMPOFFSET      16      // startvalue of rampcounter
 
 // servo related defines
-// #define FIXED_POSITION_SERVO_PULSES  // does not work yet - leave commented out
 #define MINPULSEWIDTH   700     // don't make it shorter than 700
 #define MAXPULSEWIDTH   2300    // don't make it longer than 2300
 

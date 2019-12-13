@@ -10,14 +10,10 @@
 
 // defines for servos
 #define Servo2	Servo8		// Kompatibilität zu Version 01 und 02
-#ifdef FIXED_POSITION_SERVO_PULSES
-    #define MAX_SERVOS  8
-#else
-    #define OVLMARGIN           280     // Overlap margin ( Overlap is MINPULSEWIDTH - OVLMARGIN )
-    #define OVL_TICS       ( ( MINPULSEWIDTH - OVLMARGIN ) * TICS_PER_MICROSECOND )
-    #define MARGINTICS      ( OVLMARGIN * TICS_PER_MICROSECOND )
-    #define MAX_SERVOS  16  
-#endif               
+#define OVLMARGIN           280     // Overlap margin ( Overlap is MINPULSEWIDTH - OVLMARGIN )
+#define OVL_TICS       ( ( MINPULSEWIDTH - OVLMARGIN ) * TICS_PER_MICROSECOND )
+#define MARGINTICS      ( OVLMARGIN * TICS_PER_MICROSECOND )
+#define MAX_SERVOS  16  
 
 #define MINPULSETICS    (MINPULSEWIDTH * TICS_PER_MICROSECOND)
 #define MAXPULSETICS    (MAXPULSEWIDTH * TICS_PER_MICROSECOND)
@@ -25,7 +21,7 @@
                             // OFF_COUNT cycles ( = OFF_COUNT * 20ms )
 #define FIRST_PULSE     100 // first pulse starts 200 tics after timer overflow, so we do not compete
                             // with overflow IRQ
-#define SPEED_RES       8/TICS_PER_MICROSECOND   // All position values in tics are multiplied by this factor. This means, that one 
+#define SPEED_RES       (8/TICS_PER_MICROSECOND)   // All position values in tics are multiplied by this factor. This means, that one 
                             // 'Speed-tic' is 0,125 µs per 20ms cycle. This gives better resolution in defining the speed.
                             // Only when computing the next interrupt time the values are divided by this value again to get
                             // the real 'timer tics'
