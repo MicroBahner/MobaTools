@@ -283,13 +283,13 @@ void ISR_Servo( void) {
 #endif // not ESP8266
 // ------------ end of Interruptroutines ------------------------------
 ///////////////////////////////////////////////////////////////////////////////////
-// --------- Class Servo8 ---------------------------------
+// --------- Class MoToServo ---------------------------------
 // Class-specific Variables
 
 const byte NO_ANGLE = 0xff;
 const byte NO_PIN = 0xff;
 
-Servo8::Servo8() //: _servoData.pin(NO_PIN),_angle(NO_ANGLE),_min16(1000/16),_max16(2000/16)
+MoToServo::MoToServo() //: _servoData.pin(NO_PIN),_angle(NO_ANGLE),_min16(1000/16),_max16(2000/16)
 {   _servoData.servoIx = servoCount++;
     _servoData.soll = -1;    // = not initialized
     _servoData.pin = NO_PIN;
@@ -303,26 +303,26 @@ Servo8::Servo8() //: _servoData.pin(NO_PIN),_angle(NO_ANGLE),_min16(1000/16),_ma
     #endif
 }
 
-void Servo8::setMinimumPulse(uint16_t t)
+void MoToServo::setMinimumPulse(uint16_t t)
 {   _minPw = constrain( t, MINPULSEWIDTH,MAXPULSEWIDTH);
 }
 
-void Servo8::setMaximumPulse(uint16_t t)
+void MoToServo::setMaximumPulse(uint16_t t)
 {   _maxPw = constrain( t, MINPULSEWIDTH,MAXPULSEWIDTH);
 }
 
 
-uint8_t Servo8::attach(int pinArg) {
+uint8_t MoToServo::attach(int pinArg) {
     return attach( pinArg, MINPULSEWIDTH, MAXPULSEWIDTH, false );
 }
-uint8_t Servo8::attach(int pinArg, bool autoOff ) {
+uint8_t MoToServo::attach(int pinArg, bool autoOff ) {
     return attach( pinArg, MINPULSEWIDTH, MAXPULSEWIDTH, autoOff );
 }
-uint8_t Servo8::attach(int pinArg, uint16_t pmin, uint16_t pmax ) {
+uint8_t MoToServo::attach(int pinArg, uint16_t pmin, uint16_t pmax ) {
     return attach( pinArg, pmin, pmax, false );
 }
 
-uint8_t Servo8::attach( int pinArg, uint16_t pmin, uint16_t pmax, bool autoOff ) {
+uint8_t MoToServo::attach( int pinArg, uint16_t pmin, uint16_t pmax, bool autoOff ) {
     // return false if already attached or too many servos
     if ( _servoData.pin != NO_PIN ||  _servoData.servoIx >= MAX_SERVOS ) return 0;
     #ifdef ESP8266 // check pinnumber
@@ -381,7 +381,7 @@ uint8_t Servo8::attach( int pinArg, uint16_t pmin, uint16_t pmax, bool autoOff )
     return 1;
 }
 
-void Servo8::detach()
+void MoToServo::detach()
 {
     _servoData.on = false;  
     _servoData.soll = -1;  
@@ -395,7 +395,7 @@ void Servo8::detach()
     _servoData.pin = NO_PIN;  
 }
 
-void Servo8::write(uint16_t angleArg)
+void MoToServo::write(uint16_t angleArg)
 {   // set position to move to
     // values between 0 and 180 are interpreted as degrees,
     // values between MINPULSEWIDTH and MAXPULSEWIDTH are interpreted as microseconds
@@ -450,7 +450,7 @@ void Servo8::write(uint16_t angleArg)
     CLR_TP1;
 }
 
-void Servo8::setSpeed( int speed, bool compatibility ) {
+void MoToServo::setSpeed( int speed, bool compatibility ) {
     // set global compatibility-Flag
     #ifndef ESP8266
     speedV08 = compatibility;   // not on ESP8266
@@ -458,7 +458,7 @@ void Servo8::setSpeed( int speed, bool compatibility ) {
     setSpeed( speed );
 }
 
-void Servo8::setSpeed( int speed ) {
+void MoToServo::setSpeed( int speed ) {
     // Set increment value for movement to new angle
     if ( _servoData.pin != NO_PIN ) { // only if servo is attached
         #ifndef ESP8266
@@ -473,7 +473,7 @@ void Servo8::setSpeed( int speed ) {
     }
 }
 
-uint8_t Servo8::read() {
+uint8_t MoToServo::read() {
     // get position in degrees
     int offset;
     if ( _servoData.pin == NO_PIN ) return -1; // Servo not attached
@@ -481,7 +481,7 @@ uint8_t Servo8::read() {
     return map( readMicroseconds() + offset, _minPw, _maxPw, 0, 180 );
 }
 
-int Servo8::readMicroseconds() {
+int MoToServo::readMicroseconds() {
     // get position in microseconds
     int value;
     if ( _servoData.pin == NO_PIN ) return -1; // Servo not attached
@@ -493,7 +493,7 @@ int Servo8::readMicroseconds() {
     return value/TICS_PER_MICROSECOND/SPEED_RES;   
 }
 
-uint8_t Servo8::moving() {
+uint8_t MoToServo::moving() {
     // return how much still to move (percentage)
     if ( _servoData.pin == NO_PIN ) return 0; // Servo not attached
     long total , remaining;
@@ -505,7 +505,7 @@ uint8_t Servo8::moving() {
     return ( remaining * 100 ) /  total +1;
 }
 
-uint8_t Servo8::attached()
+uint8_t MoToServo::attached()
 {
     return ( _servoData.pin != NO_PIN );
 }

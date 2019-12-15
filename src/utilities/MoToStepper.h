@@ -119,7 +119,7 @@ typedef union { // used output channels as bit and uint8_t
 } outUsed_t;
 
 //////////////////////////////////////////////////////////////////////////////
-class Stepper4
+class MoToStepper
 {
   private:
     static outUsed_t outputsUsed;
@@ -139,16 +139,17 @@ class Stepper4
     uint16_t  _setRampValues();
     uint8_t attach(uint8_t outArg, uint8_t*  ); // internal attach function ( called by one of the public attach
   public:
-    Stepper4(int steps);            // steps per 360 degree in HALFSTEP mode or A4988 Mode on ESP
+    MoToStepper(int steps);            // steps per 360 degree in HALFSTEP mode or A4988 Mode on ESP
 	#ifndef ESP8266 				// there are no different modes with ESP8266
-    Stepper4(int steps, uint8_t mode ); 
+    MoToStepper(int steps, uint8_t mode ); 
                                     // mode means A4988 ( Step/Dir), HALFSTEP or FULLSTEP
     uint8_t attach( uint8_t,uint8_t,uint8_t,uint8_t); //single pins definition for output
     uint8_t attach(uint8_t outArg);    // stepMode defaults to halfstep
     #endif
     uint8_t attach( uint8_t stepP, uint8_t dirP); // Port for step and direction in A4988 mode
                                     // returns 0 on failure
-    void    attachEnable( uint8_t enableP, uint16_t delay, bool active ); // define an enable pin and the delay (µs) between enable and starting the motor
+    void    attachEnable( uint8_t enableP, uint16_t delay, bool active ); // define an enable pin and the delay (ms) between enable and starting/stopping the motor. 
+                                                                          // 'active' defines if the output is HIGH or LOW to activate the motirdriver.
     void detach();                  // detach from output, motor will not move anymore
     void write(long angle);         // specify the angle in degrees, mybe pos or neg. angle is
                                     // measured from last 'setZero' point

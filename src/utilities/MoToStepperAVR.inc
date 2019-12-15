@@ -1,5 +1,5 @@
 // MoToStepper: ISR functions and Methods that are not used in ESP8266
-// The difference in thes functions is too big to do it with function internal ifdef's
+// The difference in these functions is too big to do it with function internal ifdef's
 
 
 #pragma GCC optimize "O3"   // optimize ISR for speed
@@ -19,7 +19,9 @@ void stepperISR(uint8_t cyclesLastIRQ) {
         if ( stepperDataP->output == A4988_PINS ) {
             // reset step pulse - pulse is max one cycle lenght
             #ifdef FAST_PORTWRT
+            noInterrupts();
             *stepperDataP->portPins[0].Adr &= ~stepperDataP->portPins[0].Mask;
+            interrupts();
             #else
             digitalWrite( stepperDataP->pins[0], LOW );
             #endif
@@ -43,6 +45,9 @@ void stepperISR(uint8_t cyclesLastIRQ) {
                 stepperDataP->patternIx = _patIx;
                 CLR_TP2;SET_TP2;
                 // store pattern data
+                #ifdef __AVR_MEGA__
+                noInterrupts(); // because of read modify write actions in setting outputs
+                #endif
                 switch ( stepperDataP->output ) {
                   #ifdef __AVR_MEGA__
                   case PIN4_7:
@@ -123,6 +128,9 @@ void stepperISR(uint8_t cyclesLastIRQ) {
                     // should never be reached
                     break;
                 }
+                #ifdef __AVR_MEGA__
+                interrupts();
+                #endif
                 CLR_TP2;
                 // ------------------ check if last step -----------------------------------
                 if ( --stepperDataP->stepCnt == 0 ) {
@@ -277,7 +285,7 @@ void stepperISR(uint8_t cyclesLastIRQ) {
         #endif
         #endif
     }
-    //CLR_TP1;
+    CLR_TP4;
 } // ==================== End of stepper ISR ======================================
 #pragma GCC optimize "Os"
 // ---------- SPI interupt used for output stepper motor data -------------
@@ -363,7 +371,7 @@ static void initSPI() {
     spiInitialized = true;  
 }
 
-uint16_t Stepper4::setSpeedSteps( uint16_t speed10, int16_t rampLen ) {
+uint16_t MoToStepper::setSpeedSteps( uint16_t speed10, int16_t rampLen ) {
     // Set speed and length of ramp to reach speed ( from stop )
     // neagtive ramplen means it was set automatically
     rampStat newRampState;      // State of acceleration/deceleration

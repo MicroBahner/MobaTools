@@ -20,7 +20,7 @@
 */
 
 #include <MobaTools.h>
-#define debugTP
+//#define debugTP
 //#define debugPrint
 #include <utilities/MoToDbg.h>
 
@@ -115,26 +115,26 @@ void seizeTimer1() {
 #endif
 // ========================= Class Definitions ============================================
 ////////////////////////////////////////////////////////////////////////////
-// Class EggTimer - Timerverwaltung für Zeitverzögerungen in der Loop-Schleife
+// Class MoToTimer - Timerverwaltung für Zeitverzögerungen in der Loop-Schleife
 // 
-void EggTimer::setTime(  long wert ) {
+void MoToTimer::setTime(  long wert ) {
     endtime =  (long) millis() + ( (long)wert>0?wert:1 );
     active = true;
 }
 
-bool EggTimer::running() {
+bool MoToTimer::running() {
     if ( active ) active =  ( endtime - (long)millis() > 0 );
     return active;
 }
 
-bool EggTimer::expired() { return !running(); }
+bool MoToTimer::expired() { return !running(); }
 
-long EggTimer::getTime() {
+long MoToTimer::getTime() {
     // return remaining time
     if ( running() ) return endtime - (long)millis();
     else return 0;
 }
-EggTimer::EggTimer()
+MoToTimer::MoToTimer()
 {
     active = false;
 }

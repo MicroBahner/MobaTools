@@ -78,11 +78,11 @@ typedef struct ledData_t {          // global led values ( used in IRQ )
 
 
 //////////////////////////////////////////////////////////////////////////////////////////////
-class SoftLed
+class MoToSoftLed
 { // Switch leds on/off softly.
   // 
   public:
-    SoftLed();
+    MoToSoftLed();
     uint8_t attach(uint8_t pinArg, uint8_t invArg = false );     // Led-pin with soft on
     void riseTime( uint16_t );       // in millisec - falltime is the same
     void on();                   // 

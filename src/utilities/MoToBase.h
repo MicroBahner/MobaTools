@@ -33,12 +33,11 @@
 
 #define ISR_IDLETIME    5000        // max time between two Stepper/Softled ISRs
 
-// changing Class names ( in later versions this will be the native classnames ):
-#define MoToStepper Stepper4
-#define MoToServo   Servo8
-#define MoToSoftled Softleds
-#define MoToTimer   Eggtimer
-
+// old Class names ( for compatibility with former sketches )
+#define Stepper4    MoToStepper
+#define Servo8      MoToServo  
+#define SoftLed     MoToSoftLed
+#define EggTimer    MoToTimer
 
 // defines for the stepper motor
 #define HALFSTEP    1
@@ -182,10 +181,10 @@ inline void  _stepIRQ() {
         #endif
 }
 */
-class EggTimer
+class MoToTimer
 {
   public:
-    EggTimer();
+    MoToTimer();
     void setTime( long);
     bool running();
     bool expired();

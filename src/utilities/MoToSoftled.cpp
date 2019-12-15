@@ -193,9 +193,9 @@ void softledISR(uint8_t cyclesLastIRQ) {
     CLR_TP2;
 } //=============================== End of softledISR ========================================
 /////////////////////////////////////////////////////////////////////////////
-//Class SoftLed - for Led with soft on / soft off ---------------------------
+//Class MoToMoToSoftLed - for Led with soft on / soft off ---------------------------
 // Version with Software PWM
-SoftLed::SoftLed() {
+MoToSoftLed::MoToSoftLed() {
     _ledData.speed    = 0;           // defines rising/falling timer
     _ledData.aStep    = DELTASTEPS ;          // actual PWM step
     _ledData.aCycle   = 0;           // actual cycle ( =length of PWM pule )
@@ -207,7 +207,7 @@ SoftLed::SoftLed() {
     _ledData.invFlg = false;
 }
 
-void SoftLed::mount( LedStats_t stateVal ) {
+void MoToSoftLed::mount( LedStats_t stateVal ) {
     // mount softLed to ISR chain ( if not already in )
     // new active Softleds are always inserted at the beginning of the chain
     // only leds in the ISR chain are processed in ISR
@@ -231,7 +231,7 @@ void SoftLed::mount( LedStats_t stateVal ) {
 }   
     
 
-uint8_t SoftLed::attach(uint8_t pinArg, uint8_t invArg ){
+uint8_t MoToSoftLed::attach(uint8_t pinArg, uint8_t invArg ){
     // Led-Ausgang mit Softstart. 
     
     _ledData.invFlg  = invArg;
@@ -265,7 +265,7 @@ uint8_t SoftLed::attach(uint8_t pinArg, uint8_t invArg ){
     return true;
 }
 
-void SoftLed::on(){
+void MoToSoftLed::on(){
     if ( _ledData.state ==  NOTATTACHED ) return;  // this is not a valid instance
     LedStats_t stateT;
     // Don't do anything if its already ON 
@@ -285,7 +285,7 @@ void SoftLed::on(){
     //DB_PRINT( "Led %d On, state=%d", ledIx, _ledData.state);
 }
 
-void SoftLed::off(){
+void MoToSoftLed::off(){
     if ( _ledData.state ==  NOTATTACHED ) return; // this is not a valid instance
     LedStats_t stateT;
     // Dont do anything if its already OFF 
@@ -308,19 +308,19 @@ void SoftLed::off(){
     //DB_PRINT( "Led %d Off, state=%d", ledIx, _ledData.state);
 }
 
-void SoftLed::toggle( void ) {
+void MoToSoftLed::toggle( void ) {
     if ( _ledData.state ==  NOTATTACHED ) return; // this is not a valid instance
     if ( _setpoint == ON  ) off();
     else on();
 }
 
-void SoftLed::write( uint8_t setpntVal, uint8_t ledPar ){
+void MoToSoftLed::write( uint8_t setpntVal, uint8_t ledPar ){
     if ( _ledData.state ==  NOTATTACHED ) return; // this is not a valid instance
     _ledType = ledPar;
     write( setpntVal ) ;
 }
 
-void SoftLed::write( uint8_t setpntVal ){
+void MoToSoftLed::write( uint8_t setpntVal ){
     //DB_PRINT( "LedWrite ix= %d, valid= 0x%x, sp=%d, lT=%d", ledIx, ledValid, setpntVal, _ledType );
     if ( _ledData.state ==  NOTATTACHED ) return; // this is not a valid instance
     if ( setpntVal == ON ) on(); else off();
@@ -332,7 +332,7 @@ void SoftLed::write( uint8_t setpntVal ){
     #endif
 }
 
-void SoftLed::riseTime( uint16_t riseTime ) {
+void MoToSoftLed::riseTime( uint16_t riseTime ) {
     if ( _ledData.state ==  NOTATTACHED ) return;
     // length of startphase in ms (min 20ms, max 10240ms )
     // The max value ist slower, if CYCLETIME is reduced.

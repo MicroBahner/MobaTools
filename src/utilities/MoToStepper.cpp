@@ -67,8 +67,8 @@ inline void  _stepIRQ() {
 
 // --------- Class Stepper ---------------------------------
 // Class-specific Variables
-outUsed_t Stepper4::outputsUsed;
-byte Stepper4::_stepperCount = 0;
+outUsed_t MoToStepper::outputsUsed;
+byte MoToStepper::_stepperCount = 0;
 
 // global functions / Interrupts
 
@@ -83,24 +83,24 @@ byte Stepper4::_stepperCount = 0;
 #endif // esp8266 <-> other
 
 // constructor -------------------------
-Stepper4::Stepper4(int steps ) {
+MoToStepper::MoToStepper(int steps ) {
     // constuctor for stepper Class, initialize data
 	#ifdef ESP8266
-    Stepper4::initialize ( steps, A4988 );	// This is the only valid mode
+    MoToStepper::initialize ( steps, A4988 );	// This is the only valid mode
 	#else
-    Stepper4::initialize ( steps, HALFSTEP );
+    MoToStepper::initialize ( steps, HALFSTEP );
 	#endif
 }
 
 #ifndef ESP8266
-Stepper4::Stepper4(int steps, uint8_t mode ) {
+MoToStepper::MoToStepper(int steps, uint8_t mode ) {
     // constuctor for stepper Class, initialize data
-    Stepper4::initialize ( steps, mode );
+    MoToStepper::initialize ( steps, mode );
 }
 #endif
 
 // private functions ---------------
-void Stepper4::initialize ( int steps360, uint8_t mode ) {
+void MoToStepper::initialize ( int steps360, uint8_t mode ) {
     // create new instance
     _stepperIx = _stepperCount ;
     stepsRev = steps360;       // number of steps for full rotation in fullstep mode
@@ -136,7 +136,7 @@ void Stepper4::initialize ( int steps360, uint8_t mode ) {
     }
     
 }
-long Stepper4::getSFZ() {
+long MoToStepper::getSFZ() {
     // get step-distance from zero point
     // irq must be disabled, because stepsFromZero is updated in interrupt
     long tmp;
@@ -146,7 +146,7 @@ long Stepper4::getSFZ() {
     return tmp / stepMode;
 }
 
-bool Stepper4::_chkRunning() {
+bool MoToStepper::_chkRunning() {
     // is the stepper moving?
     bool tmp;
     _noStepIRQ();
@@ -156,7 +156,7 @@ bool Stepper4::_chkRunning() {
 }
 
 // public functions -------------------
-uint8_t Stepper4::attach( byte stepP, byte dirP ) {
+uint8_t MoToStepper::attach( byte stepP, byte dirP ) {
     // step motor driver A4988 is used
     byte pins[2];
     if ( stepMode != A4988 ) return 0;    // false mode
@@ -164,23 +164,23 @@ uint8_t Stepper4::attach( byte stepP, byte dirP ) {
     
     pins[0] = stepP;
     pins[1] = dirP;
-    return Stepper4::attach( A4988_PINS, pins );
+    return MoToStepper::attach( A4988_PINS, pins );
 }
 #ifndef ESP8266
-uint8_t Stepper4::attach( byte pin1, byte pin2, byte pin3, byte pin4 ) {
+uint8_t MoToStepper::attach( byte pin1, byte pin2, byte pin3, byte pin4 ) {
     byte pins[4];
     pins[0] = pin1;
     pins[1] = pin2;
     pins[2] = pin3;
     pins[3] = pin4;
-    return Stepper4::attach( SINGLE_PINS, pins );
+    return MoToStepper::attach( SINGLE_PINS, pins );
 }
-uint8_t Stepper4::attach(byte outArg) {
-    return Stepper4::attach( outArg, (byte *)NULL );
+uint8_t MoToStepper::attach(byte outArg) {
+    return MoToStepper::attach( outArg, (byte *)NULL );
 }
 #endif
     
-uint8_t Stepper4::attach( byte outArg, byte pins[] ) {
+uint8_t MoToStepper::attach( byte outArg, byte pins[] ) {
     // outArg must be one of PIN8_11 ... SPI_4 or SINGLE_PINS, A4988_PINS
     if ( stepMode == NOSTEP ) { DB_PRINT("Attach: invalid Object ( Ix = %d)", _stepperIx ); return 0; }// Invalid object
 	#ifdef ESP8266
@@ -194,22 +194,22 @@ uint8_t Stepper4::attach( byte outArg, byte pins[] ) {
     switch ( outArg ) {
       #ifdef __AVR_MEGA__
       case PIN4_7:
-        if ( Stepper4::outputsUsed.pin4_7 ) {
+        if ( MoToStepper::outputsUsed.pin4_7 ) {
             // output already in use
             attachOK = false;
         } else {
             // Port D initiieren, Pin4-7 as Output
-            Stepper4::outputsUsed.pin4_7 = true;
+            MoToStepper::outputsUsed.pin4_7 = true;
             DDRD |= 0xf0;
             PORTD &= 0x0f;
         }
         break;
       case PIN8_11:
-        if ( spiInitialized || Stepper4::outputsUsed.pin8_11 ) {
+        if ( spiInitialized || MoToStepper::outputsUsed.pin8_11 ) {
             // PIN8_11 and SPI cannot be used simultaneously ( this is not true for Arduino mega )
             attachOK = false;
         } else {
-            Stepper4::outputsUsed.pin8_11 = true;
+            MoToStepper::outputsUsed.pin8_11 = true;
             DDRB |= 0x0f;
             PORTB &= 0xf0;
         }
@@ -221,12 +221,12 @@ uint8_t Stepper4::attach( byte outArg, byte pins[] ) {
       case SPI_3:
       case SPI_4:
         // check if already in use or if PIN8_11 is in use
-        if ( (Stepper4::outputsUsed.outputs & (1<<(outArg-1))) || Stepper4::outputsUsed.pin8_11 ) {
+        if ( (MoToStepper::outputsUsed.outputs & (1<<(outArg-1))) || MoToStepper::outputsUsed.pin8_11 ) {
             // incompatible!
             attachOK = false;
         } else {
             if ( !spiInitialized ) initSPI();
-            Stepper4::outputsUsed.outputs |= (1<<(outArg-1));
+            MoToStepper::outputsUsed.outputs |= (1<<(outArg-1));
         }
         break;
       case SINGLE_PINS:
@@ -294,7 +294,7 @@ uint8_t Stepper4::attach( byte outArg, byte pins[] ) {
     return attachOK;
 }
 
-void Stepper4::detach() {   // no more moving, detach from output
+void MoToStepper::detach() {   // no more moving, detach from output
     if ( _stepperData.output == NO_OUTPUT ) return ; // not attached
     // reconfigure stepper pins as INPUT ( state of RESET )
     // in FAST_PORTWRT mode this is not done, because the necessary Information is not stored
@@ -349,7 +349,7 @@ void Stepper4::detach() {   // no more moving, detach from output
 
 #ifndef ESP8266
     TODO // for ESP
-void Stepper4::attachEnable( uint8_t enablePin, uint16_t delay, bool active ) {
+void MoToStepper::attachEnable( uint8_t enablePin, uint16_t delay, bool active ) {
     // define an enable pin. enable is active as long as the motor moves.
     _stepperData.enablePin = enablePin;
     _stepperData.cycDelay = 1000L * delay / CYCLETIME;      // delay between enablePin HIGH/LOW and stepper moving
@@ -359,27 +359,27 @@ void Stepper4::attachEnable( uint8_t enablePin, uint16_t delay, bool active ) {
 }
 #endif
 
-int Stepper4::setSpeed( int rpm10 ) {
+int MoToStepper::setSpeed( int rpm10 ) {
     // Set speed in rpm*10. Step time is computed internally based on CYCLETIME and
     // steps per full rotation (stepsRev)
     if ( _stepperData.output == NO_OUTPUT ) return 0 ; // not attached
     return setSpeedSteps( min( 1000000L / MIN_STEPTIME * 10, (long)rpm10 * stepsRev / 60 ) ) ;
 }
 
-uint16_t Stepper4::setSpeedSteps( uintxx_t speed10 ) {
+uint16_t MoToStepper::setSpeedSteps( uintxx_t speed10 ) {
     // Speed in steps per sec * 10
     // without a new ramplen, the ramplen is adjusted according to the speedchange
     //DB_PRINT("sSS2: sRL=%u, spd=%u", stepRampLen, _stepSpeed10 );
     return setSpeedSteps( speed10,  -(long)speed10*_lastRampLen/_lastRampSpeed -1 );
 }
 
-uint16_t Stepper4::setRampLen( uint16_t rampSteps ) {
+uint16_t MoToStepper::setRampLen( uint16_t rampSteps ) {
     // set length of ramp ( from stop to actual target speed ) in steps
     return setSpeedSteps( _stepSpeed10, rampSteps );
 }
 
 
-uintxx_t Stepper4::getSpeedSteps( ) {
+uintxx_t MoToStepper::getSpeedSteps( ) {
 	// return actual speed in steps/ 10sec 
 	
     if ( _stepperData.output == NO_OUTPUT ) return -1; // not attached
@@ -418,7 +418,7 @@ uintxx_t Stepper4::getSpeedSteps( ) {
     #endif
 	return actSpeedSteps;
 }
-void Stepper4::doSteps( long stepValue ) {
+void MoToStepper::doSteps( long stepValue ) {
     // rotate stepValue steps
     // if the motor is already moving, this is counted from the actual position.
     // This means in ramp mode the motor may go beyond the desired position and than turn backwards 
@@ -544,24 +544,24 @@ void Stepper4::doSteps( long stepValue ) {
 
 
 // set reference point for absolute positioning
-void Stepper4::setZero() {
+void MoToStepper::setZero() {
     setZero(0);
 }
 
-void Stepper4::setZero(long zeroPoint) {
+void MoToStepper::setZero(long zeroPoint) {
     if ( _stepperData.output == NO_OUTPUT ) return; // not attached
     noInterrupts();
     _stepperData.stepsFromZero = -zeroPoint;
     interrupts();
 }
 
-void Stepper4::write(long angleArg ) {
+void MoToStepper::write(long angleArg ) {
     // set next position as angle, measured from last setZero() - point
     //DB_PRINT("write: %d", angleArg);
-    Stepper4::write( angleArg, 1 );
+    MoToStepper::write( angleArg, 1 );
 }
 
-void Stepper4::write( long angleArg, byte fact ) {
+void MoToStepper::write( long angleArg, byte fact ) {
     // for better resolution. angelArg/fact = angle in degrees
     // typical: fact = 10, angleArg in .1 degrees
     if ( _stepperData.output == NO_OUTPUT ) return ; // not attached
@@ -579,14 +579,14 @@ void Stepper4::write( long angleArg, byte fact ) {
     doSteps(angle2steps  - getSFZ() );
 }
 
-void Stepper4::writeSteps( long stepPos ) {
+void MoToStepper::writeSteps( long stepPos ) {
     // go to position stepPos steps away from zeropoint
     if ( _stepperData.output == NO_OUTPUT ) return; // not attached
 
     doSteps(stepPos  - getSFZ() );
 }
 
-long Stepper4::read()
+long MoToStepper::read()
 {   // returns actual position as degree
     if ( _stepperData.output == NO_OUTPUT ) return 0; // not attached
 
@@ -598,7 +598,7 @@ long Stepper4::read()
     return  tmp;
 }
 
-long Stepper4::readSteps()
+long MoToStepper::readSteps()
 {   // returns actual position as steps
     if ( _stepperData.output == NO_OUTPUT ) return 0; // not attached
 
@@ -606,7 +606,7 @@ long Stepper4::readSteps()
 }
 
 
-long Stepper4::stepsToDo() { 
+long MoToStepper::stepsToDo() { 
     // return remaining steps until target position
     long tmp;
     _noStepIRQ(); // disable Stepper interrupt, because (long)stepcnt is changed in TCR interrupt
@@ -616,7 +616,7 @@ long Stepper4::stepsToDo() {
 }
 
         
-uint8_t Stepper4::moving() {
+uint8_t MoToStepper::moving() {
     // return how much still to move (percentage)
     long tmp;
     if ( _stepperData.output == NO_OUTPUT ) return 0; // not attached
@@ -636,7 +636,7 @@ uint8_t Stepper4::moving() {
     return tmp ;
 }
 
-void Stepper4::rotate(int8_t direction) {
+void MoToStepper::rotate(int8_t direction) {
 	// rotate endless ( not really, do maximum stepcount ;-)
     if ( _stepperData.output == NO_OUTPUT ) return; // not attached
     
@@ -668,7 +668,7 @@ void Stepper4::rotate(int8_t direction) {
     }
 }
 
-void Stepper4::stop() {
+void MoToStepper::stop() {
 	// immediate stop of the motor
     if ( _stepperData.output == NO_OUTPUT ) return; // not attached
     

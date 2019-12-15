@@ -9,7 +9,7 @@
 */
 
 // defines for servos
-#define Servo2	Servo8		// Kompatibilität zu Version 01 und 02
+#define Servo2	MoToServo		// Kompatibilität zu Version 01 und 02
 #define OVLMARGIN           280     // Overlap margin ( Overlap is MINPULSEWIDTH - OVLMARGIN )
 #define OVL_TICS       ( ( MINPULSEWIDTH - OVLMARGIN ) * TICS_PER_MICROSECOND )
 #define MARGINTICS      ( OVLMARGIN * TICS_PER_MICROSECOND )
@@ -45,7 +45,7 @@ typedef struct servoData_t {
 } servoData_t ;
 
 ////////////////////////////////////////////////////////////////////////////////////////
-class Servo8
+class MoToServo
 {
   private:
     int16_t _lastPos;     // startingpoint of movement
@@ -56,7 +56,7 @@ class Servo8
     servoData_t _servoData;  // Servo data to be used in ISR
 
 	public:
-    Servo8();
+    MoToServo();
     uint8_t attach(int pin); // attach to a pin, sets pinMode, returns 0 on failure, won't
                              // position the servo until a subsequent write() happens
     uint8_t attach( int pin, bool autoOff );        // automatic switch off pulses with constant length
