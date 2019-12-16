@@ -6,17 +6,23 @@
   Functions for the stepper part of MobaTools
 */
 #include <MobaTools.h>
+#define debugPrint
 #include <utilities/MoToDbg.h>
 
-#ifndef ESP8266 // don't compile as long as it is not adapted to ESP
+#ifndef ESP8266 // there is a special MoToSoftledESP.cpp for ESP8266
 // Global Data for all instances and classes  --------------------------------
 extern uint8_t timerInitialized;
 
 
 // variables for softLeds
 static ledData_t* ledRootP = NULL; //start of _ledData-chain
+#ifdef   __AVR_MEGA__
 static uint8_t ledNextCyc = TIMERPERIODE  / CYCLETIME;     // next Cycle that is relevant for leds
 static uint8_t ledCycleCnt = 0;    // count IRQ cycles within PWM cycle
+#else // for 32Bit processors
+static uint16_t ledNextCyc = TIMERPERIODE  / CYCLETIME;     // next Cycle that is relevant for leds
+static uint16_t ledCycleCnt = 0;    // count IRQ cycles within PWM cycle
+#endif
 
 static ledData_t*  ledDataP;              // pointer to active Led in ISR
     
@@ -29,6 +35,7 @@ void softledISR(uint8_t cyclesLastIRQ) {
         ledNextCyc = LED_CYCLE_MAX; // there must be atleast one IRQ per PWM Cycle
         if ( ledCycleCnt >= LED_CYCLE_MAX ) {
             // start of a new PWM Cycle - switch all leds with rising/falling state to on
+            // When rising, check if full on is reached
             ledCycleCnt = 0;
             for ( ledDataP=ledRootP; ledDataP!=NULL; ledDataP = ledDataP->nextLedDataP ) {
                 //SET_TP1;
@@ -36,7 +43,8 @@ void softledISR(uint8_t cyclesLastIRQ) {
                 switch ( ledDataP->state ) {
                   case INCBULB:
                   case INCLIN:
-                    // switch on led with linear characteristic
+                    // led with rising brightness
+                    noInterrupts();
                     if (ledDataP->invFlg  ) {
                         #ifdef FAST_PORTWRT
                         *ledDataP->portPin.Adr &= ~ledDataP->portPin.Mask;
@@ -50,8 +58,8 @@ void softledISR(uint8_t cyclesLastIRQ) {
                         digitalWrite( ledDataP->pin, HIGH );
                         #endif
                     }
+                    interrupts();
                     // check if led on is reached
-                    //if ( ledDataP->aStep >=  LED_STEP_MAX-1 ) {
                     if ( ledDataP->aCycle >=  LED_CYCLE_MAX ) {    // led is full on, remove from active-chain
                         SET_TP4;
                         ledDataP->state = STATE_ON;
@@ -59,41 +67,30 @@ void softledISR(uint8_t cyclesLastIRQ) {
                         if ( ledDataP->nextLedDataP ) ledDataP->nextLedDataP->backLedDataPP = ledDataP->backLedDataPP;
                         ledDataP->aCycle = 0;
                         CLR_TP4;
-                    } else { // switch to next PWM step
-                        //ledNextCyc = min( ledDataP->aCycle, ledNextCyc);
+                    } else { // set off-time
                         if ( ledNextCyc > ledDataP->aCycle ) ledNextCyc = ledDataP->aCycle;
                         ledDataP->actPulse = true;
                     }
                     break;
                   case DECBULB:
                   case DECLIN:
-                    // switching off led -> next PWM-step
-                    //if ( ledDataP->aStep >=  LED_STEP_MAX-1  ) {
-                    /*if ( ledDataP->aCycle ==  0  ) {
-                        // led is full off, remove from active-chain
-                        SET_TP4;
-                        ledDataP->state = STATE_OFF;
-                        *ledDataP->backLedDataPP = ledDataP->nextLedDataP;
-                        if ( ledDataP->nextLedDataP ) ledDataP->nextLedDataP->backLedDataPP = ledDataP->backLedDataPP;
-                        CLR_TP4;
-                        //ledDataP->aCycle = 0;
-                    } else */{ // switch to next PWM step
-                        if (ledDataP->invFlg  ) {
-                            #ifdef FAST_PORTWRT
-                            *ledDataP->portPin.Adr &= ~ledDataP->portPin.Mask;
-                            #else
-                            digitalWrite( ledDataP->pin, LOW );
-                            #endif
-                        } else {
-                            #ifdef FAST_PORTWRT
-                            *ledDataP->portPin.Adr |= ledDataP->portPin.Mask;
-                            #else
-                            digitalWrite( ledDataP->pin, HIGH );
-                            #endif
-                        }
-                        if ( ledNextCyc > ledDataP->aCycle ) ledNextCyc = ledDataP->aCycle;
-                        ledDataP->actPulse = true;
+                    // led with falling brightness
+                    if (ledDataP->invFlg  ) {
+                        #ifdef FAST_PORTWRT
+                        *ledDataP->portPin.Adr &= ~ledDataP->portPin.Mask;
+                        #else
+                        digitalWrite( ledDataP->pin, LOW );
+                        #endif
+                    } else {
+                        #ifdef FAST_PORTWRT
+                        *ledDataP->portPin.Adr |= ledDataP->portPin.Mask;
+                        #else
+                        digitalWrite( ledDataP->pin, HIGH );
+                        #endif
                     }
+                    // set off-time 
+                    if ( ledNextCyc > ledDataP->aCycle ) ledNextCyc = ledDataP->aCycle;
+                    ledDataP->actPulse = true;
                     break;
                   default: ;
                 } // end of 'switch'
@@ -123,7 +120,7 @@ void softledISR(uint8_t cyclesLastIRQ) {
                             #endif
                         }
                         CLR_TP4;
-                        ledDataP->actPulse = false;
+                        ledDataP->actPulse = false; // Led pulse is LOW now
                         // determine length of next PWM Cyle
                         //SET_TP1;
                         SET_TP4;
@@ -271,7 +268,13 @@ void MoToSoftLed::on(){
     // Don't do anything if its already ON 
     if ( _setpoint != ON  ) {
         _setpoint        = ON ;
-        _ledData.aStep   = DELTASTEPS;
+        /*if ( _ledData.state < ACTIVE ) {
+            // is full off*/
+            _ledData.aStep   = DELTASTEPS;
+        /*} else {
+            // is counting up
+            _ledData.aStep = LED_STEP_MAX - _ledData.aStep;
+        }*/
         _ledData.speed   = _ledSpeed;
         if ( _ledType == LINEAR ) {
             stateT          = INCLIN;
@@ -292,7 +295,13 @@ void MoToSoftLed::off(){
     if ( _setpoint != OFF ) {
         //SET_TP3;
         _setpoint            = OFF;
-        _ledData.aStep       = DELTASTEPS;
+        /*if ( _ledData.state < ACTIVE ) {
+            // is full on*/
+            _ledData.aStep   = DELTASTEPS;
+        /*} else {
+            // is counting up
+            _ledData.aStep = LED_STEP_MAX -_ledData.aStep;
+        }*/
         _ledData.speed   = _ledSpeed;
         if ( _ledType == LINEAR ) {
             stateT          = DECLIN;
@@ -334,7 +343,7 @@ void MoToSoftLed::write( uint8_t setpntVal ){
 
 void MoToSoftLed::riseTime( uint16_t riseTime ) {
     if ( _ledData.state ==  NOTATTACHED ) return;
-    // length of startphase in ms (min 20ms, max 10240ms )
+    // length of startphase in ms (min 20ms )
     // The max value ist slower, if CYCLETIME is reduced.
     // risetime is computed to a 'speed' Value with 16 beeing the slowest 
     // with speed value = 16 means risetime is (LED_CYCLE_MAX * LED_PWMTIME * DELTATIME / 16)

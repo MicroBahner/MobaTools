@@ -35,6 +35,7 @@
 
     #define DELTASTEPS 128  // this MUST be a power of 2
     #define LED_IX_MAX    ((int16_t)sizeof(iSteps) -1) // int16_t to suppress warnings when comparing to aCycle
+    #define LED_STEP_MAX    (LED_IX_MAX*DELTASTEPS)     // max value of ledData.aStep
     #define LED_CYCLE_MAX   (iSteps[0])
     #define LED_PWMTIME     LED_CYCLE_MAX * CYCLETIME / 1000  // PWM refreshrate in ms
     
@@ -62,9 +63,9 @@ typedef struct ledData_t {          // global led values ( used in IRQ )
       int16_t speed;                    // > 0 : steps per cycle switching on
                                         // < 0 : steps per cycle switching off
                                         // 0: led is inactive (not attached)
-      int16_t   aStep;                  // actual step (brightness)
+      int16_t   aStep;                  // actual step between on/off or off/on ( always counts up )
       int8_t    aCycle;                 // actual cycle ( =length of PWM pule )
-      uint8_t   actPulse;               // PWM pulse is active
+      uint8_t   actPulse;               // PWM pulse is HIGH
   #endif
   LedStats_t state;	                // actual state: steady or incementing/decrementing
     

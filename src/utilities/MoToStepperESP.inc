@@ -8,7 +8,7 @@
 // enable function is active
 void enableISR( stepperData_t *stepperDataP) {
 }
-void ISR_Stepper(stepperData_t *stepperDataP) {
+void ICACHE_RAM_ATTR ISR_Stepper(stepperData_t *stepperDataP) {
     SET_TP1;
     // ---------------Stepper motors ---------------------------------------------
     // Usually the ISR is fired at the start of the step pulse
