@@ -94,7 +94,7 @@ typedef struct stepperData_t {
   volatile long stepsFromZero;  // distance from last reference point ( always as steps in HALFSTEP mode )
                                 // in FULLSTEP mode this is twice the real step number
   uint8_t output  :6 ;             // PORTB(pin8-11), PORTD (pin4-7), SPI0,SPI1,SPI2,SPI3, SINGLE_PINS, A4988_PINS
-  uint8_t activ :1;  
+  uint8_t delayActiv :1;        // enable delaytime is running
   uint8_t enable:1;             // true: enablePin=HIGH is active, false: enablePin=LOW is active
   uint8_t enablePin;            // define an enablePin, which is active while the stepper is moving (255: no pin defined)
   #ifdef FAST_PORTWRT

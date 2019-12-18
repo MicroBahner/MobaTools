@@ -7,7 +7,7 @@
 */
 #include <MobaTools.h>
 //#define debugTP
-#define debugPrint
+//#define debugPrint
 #include <utilities/MoToDbg.h>
 #define TODO	// ignore 
 // Global Data for all instances and classes  --------------------------------
@@ -121,7 +121,7 @@ void MoToStepper::initialize ( int steps360, uint8_t mode ) {
     _stepperData.stepsFromZero = 0;
     _stepperData.rampState = rampStat::INACTIVE;
     _stepperData.stepRampLen             = 0;               // initialize with no acceleration  
-    _stepperData.activ = 0;
+    _stepperData.delayActiv = false;            // enable delaytime is runnung ( only ESP)
     _stepperData.output = NO_OUTPUT;          // unknown, not attached yet
     _stepperData.enablePin = 255;             // without enable
     _stepperData.nextStepperDataP = NULL;
@@ -266,7 +266,6 @@ uint8_t MoToStepper::attach( byte outArg, byte pins[] ) {
     }
     if ( attachOK ) {
         _stepperData.output = outArg;
-        _stepperData.activ = 1;
         _stepperData.rampState = rampStat::STOPPED;
         setSpeedSteps( DEF_SPEEDSTEPS, DEF_RAMP );
 		#ifdef ESP8266
@@ -337,27 +336,45 @@ void MoToStepper::detach() {   // no more moving, detach from output
         ;   // no action with SPI Outputs
     }
     _stepperData.output = NO_OUTPUT;
-    _stepperData.activ = 0;
     _stepperData.rampState = rampStat::STOPPED;
+    // detach enable if active
 	#ifdef ESP8266
 		// detach interrupts
 		detachInterrupt( _stepperData.pins[0]);
         clrGpio(_stepperData.pins[0]);    // mark pin as unused
         clrGpio(_stepperData.pins[1]);    // mark pin as unused
+        if ( _stepperData.enablePin != 255 ) {
+            pinMode( _stepperData.enablePin, INPUT );
+            clrGpio(_stepperData.enablePin);    // mark pin as unused
+            detachInterrupt( _stepperData.enablePin);
+            _stepperData.enablePin = 255;
+        }
+    #else
+    if ( _stepperData.enablePin != 255 ) {
+        pinMode( _stepperData.enablePin, INPUT );
+        _stepperData.enablePin = 255;
+    }
 	#endif
 }
 
-#ifndef ESP8266
-    TODO // for ESP
 void MoToStepper::attachEnable( uint8_t enablePin, uint16_t delay, bool active ) {
     // define an enable pin. enable is active as long as the motor moves.
     _stepperData.enablePin = enablePin;
-    _stepperData.cycDelay = 1000L * delay / CYCLETIME;      // delay between enablePin HIGH/LOW and stepper moving
     _stepperData.enable = active;       // defines whether activ is HIGH or LOW
     pinMode( enablePin, OUTPUT );
     digitalWrite( enablePin, !active );
-}
-#endif
+    #ifdef ESP8266
+    // initialize ISR-Table and attach interrupt to dir-Pin
+    // assign an ISR to the pin
+        gpioTab[gpio2ISRx(_stepperData.pins[1])].MoToISR = (void (*)(void*))ISR_StepperEnable;
+        gpioTab[gpio2ISRx(_stepperData.pins[1])].IsrData = &_stepperData;
+        attachInterrupt( _stepperData.pins[1], gpioTab[gpio2ISRx(_stepperData.pins[1])].gpioISR, FALLING );
+        setGpio(_stepperData.enable);    // mark pin as used
+        _stepperData.usDelay = delay;      // delay (ms) between enablePin HIGH/LOW and stepper moving
+    #else
+    _stepperData.cycDelay = 1000L * delay / CYCLETIME;      // delay ( in cycles ) between enablePin HIGH/LOW and stepper moving
+    #endif
+    }
 
 int MoToStepper::setSpeed( int rpm10 ) {
     // Set speed in rpm*10. Step time is computed internally based on CYCLETIME and
@@ -475,12 +492,13 @@ void MoToStepper::doSteps( long stepValue ) {
                 #ifdef ESP8266
                     _stepperData.aUsSteps       = _stepperData.ustXramplen / RAMPOFFSET; // first steplen in ramp
                     _stepperData.rampState      = rampStat::RAMPACCEL;
-                    digitalWrite( _stepperData.pins[1], patternIxInc<0 );      // setr dir-output
+                    digitalWrite( _stepperData.pins[1], patternIxInc<0 );      // setze dir-output
                     startMove = 1;
                 #else
                     _stepperData.cycCnt         = 0;            // start with the next IRQ
                     _stepperData.aCycSteps      = 0;
                     _stepperData.aCycRemain     = 0;   
+                    #ifndef ESP8266
                     if ( _stepperData.enablePin != 255 ) {
                         // set enable pin to active and start delaytime
                         digitalWrite( _stepperData.enablePin, _stepperData.enable );
@@ -489,6 +507,7 @@ void MoToStepper::doSteps( long stepValue ) {
                         // no delay
                         _stepperData.rampState      = rampStat::RAMPACCEL;
                     }
+                    #endif
                 #endif
                 _stepperData.patternIxInc   = patternIxInc;
                 _stepperData.stepsInRamp    = 0;
@@ -518,7 +537,6 @@ void MoToStepper::doSteps( long stepValue ) {
             _stepperData.cycCnt         = 0;            // start with the next IRQ
             _stepperData.aCycSteps      = 0;
             _stepperData.aCycRemain     = 0; 
-            #endif
             if ( _stepperData.enablePin != 255 ) {
                 // set enable pin to active and start delaytime
                 digitalWrite( _stepperData.enablePin, _stepperData.enable );
@@ -527,6 +545,7 @@ void MoToStepper::doSteps( long stepValue ) {
                 // no delay
                 _stepperData.rampState      = rampStat::CRUISING;
             }
+            #endif
         }
         _stepIRQ();
         //DB_PRINT( "NoRamp:, sCnt=%ld, sCnt2=%ld, sMove=%ld, aCyc=%d", _stepperData.stepCnt, _stepperData.stepCnt2, stepsToMove, _stepperData.aCycSteps );
@@ -534,10 +553,25 @@ void MoToStepper::doSteps( long stepValue ) {
     }
     
     #ifdef ESP8266
-     if ( startMove ) startWaveform( _stepperData.pins[0], CYCLETIME, _stepperData.aUsSteps, 0 ); 
+     if ( startMove ) {
+        // check if enable Pin must be activated
+        if ( _stepperData.enablePin !=255 && !_stepperData.delayActiv ) {
+            // enable must be set and delaytime is not yet running
+            digitalWrite( _stepperData.enablePin, _stepperData.enable );
+            // create a singlepulse on dir-output to measure delaytime
+            //digitalWrite( _stepperData.pins[1], OFF ); 
+            //delayMicroseconds( 10 );
+            startWaveform( _stepperData.pins[1], 1000*_stepperData.usDelay, 10000 , 900*_stepperData.usDelay); 
+            _stepperData.delayActiv = true;
+        } else {
+            // no enable control, start movement directly
+            startWaveform( _stepperData.pins[0], CYCLETIME, _stepperData.aUsSteps-CYCLETIME, 0 ); 
+        }
+    }
     DB_PRINT( "StepValues:, sCnt=%ld, sCnt2=%ld, sMove=%ld, aµs=%d", _stepperData.stepCnt, _stepperData.stepCnt2, stepsToMove, _stepperData.aUsSteps );
     DB_PRINT( "RampValues:, Spd=%u, rmpLen=%u, tµs=%u, aµs=%u", _stepSpeed10, _stepperData.stepRampLen,
                     _stepperData.tUsSteps, _stepperData.aUsSteps );
+    DB_PRINT("StepperState=%s", rsC[(int)_stepperData.rampState] );
     #else
     //DB_PRINT( "StepValues:, sCnt=%ld, sCnt2=%ld, sMove=%ld, aCyc=%d", _stepperData.stepCnt, _stepperData.stepCnt2, stepsToMove, _stepperData.aCycSteps );
     //DB_PRINT( "RampValues:, Spd=%u, rmpLen=%u, tcyc=%u, trest=%u, acyc=%u", _stepSpeed10, _stepperData.stepRampLen,
@@ -675,10 +709,12 @@ void MoToStepper::rotate(int8_t direction) {
 void MoToStepper::stop() {
 	// immediate stop of the motor
     if ( _stepperData.output == NO_OUTPUT ) return; // not attached
-    
     _noStepIRQ();
-	stepsToMove = 0;
-    _stepperData.rampState = rampStat::STOPPED;
-    _stepperData.stepCnt = 0;
+    if (  _stepperData.rampState >= rampStat::CRUISING ) {
+        // its moving, stopping with next pulse
+        stepsToMove = 0;
+        _stepperData.rampState = rampStat::STOPPED;
+        _stepperData.stepCnt = 1;
+    }
     _stepIRQ();
 }

@@ -6,7 +6,20 @@
 // This is done because we have no direct time-ISR on the ESP. The dir output is always
 // LOW if there are no step pulses to be created. What we need is a dedicated ISR for the dir-pin if the
 // enable function is active
-void ICACHE_RAM_ATTR ISR_Stepperenable( stepperData_t *stepperDataP) {
+void ICACHE_RAM_ATTR ISR_StepperEnable( stepperData_t *stepperDataP) {
+    if ( stepperDataP->delayActiv ) {
+        // end of enable delay - start moving or switch off enable
+        stepperDataP->delayActiv = false;
+        if ( stepperDataP->rampState >= rampStat::CRUISING ) {
+            // start moving, start creating pulses;
+            digitalWrite( stepperDataP->pins[1], (stepperDataP->patternIxInc < 0) ); //set dir pin accordingly
+            //delayMicroseconds( 10 );
+            startWaveform( stepperDataP->pins[0], CYCLETIME, stepperDataP->aUsSteps-CYCLETIME, 0 ); 
+        } else {
+            // no more moving, switch off enable pin
+            digitalWrite( stepperDataP->enablePin, !stepperDataP->enable );
+        }
+    }
 }
 void ICACHE_RAM_ATTR ISR_Stepper(stepperData_t *stepperDataP) {
     SET_TP1;
@@ -38,15 +51,16 @@ void ICACHE_RAM_ATTR ISR_Stepper(stepperData_t *stepperDataP) {
                 stepperDataP->stepCnt2 = 0;
                 stepperDataP->rampState = rampStat::RAMPACCEL;
             } else {    
-                if (stepperDataP->enablePin != 255) {
-                    // enable is active, wait for disabling 
-					// timing is be done by a pulse on the dir output ( with IRQ at the end )
-					TODO;
-                }  
                 stepperDataP->aUsSteps = 0;    // no more Interrupts for this stepper needed
                 stepperDataP->rampState = rampStat::STOPPED;
 				// stop creating pulses after the current pulse
 				startWaveform(stepperDataP->pins[0], CYCLETIME, 1000, 50 );
+                if (stepperDataP->enablePin != 255) {
+                    // enable is active, wait for disabling 
+					// timing is be done by a pulse on the dir output ( with IRQ at the end )
+                    startWaveform( stepperDataP->pins[1], 1000*stepperDataP->usDelay, 10000 , 900*stepperDataP->usDelay); 
+                    stepperDataP->delayActiv = true;
+                }  
                 //CLR_TP2;
             }
         }
@@ -247,8 +261,8 @@ uint16_t MoToStepper::setSpeedSteps( uint32_t speed10, int16_t rampLen ) {
     return _stepperData.stepRampLen;
 }
  
- #ifdef debugPrint
 void MoToStepper::prDynData() {             // print actual Stepperdata
+ #ifdef debugPrint
     stepperData_t stepperData;  // vor Ausdruck eine lokale Kopie erstellen
     noInterrupts();
     stepperData.stepCnt = _stepperData.stepCnt;        // nmbr of steps to take
@@ -268,6 +282,6 @@ void MoToStepper::prDynData() {             // print actual Stepperdata
     Serial.printf("stepCnt=%5d\t stepCnt2=%5d\n\r", stepperData.stepCnt, stepperData.stepCnt2 );
     Serial.printf("tUsSteps=%5d\t aUsSteps=%5d\t XrampL=%5d\n\r", stepperData.tUsSteps,stepperData.aUsSteps,stepperData.ustXramplen);
     Serial.printf("rampLen=%4d\t stepsInRamp=%4d\t, rampState=%s(%d)\n\r",stepperData.stepRampLen,stepperData.stepsInRamp,rsC[(int)stepperData.rampState],stepperData.rampState);
-}
 #endif
+}
 

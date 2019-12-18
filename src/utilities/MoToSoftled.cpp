@@ -6,7 +6,7 @@
   Functions for the stepper part of MobaTools
 */
 #include <MobaTools.h>
-#define debugPrint
+//#define debugPrint
 #include <utilities/MoToDbg.h>
 
 #ifndef ESP8266 // there is a special MoToSoftledESP.cpp for ESP8266
