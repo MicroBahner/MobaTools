@@ -72,6 +72,7 @@
 // default CYCLETIME is processordependent, change only if you know what you are doing ).
 #ifdef  ESP8266
 #define CYCLETIME       80      // Min. irq-periode in us ( ESP-default is 80 )
+#define MIN_STEP_CYCLE  2       // Minimum number of cycles per step. 
 #define MAX_GPIO        10      // max number of usable gpios
 // at max 10 gpio's can be used at an ESP12: gpio 0,1,2,3,4,5,12,13,14,15
 // gpio 6-10 is internally used for flash

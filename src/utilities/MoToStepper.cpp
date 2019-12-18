@@ -7,7 +7,7 @@
 */
 #include <MobaTools.h>
 //#define debugTP
-//#define debugPrint
+#define debugPrint
 #include <utilities/MoToDbg.h>
 #define TODO	// ignore 
 // Global Data for all instances and classes  --------------------------------
@@ -143,14 +143,15 @@ long MoToStepper::getSFZ() {
     noInterrupts();
     tmp = _stepperData.stepsFromZero;
     interrupts();
-    return tmp / stepMode;
+    // in A4988 mode there is no difference between half/fullstep in counting steps
+    return ( stepMode==A4988?tmp:tmp / stepMode);
 }
 
 bool MoToStepper::_chkRunning() {
     // is the stepper moving?
     bool tmp;
     _noStepIRQ();
-    tmp = _stepperData.rampState >= rampStat::CRUISING && _stepperData.stepsInRamp > 0 ;
+    tmp = _stepperData.rampState >= rampStat::CRUISING ;//&& _stepperData.stepsInRamp > 0 ;
     _stepIRQ();
     return tmp;
 }
@@ -257,7 +258,6 @@ uint8_t MoToStepper::attach( byte outArg, byte pins[] ) {
             pinMode( pins[i], OUTPUT );
             digitalWrite( pins[i], LOW );
         }
-		stepMode = HALFSTEP;                      // There are no real stepmodes in A4988 - mode
 		_stepperData.patternIxInc = 1;  // defines direction
         break;
      default:
@@ -369,8 +369,9 @@ int MoToStepper::setSpeed( int rpm10 ) {
 uint16_t MoToStepper::setSpeedSteps( uintxx_t speed10 ) {
     // Speed in steps per sec * 10
     // without a new ramplen, the ramplen is adjusted according to the speedchange
-    //DB_PRINT("sSS2: sRL=%u, spd=%u", stepRampLen, _stepSpeed10 );
-    return setSpeedSteps( speed10,  -(long)speed10*_lastRampLen/_lastRampSpeed -1 );
+    long rtmp = (long)speed10*_lastRampLen/_lastRampSpeed -1;
+    DB_PRINT(">>>>>>>>>>>sSS:(%d) nRl=%ld", speed10, rtmp );
+    return setSpeedSteps( speed10,  -rtmp );
 }
 
 uint16_t MoToStepper::setRampLen( uint16_t rampSteps ) {
@@ -430,7 +431,7 @@ void MoToStepper::doSteps( long stepValue ) {
     
     if ( _stepperData.output == NO_OUTPUT ) return; // not attached
     //Serial.print( "doSteps: " ); Serial.println( stepValue );
-    
+    DB_PRINT(">>>>>>>>>>doSteps(%ld)>>>>>>>>>>>>>>>", stepValue );
     stepsToMove = stepValue;
     stepCnt = abs(stepValue);
     
@@ -502,11 +503,15 @@ void MoToStepper::doSteps( long stepValue ) {
         else     patternIxInc = -abs( _stepperData.patternIxInc );
         _noStepIRQ();
         _stepperData.patternIxInc = patternIxInc;
+        #ifdef ESP8266
+            // set dir output
+            digitalWrite( _stepperData.pins[1], (_stepperData.patternIxInc < 0) );
+        #endif
         _stepperData.stepCnt = abs(stepsToMove);
-        if ( _stepperData.rampState < rampStat::CRUISING ) {
-            // stepper does not move, start it
+        if ( _stepperData.rampState < rampStat::CRUISING && stepValue!=0 ) {
+            // stepper does not move, start it because we have to do steps
             #ifdef ESP8266
-            _stepperData.rampState      = rampStat::RAMPACCEL;
+            _stepperData.rampState      = rampStat::CRUISING;   // we don't have a ramp
             _stepperData.aUsSteps       = _stepperData.tUsSteps;
             startMove = 1;
             #else
@@ -530,7 +535,6 @@ void MoToStepper::doSteps( long stepValue ) {
     
     #ifdef ESP8266
      if ( startMove ) startWaveform( _stepperData.pins[0], CYCLETIME, _stepperData.aUsSteps, 0 ); 
-     
     DB_PRINT( "StepValues:, sCnt=%ld, sCnt2=%ld, sMove=%ld, aµs=%d", _stepperData.stepCnt, _stepperData.stepCnt2, stepsToMove, _stepperData.aUsSteps );
     DB_PRINT( "RampValues:, Spd=%u, rmpLen=%u, tµs=%u, aµs=%u", _stepSpeed10, _stepperData.stepRampLen,
                     _stepperData.tUsSteps, _stepperData.aUsSteps );
@@ -557,7 +561,7 @@ void MoToStepper::setZero(long zeroPoint) {
 
 void MoToStepper::write(long angleArg ) {
     // set next position as angle, measured from last setZero() - point
-    //DB_PRINT("write: %d", angleArg);
+    DB_PRINT("write: %d", angleArg);
     MoToStepper::write( angleArg, 1 );
 }
 
@@ -568,7 +572,7 @@ void MoToStepper::write( long angleArg, byte fact ) {
     bool negative;
     long angle2steps;
     negative =  ( angleArg < 0 ) ;
-    //DB_PRINT( "angleArg: %d",angleArg ); //DB_PRINT( " getSFZ: ", getSFZ() );
+    DB_PRINT( "angleArg: %d",angleArg ); //DB_PRINT( " getSFZ: ", getSFZ() );
     //Serial.print( "Write: " ); Serial.println( angleArg );
     // full revolutions:
     angle2steps = abs(angleArg) / (360L * fact ) * (long)stepsRev;

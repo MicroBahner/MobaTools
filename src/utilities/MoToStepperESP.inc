@@ -6,7 +6,7 @@
 // This is done because we have no direct time-ISR on the ESP. The dir output is always
 // LOW if there are no step pulses to be created. What we need is a dedicated ISR for the dir-pin if the
 // enable function is active
-void enableISR( stepperData_t *stepperDataP) {
+void ICACHE_RAM_ATTR ISR_Stepperenable( stepperData_t *stepperDataP) {
 }
 void ICACHE_RAM_ATTR ISR_Stepper(stepperData_t *stepperDataP) {
     SET_TP1;
@@ -22,7 +22,9 @@ void ICACHE_RAM_ATTR ISR_Stepper(stepperData_t *stepperDataP) {
         attachInterrupt( stepperDataP->pins[0],gpioTab[gpio2ISRx(stepperDataP->pins[0])].gpioISR, RISING );    
     } else {
         // we did a step, update position counter
-        stepperDataP->stepsFromZero += stepperDataP->patternIxInc;
+        //stepperDataP->stepsFromZero += stepperDataP->patternIxInc;
+        if ( digitalRead( stepperDataP->pins[1]) ) stepperDataP->stepsFromZero--;
+        else stepperDataP->stepsFromZero++;
         // ------------------ check if last step -----------------------------------
         if ( --stepperDataP->stepCnt == 0 ) {
             // this was the last step.
@@ -127,7 +129,7 @@ void ICACHE_RAM_ATTR ISR_Stepper(stepperData_t *stepperDataP) {
      CLR_TP1;
 }    
 
-uint16_t Stepper4::setSpeedSteps( uint32_t speed10, int16_t rampLen ) {
+uint16_t MoToStepper::setSpeedSteps( uint32_t speed10, int16_t rampLen ) {
     // Set speed and length of ramp to reach speed ( from stop )
     // neagtive ramplen means it was set automatically
     rampStat newRampState;      // State of acceleration/deceleration
@@ -138,7 +140,7 @@ uint16_t Stepper4::setSpeedSteps( uint32_t speed10, int16_t rampLen ) {
     uint32_t newSpeed10;        // new target speed
 
     if ( _stepperData.output == NO_OUTPUT ) return 0; // --------------->>>>>>>>>>>>>>>>not attached
-    
+    DB_PRINT(">>>>>>>>>>sSS(%u,%d)", speed10, rampLen );
     // compute new speed values, adjust length of ramp if necessary
     //actSpeed10 = oldSpeed10 = _stepSpeed10;
         
@@ -159,6 +161,7 @@ uint16_t Stepper4::setSpeedSteps( uint32_t speed10, int16_t rampLen ) {
         _lastRampSpeed = newSpeed10;
         _lastRampLen   = newRampLen;
     }
+    DB_PRINT( "rampLen-new=%u, ramplenParam=%d, _lastrampSpeed=%d, _lastRmapLen=%d", newRampLen, rampLen, _lastRampSpeed, _lastRampLen );
     
     // recompute all relevant rampvalues according to actual speed and ramplength
     // This needs to be done only, if a ramp is defined, the stepper is moving
@@ -188,9 +191,9 @@ uint16_t Stepper4::setSpeedSteps( uint32_t speed10, int16_t rampLen ) {
             //with ramp and ramp or speed changed 
             // compute new 'steps in Ramp' according to new speed and ramp values. This maybe greater
             // than ramplen, if speed changed to slower
-            newStepsInRamp = ( newUstXramplen * (_stepperData.stepsInRamp + RAMPOFFSET ) / _stepperData.ustXramplen ) -RAMPOFFSET;
+            newStepsInRamp = ( (int64_t)newUstXramplen * (_stepperData.stepsInRamp + RAMPOFFSET ) / _stepperData.ustXramplen ) -RAMPOFFSET;
+            
             if ( newStepsInRamp < 0 ) newStepsInRamp = 0; 
-            //Serial.print( newStepsInRamp );
             
             if ( newSpeed10 != _stepSpeed10 ) {
                 // speed changed!
@@ -230,6 +233,7 @@ uint16_t Stepper4::setSpeedSteps( uint32_t speed10, int16_t rampLen ) {
             _stepperData.stepCnt2 = __newStepCnt2;
         }
     }
+    DB_PRINT( "newStepsInRamp:%d",newStepsInRamp );
     
     _stepperData.tUsSteps = tUsSteps;
     _stepperData.ustXramplen = newUstXramplen;
@@ -243,3 +247,27 @@ uint16_t Stepper4::setSpeedSteps( uint32_t speed10, int16_t rampLen ) {
     return _stepperData.stepRampLen;
 }
  
+ #ifdef debugPrint
+void MoToStepper::prDynData() {             // print actual Stepperdata
+    stepperData_t stepperData;  // vor Ausdruck eine lokale Kopie erstellen
+    noInterrupts();
+    stepperData.stepCnt = _stepperData.stepCnt;        // nmbr of steps to take
+    stepperData.stepCnt2 = _stepperData.stepCnt2;                // nmbr of steps to take after automatic reverse
+    stepperData.tUsSteps = _stepperData.tUsSteps;           // µseconds per step ( target value of motorspeed  )
+    stepperData.aUsSteps = _stepperData.aUsSteps;  // nµseconds per step ( actual motorspeed  )
+    stepperData.ustXramplen = _stepperData.ustXramplen;        // precompiled  tUsSteps*(rampLen+RAMPOFFSET)
+    stepperData.usDelay = _stepperData.usDelay;            // delay time: enable -> stepping
+    stepperData.dirChange = _stepperData.dirChange;          // Flag: Dir has to be changed ( at falling edge )
+    stepperData.stepRampLen = _stepperData.stepRampLen;        // Length of ramp in steps
+    stepperData.stepsInRamp = _stepperData.stepsInRamp;        // stepcounter within ramp ( counting from stop ( = 0 ): incrementing in startramp, decrementing in stopramp
+                                // max value is stepRampLen
+    stepperData.rampState = _stepperData.rampState;        // State of acceleration/deceleration
+    stepperData.stepsFromZero = _stepperData.stepsFromZero;  // distance from last reference point 
+    interrupts();
+    Serial.println("------------ISR-Data-----------");
+    Serial.printf("stepCnt=%5d\t stepCnt2=%5d\n\r", stepperData.stepCnt, stepperData.stepCnt2 );
+    Serial.printf("tUsSteps=%5d\t aUsSteps=%5d\t XrampL=%5d\n\r", stepperData.tUsSteps,stepperData.aUsSteps,stepperData.ustXramplen);
+    Serial.printf("rampLen=%4d\t stepsInRamp=%4d\t, rampState=%s(%d)\n\r",stepperData.stepRampLen,stepperData.stepsInRamp,rsC[(int)stepperData.rampState],stepperData.rampState);
+}
+#endif
+

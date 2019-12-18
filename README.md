@@ -6,8 +6,9 @@ MobaTools
 
 | Version |  Release Date  | Description
 | ------- |  ------------  | -----------
-| 2.0.0 | 2019-12-?? | managing an enable pin for steppers is possible, ESP8266 supported
+| 2.0.0 | 2019-12-?? | managing an enable pin for steppers is possible
 | | | new method 'getSpeedSteps' returns actual speed
+| | | ESP8266 is now supported ( with limitations regarding stepper mode: only step/dir is possible )
 | | | classnames have changed ( the old names can still be used for compatibility, but should not be used in new sketches)
 | 1.1.4 | 2019-09-25 | check for setting speed to 0 ( this is not allowed, will be changed to '1' internally )
 | | | fix error when setting targetposition repetitive very fast

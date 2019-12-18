@@ -175,6 +175,7 @@ class MoToStepper
     long read();                    // actual angle from zeropoint (setZero)
     long readSteps();               // actual distance to zeropoint in steps
     uint8_t attached();
+    void prDynData();             // print actual Stepperdata
 };
 
 #endif
