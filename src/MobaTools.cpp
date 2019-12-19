@@ -127,9 +127,11 @@ bool MoToTimer::running() {
     return active;
 }
 
-bool MoToTimer::expired() { return !running(); }
+bool EggTimer::expired() { return !running(); }
 
-long MoToTimer::getTime() {
+void EggTimer::stop() { active = false; }
+
+long EggTimer::getTime() {
     // return remaining time
     if ( running() ) return endtime - (long)millis();
     else return 0;
