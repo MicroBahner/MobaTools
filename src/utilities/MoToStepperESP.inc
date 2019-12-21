@@ -7,6 +7,7 @@
 // LOW if there are no step pulses to be created. What we need is a dedicated ISR for the dir-pin if the
 // enable function is active
 void ICACHE_RAM_ATTR ISR_StepperEnable( stepperData_t *stepperDataP) {
+    GPOS = (1<<2);
     if ( stepperDataP->delayActiv ) {
         // end of enable delay - start moving or switch off enable
         stepperDataP->delayActiv = false;
@@ -20,9 +21,12 @@ void ICACHE_RAM_ATTR ISR_StepperEnable( stepperData_t *stepperDataP) {
             digitalWrite( stepperDataP->enablePin, !stepperDataP->enable );
         }
     }
+    GPOC = (1<<2);
 }
 void ICACHE_RAM_ATTR ISR_Stepper(stepperData_t *stepperDataP) {
     SET_TP1;
+    GPOS = (1<<0);
+
     // ---------------Stepper motors ---------------------------------------------
     // Usually the ISR is fired at the start of the step pulse
     //CLR_TP1;    // spike for recognizing start of each stepper
@@ -35,9 +39,9 @@ void ICACHE_RAM_ATTR ISR_Stepper(stepperData_t *stepperDataP) {
         attachInterrupt( stepperDataP->pins[0],gpioTab[gpio2ISRx(stepperDataP->pins[0])].gpioISR, RISING );    
     } else {
         // we did a step, update position counter
-        //stepperDataP->stepsFromZero += stepperDataP->patternIxInc;
-        if ( digitalRead( stepperDataP->pins[1]) ) stepperDataP->stepsFromZero--;
-        else stepperDataP->stepsFromZero++;
+        stepperDataP->stepsFromZero += stepperDataP->patternIxInc;
+        //if ( digitalRead( stepperDataP->pins[1]) ) stepperDataP->stepsFromZero--;
+        //else stepperDataP->stepsFromZero++;
         // ------------------ check if last step -----------------------------------
         if ( --stepperDataP->stepCnt == 0 ) {
             // this was the last step.
@@ -54,11 +58,11 @@ void ICACHE_RAM_ATTR ISR_Stepper(stepperData_t *stepperDataP) {
                 stepperDataP->aUsSteps = 0;    // no more Interrupts for this stepper needed
                 stepperDataP->rampState = rampStat::STOPPED;
 				// stop creating pulses after the current pulse
-				startWaveform(stepperDataP->pins[0], CYCLETIME, 1000, 50 );
+				startWaveform(stepperDataP->pins[0], CYCLETIME, 10, CYCLETIME );
                 if (stepperDataP->enablePin != 255) {
                     // enable is active, wait for disabling 
-					// timing is be done by a pulse on the dir output ( with IRQ at the end )
-                    startWaveform( stepperDataP->pins[1], 1000*stepperDataP->usDelay, 10000 , 900*stepperDataP->usDelay); 
+					// timing is done by a pulse on the dir output ( with IRQ at the end )
+                    startWaveform( stepperDataP->pins[1], 1000*stepperDataP->usDelay, 10 , (1000*stepperDataP->usDelay)); 
                     stepperDataP->delayActiv = true;
                 }  
                 //CLR_TP2;
@@ -141,6 +145,8 @@ void ICACHE_RAM_ATTR ISR_Stepper(stepperData_t *stepperDataP) {
         
     }
      CLR_TP1;
+    GPOC = (1<<0);
+
 }    
 
 uint16_t MoToStepper::setSpeedSteps( uint32_t speed10, int16_t rampLen ) {

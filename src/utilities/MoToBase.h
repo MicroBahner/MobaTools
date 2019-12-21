@@ -28,7 +28,7 @@
 #endif
 
 #ifdef ESP8266
-#include <core_esp8266_waveform.h>
+#include <utilities/ESP8266_waveform.h>
 #endif
 
 #define ISR_IDLETIME    5000        // max time between two Stepper/Softled ISRs

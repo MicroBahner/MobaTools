@@ -34,6 +34,7 @@ setTime	KEYWORD2
 getTime	KEYWORD2
 expired	KEYWORD2
 running	KEYWORD2
+stop	KEYWORD2
 
 #Methods for Class SoftLed 
 attach	KEYWORD2

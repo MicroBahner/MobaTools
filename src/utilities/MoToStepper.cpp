@@ -492,7 +492,7 @@ void MoToStepper::doSteps( long stepValue ) {
                 #ifdef ESP8266
                     _stepperData.aUsSteps       = _stepperData.ustXramplen / RAMPOFFSET; // first steplen in ramp
                     _stepperData.rampState      = rampStat::RAMPACCEL;
-                    digitalWrite( _stepperData.pins[1], patternIxInc<0 );      // setze dir-output
+                    //digitalWrite( _stepperData.pins[1], patternIxInc<0 );      // setze dir-output
                     startMove = 1;
                 #else
                     _stepperData.cycCnt         = 0;            // start with the next IRQ
@@ -522,10 +522,6 @@ void MoToStepper::doSteps( long stepValue ) {
         else     patternIxInc = -abs( _stepperData.patternIxInc );
         _noStepIRQ();
         _stepperData.patternIxInc = patternIxInc;
-        #ifdef ESP8266
-            // set dir output
-            digitalWrite( _stepperData.pins[1], (_stepperData.patternIxInc < 0) );
-        #endif
         _stepperData.stepCnt = abs(stepsToMove);
         if ( _stepperData.rampState < rampStat::CRUISING && stepValue!=0 ) {
             // stepper does not move, start it because we have to do steps
@@ -553,20 +549,28 @@ void MoToStepper::doSteps( long stepValue ) {
     }
     
     #ifdef ESP8266
-     if ( startMove ) {
+    if ( startMove ) {
         // check if enable Pin must be activated
-        if ( _stepperData.enablePin !=255 && !_stepperData.delayActiv ) {
-            // enable must be set and delaytime is not yet running
-            digitalWrite( _stepperData.enablePin, _stepperData.enable );
-            // create a singlepulse on dir-output to measure delaytime
-            //digitalWrite( _stepperData.pins[1], OFF ); 
-            //delayMicroseconds( 10 );
-            startWaveform( _stepperData.pins[1], 1000*_stepperData.usDelay, 10000 , 900*_stepperData.usDelay); 
-            _stepperData.delayActiv = true;
+        if ( _stepperData.enablePin !=255 ) {
+            if ( !_stepperData.delayActiv ) {
+                // enable must be set and delaytime is not yet running
+                digitalWrite( _stepperData.enablePin, _stepperData.enable );
+                // create a singlepulse on dir-output to measure delaytime
+                //delayMicroseconds( 10 );
+                startWaveform( _stepperData.pins[1], 1000*_stepperData.usDelay, 10000 , 900*_stepperData.usDelay); 
+                _stepperData.delayActiv = true;
+            }
         } else {
             // no enable control, start movement directly
+            // set dir output
+            digitalWrite( _stepperData.pins[1], (_stepperData.patternIxInc < 0) );
             startWaveform( _stepperData.pins[0], CYCLETIME, _stepperData.aUsSteps-CYCLETIME, 0 ); 
         }
+    } else {
+        // direction may have changed, so set it here
+        noInterrupts(); // with ramp direction may change in ISR
+        digitalWrite( _stepperData.pins[1], (_stepperData.patternIxInc < 0) );
+        interrupts();
     }
     DB_PRINT( "StepValues:, sCnt=%ld, sCnt2=%ld, sMove=%ld, aµs=%d", _stepperData.stepCnt, _stepperData.stepCnt2, stepsToMove, _stepperData.aUsSteps );
     DB_PRINT( "RampValues:, Spd=%u, rmpLen=%u, tµs=%u, aµs=%u", _stepSpeed10, _stepperData.stepRampLen,
