@@ -10,23 +10,26 @@
 #ifdef ESP8266
 
 ///////////////////////////////////////////////////////////////////////////////////////////////
-    #define PWMCYC  1000    // default analogWrite cycletime in µs ( = 1000Hz )
-    const uint16_t MIN_PULSE = 50;
+    const uint16_t DEFAULT_PWMCYC = 1000;   // default analogWrite cycletime in µs ( = 1000Hz )
+    const uint16_t MIN_PWMPULSE = 40;
     
 class MoToPwm
 { // create pwm pulses
   // 
   public:
     MoToPwm();
-    void attach( uint8_t pin );             // set Gpio to create pulses on
-    void analogWrite ( uint16_t duty1000 ); // create pwm pulse with defined dutycycle 0...1000 ( promille)
-    void setFreq(float freq);               // set frequency for following analogWrite commands
-    void tone(float freq);                  // create tone with dutycycle 50%
-    void setPwm( long high, long low );     // set pem with free defined hig and low times ( in microseconds )
-    void stop()                             // stop creating pulses
+    uint8_t attach( uint8_t pin );                 // set Gpio to create pulses on
+    void detach();
+    void analogWrite ( uint16_t duty1000 );     // create pwm pulse with defined dutycycle 0...1000 ( promille)
+    void setFreq(uint32_t freq);  // set frequency for following analogWrite commands
+    void tone(float freq, uint32_t duration );  // create tone with dutycycle 50%
+    void setPwm( uint32_t high, uint32_t low );         // set pem with free defined hig and low times ( in microseconds )
+    #define noTone stop
+    void stop() ;                               // stop creating pulses
   private:
-    uint8_t     pinNbr;                     // 255 means not attached
-    uint32_t    pwmCycle                    // cycletime for analogWrite command
+    uint8_t     _pinNbr;                        // 255 means not attached
+    uint32_t    _pwmCycle;                      // cycletime for analogWrite command ( in µs )
+    uint32_t    _pwmScale;
     
 };
 #endif

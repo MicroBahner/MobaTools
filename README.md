@@ -42,8 +42,12 @@ Allows easy softon / softoff of leds. It works on all digital outputs.
 Allows easy nonblocking timedelays in sketches. You don't have to bother with millis() directly
 
 #### Additional Info:
-The library uses Timer1 for all classes. V1.0: from this version on, timer 3 is used instead of timer 1 if available.
-On the STM32F1 platform, timer 4 is used.
-With ESP8266 the core waveform creating fuctions, and IO-interrupts are used.
-
 There is no special function that has to be called in the loop frequently. You can even use the delay() function in the loop while servos and steppers are moving.
+The library uses Timer1 for all classes (AVR). V1.0: from this version on, timer 3 is used instead of timer 1 if available.
+On the STM32F1 platform, timer 4 is used.
+With ESP8266 waveform creating fuctions, and IO-interrupts are used. Because the core functions could not be used for this purpose, the integrated functions tone(), analogWrite() and servo() cannot be used together with MabTools.
+To overcome this problem, there exists an additional class exclusively for the ESP8266 platform:
+#### MotoPwm ( only ESP8266 ):
+Contains Methods to create pwm and tone outputs.
+
+

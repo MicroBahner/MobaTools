@@ -1,5 +1,5 @@
 #######################################
-# Syntax Coloring Map Servo
+# Syntax Coloring Map MoBaTools
 #######################################
 
 #######################################
@@ -11,12 +11,13 @@ MoToServo	KEYWORD1
 MoToTimer	KEYWORD1    
 MoToSoftLed	KEYWORD1   
 MoToStepper	KEYWORD1
+MoToPwm	KEYWORD1
  
 #######################################
 # Methods and Functions (KEYWORD2)
 #######################################
 
-#Methods for Class Servo2
+#Methods for Class MoToServo
 attach	KEYWORD2
 detach	KEYWORD2
 write	KEYWORD2
@@ -29,14 +30,14 @@ stepsToDo	KEYWORD2
 setMinimumPulse	KEYWORD2
 setMaximumPulse	KEYWORD2
 
-#Methods for Class EggTimer
+#Methods for Class MoToTimer
 setTime	KEYWORD2
 getTime	KEYWORD2
 expired	KEYWORD2
 running	KEYWORD2
 stop	KEYWORD2
 
-#Methods for Class SoftLed 
+#Methods for Class MoToSoftLed 
 attach	KEYWORD2
 riseTime	KEYWORD2
 on	KEYWORD2
@@ -44,7 +45,16 @@ off	KEYWORD2
 toggle	KEYWORD2
 write	KEYWORD2
 
-#Methods for Class Stepper4
+#Methods for Class MoToPwm 
+attach	KEYWORD2
+detach	KEYWORD2
+analogWrite	KEYWORD2
+setFreq	KEYWORD2
+tone	KEYWORD2
+setPwm	KEYWORD2
+stop	KEYWORD2
+
+#Methods for Class MoToStepper
 attach	KEYWORD2
 attachEnable	KEYWORD2
 detach	KEYWORD2
@@ -73,6 +83,7 @@ SPI_4	LITERAL1
 HALFSTEP	LITERAL1
 FULLSTEP	LITERAL1
 A4988	LITERAL1
+STEPDIR	LITERAL1
 MAX_SERVOS	LITERAL1
 MINPULSEWIDTH	LITERAL1
 MAXPULSEWIDTH	LITERAL1

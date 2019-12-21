@@ -92,10 +92,10 @@ void ICACHE_RAM_ATTR ISR_Softled( ledData_t *_ledData ) {
     CLR_TP2;
 } //=============================== End of softledISR ========================================
 /////////////////////////////////////////////////////////////////////////////
-//Class SoftLed - for Led with soft on / soft off ---------------------------
+//Class MoToSoftLed - for Led with soft on / soft off ---------------------------
 // Version with Software PWM
 
-void SoftLed::_computeBulbValues() {
+void MoToSoftLed::_computeBulbValues() {
      // recompute parameter for bulb simulation ( hyperbolic approximation of pwm ramp )
     int hypB;
     int hypPo;
@@ -125,7 +125,7 @@ void SoftLed::_computeBulbValues() {
     #endif
 }
 
-SoftLed::SoftLed() {
+MoToSoftLed::MoToSoftLed() {
     _ledData.aPwm     = 0 ;          // initialize to OFF
     _ledData.tPwmOn = PWMCYC;      // target PWM value (µs )
     _ledData.tPwmOff  = 0;           // target PWM value (µs )
@@ -139,7 +139,7 @@ SoftLed::SoftLed() {
 
    
 
-uint8_t SoftLed::attach(uint8_t pinArg, uint8_t invArg ){
+uint8_t MoToSoftLed::attach(uint8_t pinArg, uint8_t invArg ){
     // Led-Ausgang mit Softstart. 
     
     // wrong pinnbr or pin in use?
@@ -168,7 +168,7 @@ uint8_t SoftLed::attach(uint8_t pinArg, uint8_t invArg ){
     return true;
 }
 
-void SoftLed::on(uint8_t brightness ){
+void MoToSoftLed::on(uint8_t brightness ){
     // set brightness for on ( in percent ) and switch on
     // this brightness will stay for all succeding 'on'
     if ( _ledData.state ==  NOTATTACHED ) return;  // this is not a valid instance
@@ -186,7 +186,7 @@ void SoftLed::on(uint8_t brightness ){
     DB_PRINT("On: Br=%d, PwmOn=%d ( %d ), PwmOff=%d", brightness, _ledData.tPwmOn, tmp, _ledData.tPwmOff);
 }
 
-void SoftLed::off(uint8_t brightness ){
+void MoToSoftLed::off(uint8_t brightness ){
     // set brightness for off ( in percent ) and switch off
     // this brightness will stay for all succeding 'off'
     if ( _ledData.state ==  NOTATTACHED ) return;  // this is not a valid instance
@@ -203,7 +203,7 @@ void SoftLed::off(uint8_t brightness ){
     off();
 }
 
-void SoftLed::on(){
+void MoToSoftLed::on(){
     LedStats_t oldState, stateT;
     if ( _ledData.state ==  NOTATTACHED ) return;  // this is not a valid instance
     // Don't do anything if its already ON 
@@ -230,7 +230,7 @@ void SoftLed::on(){
     //DB_PRINT( "Led %d On, state=%d", ledIx, _ledData.state);
 }
 
-void SoftLed::off(){
+void MoToSoftLed::off(){
     LedStats_t oldState, stateT;
     if ( _ledData.state ==  NOTATTACHED ) return; // this is not a valid instance
     // Dont do anything if its already OFF 
@@ -259,19 +259,19 @@ void SoftLed::off(){
     //DB_PRINT( "Led %d Off, state=%d", ledIx, _ledData.state);
 }
 
-void SoftLed::toggle( void ) {
+void MoToSoftLed::toggle( void ) {
     if ( _ledData.state ==  NOTATTACHED ) return; // this is not a valid instance
     if ( _setpoint == ON  ) off();
     else on();
 }
 
-void SoftLed::write( uint8_t setpntVal, uint8_t ledPar ){
+void MoToSoftLed::write( uint8_t setpntVal, uint8_t ledPar ){
     if ( _ledData.state ==  NOTATTACHED ) return; // this is not a valid instance
     _ledType = ledPar;
     write( setpntVal ) ;
 }
 
-void SoftLed::write( uint8_t setpntVal ){
+void MoToSoftLed::write( uint8_t setpntVal ){
     //DB_PRINT( "LedWrite ix= %d, valid= 0x%x, sp=%d, lT=%d", ledIx, ledValid, setpntVal, _ledType );
     if ( _ledData.state ==  NOTATTACHED ) return; // this is not a valid instance
     if ( setpntVal == ON ) on(); else off();
@@ -283,7 +283,7 @@ void SoftLed::write( uint8_t setpntVal ){
     #endif
 }
 
-void SoftLed::riseTime( uint16_t riseTime ) {
+void MoToSoftLed::riseTime( uint16_t riseTime ) {
     if ( _ledData.state ==  NOTATTACHED ) return;
     // length of startphase in ms (min 20ms, max 65000ms )
     // 

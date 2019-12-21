@@ -99,6 +99,7 @@
 #include <utilities/MoToStepper.h>
 #include <utilities/MoToServo.h>
 #include <utilities/MoToSoftled.h>
+#include <utilities/MoToPwm.h>
 
 #endif
 
