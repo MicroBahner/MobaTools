@@ -14,9 +14,9 @@ void startLedPulse( uint8_t pin, uint8_t invFlg, uint32_t pulseLen ){
     // start or change the pwmpulses on the led pin.
     // with invFlg set pulseLen is lowtime, else hightime
     if ( invFlg ) {
-        startWaveform(pin, PWMCYC-pulseLen, pulseLen,0);
+        startWaveformMoTo(pin, PWMCYC-pulseLen, pulseLen,0);
     } else {
-        startWaveform(pin, pulseLen, PWMCYC-pulseLen,0);
+        startWaveformMoTo(pin, pulseLen, PWMCYC-pulseLen,0);
     }
 
 }
@@ -30,7 +30,7 @@ void ICACHE_RAM_ATTR ISR_Softled( ledData_t *_ledData ) {
     switch ( _ledData->state ) {
       case STATE_ON: // last ISR ( at leading edge )
         changePulse = -1; // nothing to change
-        stopWaveform( _ledData->pin );
+        stopWaveformMoTo( _ledData->pin );
         attachInterrupt( _ledData->pin, gpioTab[gpio2ISRx(_ledData->pin)].gpioISR, _ledData->invFlg?RISING:FALLING ); //trailing edge 
         break;
       case INCLIN:
@@ -61,7 +61,7 @@ void ICACHE_RAM_ATTR ISR_Softled( ledData_t *_ledData ) {
              changePulse = -1; // nothing to change
            if ( _ledData->tPwmOff == 0 ) {
                 // switch on static
-                stopWaveform( _ledData->pin );
+                stopWaveformMoTo( _ledData->pin );
                 digitalWrite( _ledData->pin , _ledData->invFlg );
                 _ledData->state = STATE_OFF;
             } else {

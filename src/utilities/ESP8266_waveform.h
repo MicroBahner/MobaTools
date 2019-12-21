@@ -3,6 +3,8 @@
                      supporting outputs on all pins in parallel.
 
   Copyright (c) 2018 Earle F. Philhower, III.  All rights reserved.
+  
+  12-2019 adapted to MobaTools by F.-P. Mueller
 
   The core idea is to have a programmable waveform generator with a unique
   high and low period (defined in microseconds).  TIMER1 is set to 1-shot
@@ -49,10 +51,11 @@ extern "C" {
 // Start or change a waveform of the specified high and low times on specific pin.
 // If runtimeUS > 0 then automatically stop it after that many usecs.
 // Returns true or false on success or failure.
-int ICACHE_RAM_ATTR startWaveform(uint8_t pin, uint32_t timeHighUS, uint32_t timeLowUS, uint32_t runTimeUS);
+int startWaveformMoTo(uint8_t pin, uint32_t timeHighUS, uint32_t timeLowUS, uint32_t runTimeUS);
+int ICACHE_RAM_ATTR startWaveformISR(uint8_t pin, uint32_t timeHighUS, uint32_t timeLowUS, uint32_t runTimeUS);
 // Stop a waveform, if any, on the specified pin.
 // Returns true or false on success or failure.
-int ICACHE_RAM_ATTR stopWaveform(uint8_t pin);
+int ICACHE_RAM_ATTR stopWaveformMoTo(uint8_t pin);
 
 // Add a callback function to be called on *EVERY* timer1 trigger.  The
 // callback returns the number of microseconds until the next desired call.
@@ -62,7 +65,7 @@ int ICACHE_RAM_ATTR stopWaveform(uint8_t pin);
 // Pass in NULL to disable the callback and, if no other waveforms being
 // generated, stop the timer as well.
 // Make sure the CB function has the ICACHE_RAM_ATTR decorator.
-void setTimer1Callback(uint32_t (*fn)());
+void setTimer1CallbackMoTo(uint32_t (*fn)());
 
 #ifdef __cplusplus
 }

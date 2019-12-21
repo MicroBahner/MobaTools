@@ -4,6 +4,8 @@
 
   Copyright (c) 2018 Earle F. Philhower, III.  All rights reserved.
 
+  12-2019 adapted to MobaTools by F.-P. Mueller
+
   The core idea is to have a programmable waveform generator with a unique
   high and low period (defined in microseconds).  TIMER1 is set to 1-shot
   mode and is always loaded with the time until the next edge of any live
@@ -36,10 +38,10 @@
   License along with this library; if not, write to the Free Software
   Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
 */
-
+#ifdef ESP8266
 #include <Arduino.h>
-#include "ets_sys.h"
-#include "core_esp8266_waveform.h"
+#include <ets_sys.h>
+#include <utilities/ESP8266_waveform.h>
 
 extern "C" {
 
@@ -98,7 +100,7 @@ static void ICACHE_RAM_ATTR deinitTimer() {
 }
 
 // Set a callback.  Pass in NULL to stop it
-void setTimer1Callback(uint32_t (*fn)()) {
+void setTimer1CallbackMoTo(uint32_t (*fn)()) {
   timer1CB = fn;
   if (!timerRunning && fn) {
     initTimer();
@@ -109,13 +111,11 @@ void setTimer1Callback(uint32_t (*fn)()) {
 }
 
 // Start up a waveform on a pin, or change the current one.  Will change to the new
-// waveform smoothly on next low->high transition.  For immediate change, stopWaveform()
-// first, then it will immediately begin.
-int ICACHE_RAM_ATTR startWaveform(uint8_t pin, uint32_t timeHighUS, uint32_t timeLowUS, uint32_t runTimeUS) {
+// waveform smoothly on next low->high transition.  
+int startWaveformMoTo(uint8_t pin, uint32_t timeHighUS, uint32_t timeLowUS, uint32_t runTimeUS) {
   if ((pin > 16) || isFlashInterfacePin(pin)) {
     return false;
   }
-  SetGPIO(1<<15);
   Waveform *wave = &waveform[pin];
   // Adjust to shave off some of the IRQ time, approximately
   wave->nextTimeHighCycles = microsecondsToClockCycles(timeHighUS);
@@ -139,15 +139,10 @@ int ICACHE_RAM_ATTR startWaveform(uint8_t pin, uint32_t timeHighUS, uint32_t tim
         timer1_write(microsecondsToClockCycles(10));
       }
     }
-  ClearGPIO(1<<15);
     while (waveformToEnable) {
-      //delay(0); // Wait for waveform to update
+      delay(0); // Wait for waveform to update
     }
-  SetGPIO(1<<15);
-  delayMicroseconds(1);
   }
-
-  ClearGPIO(1<<15);
   return true;
 }
 
@@ -156,6 +151,40 @@ int ICACHE_RAM_ATTR startWaveform(uint8_t pin, uint32_t timeHighUS, uint32_t tim
 // Normally would not want two copies like this, but due to different
 // optimization levels the inline attribute gets lost if we try the
 // other version.
+
+// Start up a waveform on a pin, or change the current one.  Will change to the new
+// waveform smoothly on next low->high transition.  
+// this is the version that can be call from an ISR. It works only on GPIO 0-15
+int ICACHE_RAM_ATTR startWaveformISR(uint8_t pin, uint32_t timeHighUS, uint32_t timeLowUS, uint32_t runTimeUS) {
+  if ((pin > 15) || isFlashInterfacePin(pin)) {
+    return false;
+  }
+  //SetGPIO(1<<15);
+  Waveform *wave = &waveform[pin];
+  // Adjust to shave off some of the IRQ time, approximately
+  wave->nextTimeHighCycles = microsecondsToClockCycles(timeHighUS);
+  wave->nextTimeLowCycles = microsecondsToClockCycles(timeLowUS);
+  wave->expiryCycle = runTimeUS ? GetCycleCount() + microsecondsToClockCycles(runTimeUS) : 0;
+  if (runTimeUS && !wave->expiryCycle) {
+    wave->expiryCycle = 1; // expiryCycle==0 means no timeout, so avoid setting it
+  }
+
+  uint32_t mask = 1<<pin;
+  if (!(waveformEnabled & mask)) { // we are starting new pulses, not only updating times
+    // Actually set the pin high or low in the IRQ service to guarantee times
+    wave->nextServiceCycle = GetCycleCount() + microsecondsToClockCycles(1);
+    waveformToEnable |= mask;
+    // assuming that the timer is already running, because we are in an ISR created by a pulse
+    // Ensure timely service....
+    if (T1L > microsecondsToClockCycles(10)) {
+    timer1_write(microsecondsToClockCycles(10));
+    }
+    // Because we are in an ISR, we don't wait for waveform to start
+  }
+
+  //ClearGPIO(1<<15);
+  return true;
+}
 
 static inline ICACHE_RAM_ATTR uint32_t GetCycleCountIRQ() {
   uint32_t ccount;
@@ -171,7 +200,7 @@ static inline ICACHE_RAM_ATTR uint32_t min_u32(uint32_t a, uint32_t b) {
 }
 
 // Stops a waveform on a pin
-int ICACHE_RAM_ATTR stopWaveform(uint8_t pin) {
+int ICACHE_RAM_ATTR stopWaveformMoTo(uint8_t pin) {
   // Can't possibly need to stop anything if there is no timer active
   if (!timerRunning) {
     return false;
@@ -193,6 +222,7 @@ int ICACHE_RAM_ATTR stopWaveform(uint8_t pin) {
   if (!waveformEnabled && !timer1CB) {
     deinitTimer();
   }
+
   return true;
 }
 
@@ -212,7 +242,7 @@ static ICACHE_RAM_ATTR void timer1Interrupt() {
   // we can avoid looking at the other pins.
   static int startPin = 0;
   static int endPin = 0;
-  SetGPIO(1<<5); //DEBUG
+  //SetGPIO(1<<5); //DEBUG
   uint32_t nextEventCycles = microsecondsToClockCycles(MAXIRQUS);
   uint32_t timeoutCycle = GetCycleCountIRQ() + microsecondsToClockCycles(14);
 
@@ -309,7 +339,9 @@ static ICACHE_RAM_ATTR void timer1Interrupt() {
   T1L = nextEventCycles; // Already know we're in range by MAXIRQUS
 #endif
   TEIE |= TEIE1; // Edge int enable
-  ClearGPIO(1<<5); //DEBUG
+  //ClearGPIO(1<<5); //DEBUG
 }
 
 };
+
+#endif

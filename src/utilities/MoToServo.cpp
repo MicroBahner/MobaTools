@@ -57,7 +57,7 @@ inline void  _stepIRQ() {
 
 ///////////////////////  Interrupt for Servos ////////////////////////////////////////////////////////////////////
 #ifdef ESP8266
-#define startServoPulse(pin,width) startWaveform(pin, width/TICS_PER_MICROSECOND/SPEED_RES, TIMERPERIODE-width/TICS_PER_MICROSECOND/SPEED_RES,0)
+#define startServoPulse(pin,width) startWaveformMoTo(pin, width/TICS_PER_MICROSECOND/SPEED_RES, TIMERPERIODE-width/TICS_PER_MICROSECOND/SPEED_RES,0)
 
 // --------------------- Pulse-interrupt for ESP8266 --------------------------
 // This ISR is fired at the falling edge of the servo pulse. It is specific to every servo Objekt and
@@ -78,7 +78,7 @@ void ICACHE_RAM_ATTR ISR_Servo( servoData_t *_servoData ) {
     } else if ( !_servoData->noAutoff ) { // no change in pulse length, look for autooff
         if ( --_servoData->offcnt == 0 ) {
             // switch off pulses
-            stopWaveform( _servoData->pin );
+            stopWaveformMoTo( _servoData->pin );
         }
     }
     
@@ -387,7 +387,7 @@ void MoToServo::detach()
     _servoData.soll = -1;  
     _servoData.ist = -1;  
     #ifdef ESP8266
-        stopWaveform(_servoData.pin); //stop creating pulses
+        stopWaveformMoTo(_servoData.pin); //stop creating pulses
         clrGpio(_servoData.pin);
         detachInterrupt( _servoData.pin );
     #endif

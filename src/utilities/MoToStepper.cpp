@@ -557,14 +557,14 @@ void MoToStepper::doSteps( long stepValue ) {
                 digitalWrite( _stepperData.enablePin, _stepperData.enable );
                 // create a singlepulse on dir-output to measure delaytime
                 //delayMicroseconds( 10 );
-                startWaveform( _stepperData.pins[1], 1000*_stepperData.usDelay, 10000 , 900*_stepperData.usDelay); 
+                startWaveformMoTo( _stepperData.pins[1], 1000*_stepperData.usDelay, 10000 , 1000*_stepperData.usDelay); 
                 _stepperData.delayActiv = true;
             }
         } else {
             // no enable control, start movement directly
             // set dir output
             digitalWrite( _stepperData.pins[1], (_stepperData.patternIxInc < 0) );
-            startWaveform( _stepperData.pins[0], CYCLETIME, _stepperData.aUsSteps-CYCLETIME, 0 ); 
+            startWaveformMoTo( _stepperData.pins[0], CYCLETIME, _stepperData.aUsSteps-CYCLETIME, 0 ); 
         }
     } else {
         // direction may have changed, so set it here

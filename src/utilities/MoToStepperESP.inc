@@ -7,7 +7,7 @@
 // LOW if there are no step pulses to be created. What we need is a dedicated ISR for the dir-pin if the
 // enable function is active
 void ICACHE_RAM_ATTR ISR_StepperEnable( stepperData_t *stepperDataP) {
-    GPOS = (1<<2);
+    //GPOS = (1<<2);
     if ( stepperDataP->delayActiv ) {
         // end of enable delay - start moving or switch off enable
         stepperDataP->delayActiv = false;
@@ -15,17 +15,17 @@ void ICACHE_RAM_ATTR ISR_StepperEnable( stepperData_t *stepperDataP) {
             // start moving, start creating pulses;
             digitalWrite( stepperDataP->pins[1], (stepperDataP->patternIxInc < 0) ); //set dir pin accordingly
             //delayMicroseconds( 10 );
-            startWaveform( stepperDataP->pins[0], CYCLETIME, stepperDataP->aUsSteps-CYCLETIME, 0 ); 
+            startWaveformISR( stepperDataP->pins[0], CYCLETIME, stepperDataP->aUsSteps-CYCLETIME, 0 ); 
         } else {
             // no more moving, switch off enable pin
             digitalWrite( stepperDataP->enablePin, !stepperDataP->enable );
         }
     }
-    GPOC = (1<<2);
+    //GPOC = (1<<2);
 }
 void ICACHE_RAM_ATTR ISR_Stepper(stepperData_t *stepperDataP) {
     SET_TP1;
-    GPOS = (1<<0);
+    //GPOS = (1<<0);
 
     // ---------------Stepper motors ---------------------------------------------
     // Usually the ISR is fired at the start of the step pulse
@@ -58,11 +58,11 @@ void ICACHE_RAM_ATTR ISR_Stepper(stepperData_t *stepperDataP) {
                 stepperDataP->aUsSteps = 0;    // no more Interrupts for this stepper needed
                 stepperDataP->rampState = rampStat::STOPPED;
 				// stop creating pulses after the current pulse
-				startWaveform(stepperDataP->pins[0], CYCLETIME, 10, CYCLETIME );
+				startWaveformISR(stepperDataP->pins[0], CYCLETIME, 10, CYCLETIME );
                 if (stepperDataP->enablePin != 255) {
                     // enable is active, wait for disabling 
 					// timing is done by a pulse on the dir output ( with IRQ at the end )
-                    startWaveform( stepperDataP->pins[1], 1000*stepperDataP->usDelay, 10 , (1000*stepperDataP->usDelay)); 
+                    startWaveformISR( stepperDataP->pins[1], 1000*stepperDataP->usDelay, 10 , (1000*stepperDataP->usDelay)); 
                     stepperDataP->delayActiv = true;
                 }  
                 //CLR_TP2;
@@ -140,12 +140,12 @@ void ICACHE_RAM_ATTR ISR_Stepper(stepperData_t *stepperDataP) {
         } // End of ramp-statemachine
 		// set new steplength if there are steps to do
 		if ( stepperDataP->aUsSteps > 0 ) {
-			startWaveform(stepperDataP->pins[0], CYCLETIME, stepperDataP->aUsSteps - CYCLETIME, 0 );
+			startWaveformISR(stepperDataP->pins[0], CYCLETIME, stepperDataP->aUsSteps - CYCLETIME, 0 );
 		}
         
     }
      CLR_TP1;
-    GPOC = (1<<0);
+    //GPOC = (1<<0);
 
 }    
 
