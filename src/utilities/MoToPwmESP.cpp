@@ -19,7 +19,7 @@ MoToPwm::MoToPwm() {
 uint8_t MoToPwm::attach(uint8_t pinArg ){
     // PWM-Ausgang
     // wrong pinnbr or pin in use?
-    if ( pinArg <0 || pinArg >16 || gpioUsed(pinArg ) ) return 0;
+    if ( pinArg >16 || gpioUsed(pinArg ) ) return 0;
     
     setGpio(pinArg);    // mark pin as used
     _pinNbr = pinArg;
@@ -45,7 +45,7 @@ void MoToPwm::detach( ){
 void MoToPwm::analogWrite ( uint16_t duty1000 ){
     // create pwm pulse with defined dutycycle 0...1000 ( promille)
     if (_pinNbr >16 ) return;
-    duty1000 = constrain( duty1000, 0, _pwmScale );
+    if (duty1000 > _pwmScale ) duty1000 = _pwmScale;
     
     uint32_t high = duty1000*_pwmCycle/_pwmScale;
     if (high  == 0) {

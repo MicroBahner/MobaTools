@@ -25,6 +25,7 @@ static const int stepPattern[8] = {0b0011, 0b0010, 0b0110, 0b0100, 0b1100, 0b100
 #endif
 
 // Variables for stepper motors
+#ifndef ESP8266
 static stepperData_t *stepperRootP = NULL;    // start of stepper data chain ( NULL if no stepper object )
 static uint8_t spiData[2]; // step pattern to be output on SPI
                             // low nibble of spiData[0] is SPI_1
@@ -35,6 +36,7 @@ static uint8_t spiByteCount = 0;
 #else
 static int rxData;      // dummy for STM32
 #endif
+#endif // no ESP
 
 //==========================================================================
 inline void _noStepIRQ() {
@@ -186,8 +188,8 @@ uint8_t MoToStepper::attach( byte outArg, byte pins[] ) {
     if ( stepMode == NOSTEP ) { DB_PRINT("Attach: invalid Object ( Ix = %d)", _stepperIx ); return 0; }// Invalid object
 	#ifdef ESP8266
 		if ( outArg != A4988_PINS ) return 0;
-        if ( pins[0] <0 || pins[0] >15 || gpioUsed(pins[0] ) ) return 0;
-        if ( pins[1] <0 || pins[1] >15 || gpioUsed(pins[1] ) ) return 0;
+        if ( pins[0] >15 || gpioUsed(pins[0] ) ) return 0; // pins cannot be negative because of uint8_t
+        if ( pins[1] >15 || gpioUsed(pins[1] ) ) return 0;
         setGpio(pins[0]);    // mark pin as used
         setGpio(pins[1]);    // mark pin as used
 	#endif
@@ -444,7 +446,9 @@ void MoToStepper::doSteps( long stepValue ) {
 
     long stepCnt;                 // nmbr of steps to take
     int8_t patternIxInc;
+    #ifdef ESP8266
     int8_t startMove = 0;       // for ESP8266: create first pulse
+    #endif
     
     if ( _stepperData.output == NO_OUTPUT ) return; // not attached
     //Serial.print( "doSteps: " ); Serial.println( stepValue );

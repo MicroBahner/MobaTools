@@ -14,9 +14,9 @@
 extern uint8_t timerInitialized;
 
 // Variables for servos
-static servoData_t* lastServoDataP = NULL; //start of ServoData-chain
 static byte servoCount = 0;
 #ifndef ESP8266 // following variables used only in 'classic' ISR
+    static servoData_t* lastServoDataP = NULL; //start of ServoData-chain
     static servoData_t* pulseP = NULL;         // pulse Ptr in IRQ
     static servoData_t* activePulseP = NULL;   // Ptr to pulse to stop
     static servoData_t* stopPulseP = NULL;     // Ptr to Pulse whose stop time is already in OCR1
@@ -25,8 +25,8 @@ static byte servoCount = 0;
     static word activePulseOff = 0;     // OCR-value of pulse end 
     static word nextPulseLength = 0;
     static bool speedV08 = true;    // Compatibility-Flag for speed method
-#else
-    static bool speedV08 = false;    // ESP8266 uses alwas high res speed
+/*#else
+    static bool speedV08 = false;    // ESP8266 uses alwas high res speed*/
 #endif // no ESP8266
 
 inline void _noStepIRQ() {

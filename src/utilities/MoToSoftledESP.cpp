@@ -143,7 +143,7 @@ uint8_t MoToSoftLed::attach(uint8_t pinArg, uint8_t invArg ){
     // Led-Ausgang mit Softstart. 
     
     // wrong pinnbr or pin in use?
-    if ( pinArg <0 || pinArg >15 || gpioUsed(pinArg ) ) return 0;
+    if ( pinArg >15 || gpioUsed(pinArg ) ) return 0;
     
     setGpio(pinArg);    // mark pin as used
     _ledData.invFlg  = invArg;

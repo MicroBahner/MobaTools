@@ -152,35 +152,7 @@ extern gpioISR_t gpioTab[MAX_GPIO];
 void seizeTimer1();
 #endif
 
-/* moved to MoToStepper.cpp
-inline void _noStepIRQ() {
-        #if defined(__AVR_ATmega8__)|| defined(__AVR_ATmega128__)
-            TIMSK &= ~( _BV(OCIExB) );    // enable compare interrupts
-        #elif defined __AVR_MEGA__
-            TIMSKx &= ~_BV(OCIExB) ; 
-        #elif defined __STM32F1__
-            timer_disable_irq(MT_TIMER, TIMER_STEPCH_IRQ);
-            //*bb_perip(&(MT_TIMER->regs).adv->DIER, TIMER_STEPCH_IRQ) = 0;
-		#else
-			noInterrupts();
-            SET_TP2;
-        #endif
-}
-inline void  _stepIRQ() {
-        #if defined(__AVR_ATmega8__)|| defined(__AVR_ATmega128__)
-            TIMSK |= ( _BV(OCIExB) );    // enable compare interrupts
-        #elif defined __AVR_MEGA__
-            TIMSKx |= _BV(OCIExB) ; 
-        #elif defined __STM32F1__
-            //timer_enable_irq(MT_TIMER, TIMER_STEPCH_IRQ) cannot be used, because this also clears pending irq's
-            *bb_perip(&(MT_TIMER->regs).adv->DIER, TIMER_STEPCH_IRQ) = 1;
-            interrupts();
-		#else
-            CLR_TP2;
-			interrupts();
-        #endif
-}
-*/
+
 class MoToTimer
 {
   public:
