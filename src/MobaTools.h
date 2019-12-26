@@ -71,7 +71,7 @@
 #define DEF_RAMP        0       // default ramp after attach     
 // default CYCLETIME is processordependent, change only if you know what you are doing ).
 #ifdef  ESP8266
-#define CYCLETIME       80      // Min. irq-periode in us ( ESP-default is 80 )
+#define CYCLETIME       60      // Min. irq-periode in us ( ESP-default is 60 )
 #define MIN_STEP_CYCLE  2       // Minimum number of cycles per step. 
 #define MAX_GPIO        10      // max number of usable gpios
 // at max 10 gpio's can be used at an ESP12: gpio 0,1,2,3,4,5,12,13,14,15
@@ -88,8 +88,13 @@
 #define RAMPOFFSET      16      // startvalue of rampcounter
 
 // servo related defines
+#ifdef  ESP8266
+#define MINPULSEWIDTH   550     // there is no general limit on ESP8266
+#define MAXPULSEWIDTH   2600    // there is no general limit on ESP8266
+#else // AVR and STM32
 #define MINPULSEWIDTH   700     // don't make it shorter than 700
 #define MAXPULSEWIDTH   2300    // don't make it longer than 2300
+#endif
 
 // softled related defines
 #define LED_DEFAULT_RISETIME   50

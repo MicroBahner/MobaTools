@@ -388,9 +388,9 @@ int MoToStepper::setSpeed( int rpm10 ) {
 uint16_t MoToStepper::setSpeedSteps( uintxx_t speed10 ) {
     // Speed in steps per sec * 10
     // without a new ramplen, the ramplen is adjusted according to the speedchange
-    long rtmp = (long)speed10*_lastRampLen/_lastRampSpeed -1;
+    long rtmp = (long)speed10*_lastRampLen/_lastRampSpeed;
     DB_PRINT(">>>>>>>>>>>sSS:(%d) nRl=%ld", speed10, rtmp );
-    return setSpeedSteps( speed10,  -rtmp );
+    return setSpeedSteps( speed10,  -rtmp-1 );
 }
 
 uint16_t MoToStepper::setRampLen( uint16_t rampSteps ) {
