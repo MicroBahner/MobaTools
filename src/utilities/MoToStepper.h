@@ -88,7 +88,8 @@ typedef struct stepperData_t {
 	uint16_t cycDelay;            // delay time enable -> stepping
   #endif
   uint16_t  stepRampLen;        // Length of ramp in steps
-  uint16_t  stepsInRamp;        // stepcounter within ramp ( counting from stop ( = 0 ): incrementing in startramp, decrementing in stopramp
+  uintxx_t  stepsInRamp;        // stepcounter within ramp ( counting from stop ( = 0 ): incrementing in startramp, decrementing in stopramp
+  uint16_t  deltaSteps;         // number of computed steps per real step in SPEEDDECEL
                                 // max value is stepRampLen
   rampStat rampState;        // State of acceleration/deceleration
   volatile long stepsFromZero;  // distance from last reference point ( always as steps in HALFSTEP mode )

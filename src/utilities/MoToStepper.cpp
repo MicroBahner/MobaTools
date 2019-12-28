@@ -7,7 +7,7 @@
 */
 #include <MobaTools.h>
 //#define debugTP
-//#define debugPrint
+#define debugPrint
 #include <utilities/MoToDbg.h>
 #define TODO	// ignore 
 // Global Data for all instances and classes  --------------------------------
@@ -466,8 +466,8 @@ void MoToStepper::doSteps( long stepValue ) {
                 // no change in Direction
                 _noStepIRQ();
                 if ( stepCnt <= _stepperData.stepsInRamp ) {
-                    _stepperData.stepCnt = _stepperData.stepsInRamp;
-                    _stepperData.stepCnt2 = _stepperData.stepsInRamp-stepCnt;
+                    _stepperData.stepCnt = _stepperData.stepsInRamp+1;
+                    _stepperData.stepCnt2 = _stepperData.stepCnt-stepCnt;
                     _stepperData.rampState = rampStat::RAMPDECEL;
                 } else { 
                     _stepperData.stepCnt = stepCnt;
@@ -478,7 +478,7 @@ void MoToStepper::doSteps( long stepValue ) {
                 // direction changes, stop and go backwards
                 _noStepIRQ();
                 //Schritte bis zum anhalten
-                _stepperData.stepCnt = _stepperData.stepsInRamp;
+                _stepperData.stepCnt = _stepperData.stepsInRamp+1;
                 // Schritte vom Stoppunkt bis zum eigentlichen Ziel
                 _stepperData.stepCnt2 = _stepperData.stepCnt+stepCnt;
                 _stepperData.rampState = rampStat::RAMPDECEL;
