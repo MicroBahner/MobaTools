@@ -73,7 +73,7 @@ void ICACHE_RAM_ATTR ISR_Stepper(stepperData_t *stepperDataP) {
         // ramp state machine
         switch ( stepperDataP->rampState ) {
           case  rampStat::RAMPACCEL:
-            digitalWrite(16,1);
+            //digitalWrite(16,1);
             CLR_TP1;
             // we are accelerating the motor
             if (stepperDataP->stepsInRamp >= stepperDataP->stepRampLen ) {
@@ -81,7 +81,7 @@ void ICACHE_RAM_ATTR ISR_Stepper(stepperData_t *stepperDataP) {
                 stepperDataP->aUsSteps = stepperDataP->tUsSteps;
                 stepperDataP->stepsInRamp = stepperDataP->stepRampLen;
                 stepperDataP->rampState = rampStat::CRUISING;
-                digitalWrite(16,0);
+                //digitalWrite(16,0);
             } else {
                 stepperDataP->aUsSteps = stepperDataP->ustXramplen / (stepperDataP->stepsInRamp + RAMPOFFSET) ;//+1;
                 // do we have to start deceleration ( remaining steps < steps in ramp so far )
@@ -98,35 +98,37 @@ void ICACHE_RAM_ATTR ISR_Stepper(stepperData_t *stepperDataP) {
             SET_TP1;
             break;
           case rampStat::RAMPDECEL:
-            SET_TP2;
-            // we are stopping the motor
-            if ( stepperDataP->stepCnt > (long)( stepperDataP->stepsInRamp ) ) {
-                //CLR_TP2; // ToDo: check whether this in necessary ( schould be done in method that changes steps to  move)
-                //steps to move has changed, accelerate again with next step
-                stepperDataP->rampState = rampStat::RAMPACCEL;
-                //DB_PRINT( "scnt=%ld, sIR=%u\n\r", stepperDataP->stepCnt, stepperDataP->stepsInRamp );
-                //SET_TP2;
-            }
-            stepperDataP->aUsSteps = stepperDataP->ustXramplen / ( --stepperDataP->stepsInRamp + RAMPOFFSET ) ;// +1 ;
-            CLR_TP2;
-            break;
-        
           case rampStat::SPEEDDECEL:
-            // lower speed to new value 
-            digitalWrite(16,1);
-            if ( (stepperDataP->stepsInRamp-stepperDataP->stepRampLen) > stepperDataP->deltaSteps ) {
-                // steps in ramp still greater than delta
-                stepperDataP->stepsInRamp -=stepperDataP->deltaSteps;
-                stepperDataP->aUsSteps = stepperDataP->ustXramplen / ( stepperDataP->stepsInRamp + RAMPOFFSET ) ;//+1 ;
+            SET_TP2;
+            if ( stepperDataP->stepsInRamp <= stepperDataP->stepRampLen ) {
+                // we are stopping the motor
+                if ( stepperDataP->stepCnt > (long)( stepperDataP->stepsInRamp ) ) {
+                    //CLR_TP2; // ToDo: check whether this in necessary ( schould be done in method that changes steps to  move)
+                    //steps to move has changed, accelerate again with next step
+                    stepperDataP->rampState = rampStat::RAMPACCEL;
+                    //DB_PRINT( "scnt=%ld, sIR=%u\n\r", stepperDataP->stepCnt, stepperDataP->stepsInRamp );
+                    //SET_TP2;
+                }
+                stepperDataP->aUsSteps = stepperDataP->ustXramplen / ( --stepperDataP->stepsInRamp + RAMPOFFSET ) ;// +1 ;
+                CLR_TP2;
+                //break;
             } else {
-                // new targestspeed reached
-                //SET_TP3;
-                stepperDataP->rampState = rampStat::CRUISING;
-                stepperDataP->stepsInRamp =  stepperDataP->stepRampLen;
-                stepperDataP->aUsSteps = stepperDataP->tUsSteps;                //CLR_TP3;
-                digitalWrite(16,0);
+                // lower speed to new value 
+                //digitalWrite(16,1);
+                if ( (stepperDataP->stepsInRamp-stepperDataP->stepRampLen) > stepperDataP->deltaSteps ) {
+                    // steps in ramp still greater than delta
+                    stepperDataP->stepsInRamp -=stepperDataP->deltaSteps;
+                    stepperDataP->aUsSteps = stepperDataP->ustXramplen / ( stepperDataP->stepsInRamp + RAMPOFFSET ) ;//+1 ;
+                } else {
+                    // new targestspeed reached
+                    //SET_TP3;
+                    stepperDataP->rampState = rampStat::CRUISING;
+                    stepperDataP->stepsInRamp =  stepperDataP->stepRampLen;
+                    stepperDataP->aUsSteps = stepperDataP->tUsSteps;                //CLR_TP3;
+                    //digitalWrite(16,0);
+                }
+                //ToDo - do we have to stop the motor
             }
-            //ToDo - do we have to stop the motor
             break;
             
           case rampStat::CRUISING:
@@ -166,7 +168,7 @@ uint16_t MoToStepper::setSpeedSteps( uint32_t speed10, int16_t rampLen ) {
     int32_t newStepsInRamp;     // new stepcounter in ramp - according to new speed and ramplen
     int32_t newDeltaSteps = 1;  //  only for SPEEDDECEL
     uint32_t newSpeed10;        // new target speed
-    digitalWrite( 16,HIGH );
+    //digitalWrite( 16,HIGH );
     if ( _stepperData.output == NO_OUTPUT ) return 0; // --------------->>>>>>>>>>>>>>>>not attached
     DB_PRINT(">>>>>>>>>>sSS(%u,%d)", speed10, rampLen );
     // compute new speed values, adjust length of ramp if necessary
@@ -230,7 +232,7 @@ uint16_t MoToStepper::setSpeedSteps( uint32_t speed10, int16_t rampLen ) {
                         //Serial.print(" --");
                         //DB_PRINT ( "Slower: %u/%u -> %u/%u", _stepSpeed10,_stepperData.stepRampLen,  newSpeed10, newRampLen );
                         newRampState = rampStat::SPEEDDECEL;
-                        newDeltaSteps = (newStepsInRamp / _stepperData.stepsInRamp);
+                        newDeltaSteps = ((10L * newStepsInRamp / _stepperData.stepsInRamp)+5 )/10L;
                         if ( newDeltaSteps < 1 ) newDeltaSteps = 1;
                     
                 } else  {
@@ -268,35 +270,35 @@ uint16_t MoToStepper::setSpeedSteps( uint32_t speed10, int16_t rampLen ) {
     _stepperData.stepRampLen = newRampLen;
     _stepIRQ(); CLR_TP2;
     _stepSpeed10 = newSpeed10;
-    digitalWrite(16,LOW );
-    DB_PRINT("State->%s,  sSiR=%u, nSiR=%d, nDs=%d",rsC[(int)_stepperData.rampState], _stepperData.stepsInRamp,newStepsInRamp, newDeltaSteps);
-    DB_PRINT( "RampValues:, Spd=%u, rmpLen=%u, tUs=%u, aUs=%u, stX=%u", _stepSpeed10, _stepperData.stepRampLen,
-                   _stepperData.tUsSteps, _stepperData.aUsSteps,_stepperData.ustXramplen );
-    DB_PRINT( "StepsiRamp=%u" , _stepperData.stepsInRamp );
+    //digitalWrite(16,LOW );
+    DB_PRINT("nSiR=%d, nDs=%d, _Spd10=%d",newStepsInRamp, newDeltaSteps, _stepSpeed10);
+    prDynData();
     return _stepperData.stepRampLen;
 }
  
 void MoToStepper::prDynData() {             // print actual Stepperdata
  #ifdef debugPrint
-    stepperData_t stepperData;  // vor Ausdruck eine lokale Kopie erstellen
+    stepperData_t printData;  // vor Ausdruck eine lokale Kopie erstellen
     noInterrupts();
-    stepperData.stepCnt = _stepperData.stepCnt;        // nmbr of steps to take
-    stepperData.stepCnt2 = _stepperData.stepCnt2;                // nmbr of steps to take after automatic reverse
-    stepperData.tUsSteps = _stepperData.tUsSteps;           // µseconds per step ( target value of motorspeed  )
-    stepperData.aUsSteps = _stepperData.aUsSteps;  // nµseconds per step ( actual motorspeed  )
-    stepperData.ustXramplen = _stepperData.ustXramplen;        // precompiled  tUsSteps*(rampLen+RAMPOFFSET)
-    stepperData.usDelay = _stepperData.usDelay;            // delay time: enable -> stepping
-    stepperData.dirChange = _stepperData.dirChange;          // Flag: Dir has to be changed ( at falling edge )
-    stepperData.stepRampLen = _stepperData.stepRampLen;        // Length of ramp in steps
-    stepperData.stepsInRamp = _stepperData.stepsInRamp;        // stepcounter within ramp ( counting from stop ( = 0 ): incrementing in startramp, decrementing in stopramp
-                                // max value is stepRampLen
-    stepperData.rampState = _stepperData.rampState;        // State of acceleration/deceleration
-    stepperData.stepsFromZero = _stepperData.stepsFromZero;  // distance from last reference point 
+    printData.stepCnt   = _stepperData.stepCnt;             // nmbr of steps to take
+    printData.stepCnt2  = _stepperData.stepCnt2;            // nmbr of steps to take after automatic reverse
+    printData.tUsSteps  = _stepperData.tUsSteps;            // µseconds per step ( target value of motorspeed  )
+    printData.aUsSteps  = _stepperData.aUsSteps;            // nµseconds per step ( actual motorspeed  )
+    printData.ustXramplen = _stepperData.ustXramplen;       // precompiled  tUsSteps*(rampLen+RAMPOFFSET)
+    printData.usDelay   = _stepperData.usDelay;             // delay time: enable -> stepping
+    printData.dirChange = _stepperData.dirChange;           // Flag: Dir has to be changed ( at falling edge )
+    printData.stepRampLen = _stepperData.stepRampLen;       // Length of ramp in steps
+    printData.stepsInRamp = _stepperData.stepsInRamp;       // stepcounter within ramp ( counting from stop ( = 0 ): incrementing in startramp, decrementing in stopramp
+    printData.rampState = _stepperData.rampState;           // State of acceleration/deceleration
+    printData.stepsFromZero = _stepperData.stepsFromZero;   // distance from last reference point 
+    printData.deltaSteps = _stepperData.deltaSteps;         // number of computed steps per real step in SPEEDDECEL
+
     interrupts();
-    Serial.println("------------ISR-Data-----------");
-    Serial.printf("stepCnt=%5d\t stepCnt2=%5d\n\r", stepperData.stepCnt, stepperData.stepCnt2 );
-    Serial.printf("tUsSteps=%5d\t aUsSteps=%5d\t XrampL=%5d\n\r", stepperData.tUsSteps,stepperData.aUsSteps,stepperData.ustXramplen);
-    Serial.printf("rampLen=%4d\t stepsInRamp=%4d\t, rampState=%s(%d)\n\r",stepperData.stepRampLen,stepperData.stepsInRamp,rsC[(int)stepperData.rampState],stepperData.rampState);
-#endif
+    Serial.printf("stepCnt=%5d\t stepCnt2=%5d\t sFZ=%5d\n\r", printData.stepCnt, printData.stepCnt2, printData.stepsFromZero );
+    Serial.printf("tUsSteps=%5d\t aUsSteps=%5d\t XrampL=%5d\n\r", printData.tUsSteps,printData.aUsSteps,printData.ustXramplen);
+    Serial.printf("rampLen=%4d\t stepsInRamp=%4d\t, rampState=%s(%d)\n\r",printData.stepRampLen,printData.stepsInRamp,rsC[(int)printData.rampState],printData.rampState);
+    Serial.printf("dltaStp=%4d\n\r", printData.deltaSteps );
+    Serial.println("^^^^^^^^^^^^^^ISR-Data^^^^^^^^^^^^^^^^");
+    #endif
 }
 

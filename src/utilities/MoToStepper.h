@@ -135,6 +135,9 @@ class MoToStepper
     uint8_t stepMode;               // FULLSTEP or HALFSTEP
     
     long getSFZ();                  // get step-distance from last reference point
+    long lastSFZ;                   // last read value ( for corrections in doSteps ) 
+    void _doSteps(long count, bool absPos ); // rotate count steps. abs=true means it was called from write methods
+
     bool _chkRunning();             // check if stepper is running
     void initialize(int,uint8_t);
     uint16_t  _setRampValues();

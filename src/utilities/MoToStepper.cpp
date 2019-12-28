@@ -141,12 +141,12 @@ void MoToStepper::initialize ( int steps360, uint8_t mode ) {
 long MoToStepper::getSFZ() {
     // get step-distance from zero point
     // irq must be disabled, because stepsFromZero is updated in interrupt
-    long tmp;
     noInterrupts();
-    tmp = _stepperData.stepsFromZero;
+    lastSFZ = _stepperData.stepsFromZero;
     interrupts();
+    digitalWrite(16,1);
     // in A4988 mode there is no difference between half/fullstep in counting steps
-    return ( stepMode==A4988?tmp:tmp / stepMode);
+    return ( stepMode==A4988?lastSFZ:lastSFZ / stepMode);
 }
 
 bool MoToStepper::_chkRunning() {
@@ -438,7 +438,12 @@ uintxx_t MoToStepper::getSpeedSteps( ) {
     #endif
 	return actSpeedSteps;
 }
-void MoToStepper::doSteps( long stepValue ) {
+
+void MoToStepper::doSteps( long stepValue) {
+    _doSteps( stepValue, 0 );
+}
+
+void MoToStepper::_doSteps( long stepValue, bool absPos ) {
     // rotate stepValue steps
     // if the motor is already moving, this is counted from the actual position.
     // This means in ramp mode the motor may go beyond the desired position and than turn backwards 
@@ -456,7 +461,7 @@ void MoToStepper::doSteps( long stepValue ) {
     stepsToMove = stepValue;
     stepCnt = abs(stepValue);
     
-    if ( _stepperData.stepRampLen > 0 ) {
+    if ( _stepperData.stepRampLen > 0 || _stepperData.rampState == rampStat::SPEEDDECEL ) {
         // stepping with ramp
         
         if ( _chkRunning() ) {  // is the stepper moving?
@@ -465,7 +470,20 @@ void MoToStepper::doSteps( long stepValue ) {
             if (  ( _stepperData.patternIxInc > 0 && stepValue > 0 ) || ( _stepperData.patternIxInc < 0 && stepValue < 0 ) ) {
                 // no change in Direction
                 _noStepIRQ();
-                if ( stepCnt <= _stepperData.stepsInRamp ) {
+                digitalWrite(16,0);
+                // When moving to abs position, adjust stepCnt if there have been new steps
+                if ( absPos ) stepCnt -= abs( _stepperData.stepsFromZero-lastSFZ );
+                if ( _stepperData.rampState == rampStat::SPEEDDECEL ) {
+                    // we are already reducing speed, compute nbr of steps to stop
+                    uint16_t stepsToStop = _stepperData.stepRampLen + (_stepperData.stepsInRamp-_stepperData.stepRampLen)/_stepperData.deltaSteps;
+                    if ( stepCnt < stepsToStop  ) {
+                        // cannot reach target -> still reducing speed, than ramp, than reverse
+                        _stepperData.stepCnt = stepsToStop;
+                        _stepperData.stepCnt2 = stepsToStop-stepCnt;
+                        // no state change!
+                    }
+                } else if ( stepCnt <= _stepperData.stepsInRamp ) {
+                    // We cannot reach target whitin actual ramp. So go beyond target and than back.
                     _stepperData.stepCnt = _stepperData.stepsInRamp+1;
                     _stepperData.stepCnt2 = _stepperData.stepCnt-stepCnt;
                     _stepperData.rampState = rampStat::RAMPDECEL;
@@ -477,11 +495,20 @@ void MoToStepper::doSteps( long stepValue ) {
             } else {
                 // direction changes, stop and go backwards
                 _noStepIRQ();
+                digitalWrite(16,0);
                 //Schritte bis zum anhalten
-                _stepperData.stepCnt = _stepperData.stepsInRamp+1;
+                // When moving to abs position, adjust stepCnt if there have been new steps
+                if ( absPos ) stepCnt += abs( _stepperData.stepsFromZero-lastSFZ );
+                uint16_t stepsToStop = _stepperData.stepsInRamp+1;
+                if ( _stepperData.rampState == rampStat::SPEEDDECEL ) {
+                    // we are already reducing speed, recompute nbr of steps to stop
+                    stepsToStop = _stepperData.stepRampLen + (_stepperData.stepsInRamp-_stepperData.stepRampLen)/_stepperData.deltaSteps;
+                } else {
+                    _stepperData.rampState = rampStat::RAMPDECEL;
+                }
+                _stepperData.stepCnt = stepsToStop;
                 // Schritte vom Stoppunkt bis zum eigentlichen Ziel
                 _stepperData.stepCnt2 = _stepperData.stepCnt+stepCnt;
-                _stepperData.rampState = rampStat::RAMPDECEL;
                 _stepIRQ();
                 //DB_PRINT( "Dir-Change:, sCnt=%ld, sCnt2=%ld, sMove=%ld, aCyc=%d", _stepperData.stepCnt, _stepperData.stepCnt2, stepsToMove, _stepperData.aCycSteps );
             }
@@ -515,7 +542,7 @@ void MoToStepper::doSteps( long stepValue ) {
                 #endif
                 _stepperData.patternIxInc   = patternIxInc;
                 _stepperData.stepsInRamp    = 0;
-                _stepperData.stepCnt        = abs(stepsToMove);
+                _stepperData.stepCnt        = stepCnt;
                 _stepIRQ();
                 DB_PRINT("New Move: Steps:%ld, Enable=%d - State=%s(%d)", stepValue, digitalRead(_stepperData.enablePin) , rsC[(int)_stepperData.rampState],_stepperData.rampState );
             }
@@ -525,8 +552,11 @@ void MoToStepper::doSteps( long stepValue ) {
         if ( stepValue > 0 ) patternIxInc = abs( _stepperData.patternIxInc );
         else     patternIxInc = -abs( _stepperData.patternIxInc );
         _noStepIRQ();
+        digitalWrite(16,0);
+        // When moving to abs position, adjust stepCnt if there have been new steps
+        if ( absPos ) stepCnt = abs( stepValue + lastSFZ - _stepperData.stepsFromZero );
         _stepperData.patternIxInc = patternIxInc;
-        _stepperData.stepCnt = abs(stepsToMove);
+        _stepperData.stepCnt = stepCnt;
         if ( _stepperData.rampState < rampStat::CRUISING && stepValue!=0 ) {
             // stepper does not move, start it because we have to do steps
             #ifdef ESP8266
@@ -576,16 +606,14 @@ void MoToStepper::doSteps( long stepValue ) {
         digitalWrite( _stepperData.pins[1], (_stepperData.patternIxInc < 0) );
         interrupts();
     }
-    DB_PRINT( "StepValues:, sCnt=%ld, sCnt2=%ld, sMove=%ld, aµs=%d", _stepperData.stepCnt, _stepperData.stepCnt2, stepsToMove, _stepperData.aUsSteps );
-    DB_PRINT( "RampValues:, Spd=%u, rmpLen=%u, tµs=%u, aµs=%u", _stepSpeed10, _stepperData.stepRampLen,
-                    _stepperData.tUsSteps, _stepperData.aUsSteps );
-    DB_PRINT("StepperState=%s", rsC[(int)_stepperData.rampState] );
+    DB_PRINT( "newStepValues:, sMove=%ld, Speed10=%d", stepsToMove,  _stepSpeed10  );
     #else
     //DB_PRINT( "StepValues:, sCnt=%ld, sCnt2=%ld, sMove=%ld, aCyc=%d", _stepperData.stepCnt, _stepperData.stepCnt2, stepsToMove, _stepperData.aCycSteps );
     //DB_PRINT( "RampValues:, Spd=%u, rmpLen=%u, tcyc=%u, trest=%u, acyc=%u", _stepSpeed10, _stepperData.stepRampLen,
     //                _stepperData.tCycSteps, _stepperData.tCycRemain, _stepperData.aCycSteps );
     //DB_PRINT( "   - State=%s, Rampsteps=%u" , rsC[_stepperData.rampState], _stepperData.stepsInRamp );
     #endif
+    prDynData();
 }
 
 
@@ -622,14 +650,14 @@ void MoToStepper::write( long angleArg, byte fact ) {
     angle2steps += (( abs(angleArg % (360L * fact) ) * (long)stepsRev ) + 180L*fact )/ ( 360L * fact)  ;
     //angle2steps =  ( (abs(angleArg) * (long)stepsRev*10) / ( 360L * fact) +5) /10 ;
     if ( negative ) angle2steps = -angle2steps;
-    doSteps(angle2steps  - getSFZ() );
+    _doSteps(angle2steps  - getSFZ(), 1 );
 }
 
 void MoToStepper::writeSteps( long stepPos ) {
     // go to position stepPos steps away from zeropoint
     if ( _stepperData.output == NO_OUTPUT ) return; // not attached
-
-    doSteps(stepPos  - getSFZ() );
+    digitalWrite(16,0);
+    _doSteps(stepPos  - getSFZ(), 1 );
 }
 
 long MoToStepper::read()
