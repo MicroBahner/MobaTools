@@ -6,6 +6,7 @@ MobaTools
 
 | Version |  Release Date  | Description
 | ------- |  ------------  | -----------
+| 1.1.5 | 2019-12-29 | Servo8: fix timing error if first and second write after attach are too close together
 | 1.1.4 | 2019-09-25 | check for setting speed to 0 ( this is not allowed, will be changed to '1' internally )
 | | | fix error when setting targetposition repetitive very fast
 | | | allow higher steprates (up to 2500 steps/sec)at the expense of higher relative jitter at these rates
