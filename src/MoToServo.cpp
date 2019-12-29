@@ -389,11 +389,16 @@ uint8_t Servo8::attach( int pinArg, uint16_t pmin, uint16_t pmax, bool autoOff )
 
 void Servo8::detach()
 {
+    if ( _servoData.pin == NO_PIN ) return; // only if servo is attached
+    byte tPin = _servoData.pin;
+    while( digitalRead( _servoData.pin ) ); // don't detach during an active pulse
+    noInterrupts();
     _servoData.on = false;  
     _servoData.soll = -1;  
     _servoData.ist = -1;  
-    pinMode( _servoData.pin, INPUT );
     _servoData.pin = NO_PIN;  
+    interrupts();
+    pinMode( tPin, INPUT );
 }
 
 void Servo8::write(uint16_t angleArg)
@@ -425,6 +430,7 @@ void Servo8::write(uint16_t angleArg)
             _lastPos = newpos;
             noInterrupts();
             _servoData.soll= newpos ; // .ist - value is still -1 (invalid) -> will jump to .soll immediately
+            _servoData.ist= newpos ; // .ist =.soll  -> will jump to .soll immediately
             interrupts();
             
         }
