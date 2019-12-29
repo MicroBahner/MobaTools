@@ -383,16 +383,21 @@ uint8_t MoToServo::attach( int pinArg, uint16_t pmin, uint16_t pmax, bool autoOf
 
 void MoToServo::detach()
 {
+    if ( _servoData.pin == NO_PIN ) return; // only if servo is attached
+    byte tPin = _servoData.pin;
+    while( digitalRead( _servoData.pin ) ); // don't detach during an active pulse
+    noInterrupts();
     _servoData.on = false;  
     _servoData.soll = -1;  
     _servoData.ist = -1;  
-    #ifdef ESP8266
-        stopWaveformMoTo(_servoData.pin); //stop creating pulses
-        clrGpio(_servoData.pin);
-        detachInterrupt( _servoData.pin );
-    #endif
-    pinMode( _servoData.pin, INPUT );
     _servoData.pin = NO_PIN;  
+    interrupts();
+    #ifdef ESP8266
+        stopWaveformMoTo(tPin); //stop creating pulses
+        clrGpio(tPin);
+        detachInterrupt( tPin );
+    #endif
+    pinMode( tPin, INPUT );
 }
 
 void MoToServo::write(uint16_t angleArg)
@@ -424,7 +429,8 @@ void MoToServo::write(uint16_t angleArg)
             _servoData.on = true;
             _lastPos = newpos;
             noInterrupts();
-            _servoData.soll= newpos ; // .ist - value is still -1 (invalid) -> will jump to .soll immediately
+            _servoData.soll= newpos ; 
+            _servoData.ist= newpos ; // .ist =.soll  -> will jump to .soll immediately
             interrupts();
             
         }
