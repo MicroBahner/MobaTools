@@ -66,8 +66,8 @@ enum class rampStat:byte { INACTIVE, STOPPED, STOPPING, STARTING, CRUISING, RAMP
 // states from CRUISING and above mean that the motor is moving
 typedef struct stepperData_t {
   struct stepperData_t *nextStepperDataP;    // chain pointer
-  volatile long stepCnt;        // nmbr of steps to take
-  long stepCnt2;                // nmbr of steps to take after automatic reverse
+  volatile uint32_t stepCnt;        // nmbr of steps to take
+  uint32_t stepCnt2;                // nmbr of steps to take after automatic reverse
   volatile int8_t patternIx;    // Pattern-Index of actual Step (0-7)
   int8_t   patternIxInc;        // halfstep: +/-1, fullstep: +/-2, A4988 +1/-1  the sign defines direction
   #ifdef ESP8266

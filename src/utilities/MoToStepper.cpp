@@ -7,7 +7,7 @@
 */
 #include <MobaTools.h>
 //#define debugTP
-#define debugPrint
+//#define debugPrint
 #include <utilities/MoToDbg.h>
 #define TODO	// ignore 
 // Global Data for all instances and classes  --------------------------------
@@ -144,7 +144,7 @@ long MoToStepper::getSFZ() {
     noInterrupts();
     lastSFZ = _stepperData.stepsFromZero;
     interrupts();
-    digitalWrite(16,1);
+    //digitalWrite(16,1);
     // in A4988 mode there is no difference between half/fullstep in counting steps
     return ( stepMode==A4988?lastSFZ:lastSFZ / stepMode);
 }
@@ -470,7 +470,7 @@ void MoToStepper::_doSteps( long stepValue, bool absPos ) {
             if (  ( _stepperData.patternIxInc > 0 && stepValue > 0 ) || ( _stepperData.patternIxInc < 0 && stepValue < 0 ) ) {
                 // no change in Direction
                 _noStepIRQ();
-                digitalWrite(16,0);
+                //digitalWrite(16,0);
                 // When moving to abs position, adjust stepCnt if there have been new steps
                 if ( absPos ) stepCnt -= abs( _stepperData.stepsFromZero-lastSFZ );
                 if ( _stepperData.rampState == rampStat::SPEEDDECEL ) {
@@ -495,7 +495,7 @@ void MoToStepper::_doSteps( long stepValue, bool absPos ) {
             } else {
                 // direction changes, stop and go backwards
                 _noStepIRQ();
-                digitalWrite(16,0);
+                //digitalWrite(16,0);
                 //Schritte bis zum anhalten
                 // When moving to abs position, adjust stepCnt if there have been new steps
                 if ( absPos ) stepCnt += abs( _stepperData.stepsFromZero-lastSFZ );
@@ -552,7 +552,7 @@ void MoToStepper::_doSteps( long stepValue, bool absPos ) {
         if ( stepValue > 0 ) patternIxInc = abs( _stepperData.patternIxInc );
         else     patternIxInc = -abs( _stepperData.patternIxInc );
         _noStepIRQ();
-        digitalWrite(16,0);
+        //digitalWrite(16,0);
         // When moving to abs position, adjust stepCnt if there have been new steps
         if ( absPos ) stepCnt = abs( stepValue + lastSFZ - _stepperData.stepsFromZero );
         _stepperData.patternIxInc = patternIxInc;
@@ -656,7 +656,7 @@ void MoToStepper::write( long angleArg, byte fact ) {
 void MoToStepper::writeSteps( long stepPos ) {
     // go to position stepPos steps away from zeropoint
     if ( _stepperData.output == NO_OUTPUT ) return; // not attached
-    digitalWrite(16,0);
+    //digitalWrite(16,0);
     _doSteps(stepPos  - getSFZ(), 1 );
 }
 
