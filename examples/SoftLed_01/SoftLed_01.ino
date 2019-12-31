@@ -12,7 +12,7 @@
 const byte ledPin =  5;  // beliebiger Digital Pin
 
 
-SoftLed meinLed;
+MoToSoftLed meinLed;
 
 void setup() {
     meinLed.attach(ledPin); 

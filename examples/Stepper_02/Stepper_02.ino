@@ -3,8 +3,8 @@
  *      Danke an 'agmue' vom arduino.cc Forum für dieses Beispiel
 */
 #include <MobaTools.h>
-Stepper4 Step1(4096);           // HALFSTEP ist default
-EggTimer delayTime;
+MoToStepper Step1(4096);           // HALFSTEP ist default
+MoToTimer   delayTime;
 
 
 void setup() {

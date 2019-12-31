@@ -19,8 +19,8 @@
 const int led1P =  5; 
 const int led2P =  6; 
 
-EggTimer Blinkzeit1;
-EggTimer Blinkzeit2;
+MoToTimer Blinkzeit1;
+MoToTimer Blinkzeit2;
 
 void setup() {
     pinMode(led1P, OUTPUT); 

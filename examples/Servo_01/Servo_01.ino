@@ -27,7 +27,7 @@ const int servoPin =  9;  // Anschluß für den Servo
 
 
 bool tasterStatus1, tasterStatus2;
-Servo8 meinServo;
+MoToServo meinServo;
 
 void setup() {
     pinMode(tasterPin1, INPUT_PULLUP); // so ist kein externer pullup Widerstand am 

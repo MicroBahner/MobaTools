@@ -5,7 +5,7 @@
 */
 
 #include <MobaTools.h>
-Stepper4 Step1(4096);           // HALFSTEP ist default
+MoToStepper Step1(4096);           // HALFSTEP ist default
 const byte linksPin = 8, rechtsPin = 9, weiterPin = 10;
 
 void setup() {

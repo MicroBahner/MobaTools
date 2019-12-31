@@ -8,8 +8,8 @@
  *  Pin 12 (MISO) wird zwar nicht genutzt, aber von der HW belegt
 */
 const int FULLROT1 = 400;
-Stepper4 Step1(FULLROT1);           // HALFSTEP ist default
-Stepper4 Step2(2048,FULLSTEP);
+MoToStepper Step1(FULLROT1);           // HALFSTEP ist default
+MoToStepper Step2(2048,FULLSTEP);
 
 //const byte stPn[] = { 16,17,18,19 }; // für unipolaren Stepper (5-Draht)
 const byte stPn[] = { 16,18,17,19 }; // bei bipolarem Stepper (4-Draht) über ein H-Brücke müssen

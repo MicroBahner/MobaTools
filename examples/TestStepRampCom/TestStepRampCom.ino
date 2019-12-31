@@ -59,7 +59,7 @@ const byte A4988Step=6, A4988Dir=5;
 // LA-Pins: TP1=A3, TP2=A2, TP3= D1,  TP4=D0
 #endif
 //====================================== Ende Pin-Definitionen ======================
-Stepper4  myStepper(stPerRev, stepMode );
+MoToStepper  myStepper(stPerRev, stepMode );
 
 #define printf( x, ... ) { char txtbuf[100]; sprintf_P( txtbuf, PSTR( x ), ##__VA_ARGS__ ) ; Serial.print( txtbuf ); }
 

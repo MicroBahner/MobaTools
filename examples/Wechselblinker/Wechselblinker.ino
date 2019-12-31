@@ -27,10 +27,10 @@ byte wblZustand = 0;   // In dieser Variable wird hinterlegt, in welchem Zustand
 #define   WBL_BLINKT  2   	// Die Lampen blinken normal im Wechsel
 byte ledState;              // HIGH : Blinker1 ist an, LOW Blinker2 ist an
 
-SoftLed Blinker1;
-SoftLed Blinker2;
+MoToSoftLed Blinker1;
+MoToSoftLed Blinker2;
 
-EggTimer BlinkUhr;
+MoToTimer BlinkUhr;
 
 void setup() {
     pinMode(SchalterP, INPUT_PULLUP); 
