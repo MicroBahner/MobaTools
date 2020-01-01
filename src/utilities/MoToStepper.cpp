@@ -749,7 +749,6 @@ void MoToStepper::stop() {
     if (  _stepperData.rampState >= rampStat::CRUISING ) {
         // its moving, stopping with next pulse
         stepsToMove = 0;
-        _stepperData.rampState = rampStat::STOPPED;
         _stepperData.stepCnt = 1;
     }
     _stepIRQ();

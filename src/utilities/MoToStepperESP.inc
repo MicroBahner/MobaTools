@@ -55,6 +55,7 @@ void ICACHE_RAM_ATTR ISR_Stepper(stepperData_t *stepperDataP) {
                 stepperDataP->stepCnt2 = 0;
                 stepperDataP->rampState = rampStat::RAMPACCEL;
             } else {    
+                stepperDataP->stepsInRamp = 0;      // we cannot be in ramp when stopped
                 stepperDataP->aUsSteps = 0;    // no more Interrupts for this stepper needed
                 stepperDataP->rampState = rampStat::STOPPED;
 				// stop creating pulses after the current pulse

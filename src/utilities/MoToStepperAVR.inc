@@ -142,7 +142,7 @@ void stepperISR(uint8_t cyclesLastIRQ) {
                         stepperDataP->stepCnt2 = 0;
                         stepperDataP->rampState = rampStat::RAMPACCEL;
                     } else {
-                        //stepperDataP->stepsInRamp = 0;      // we cannot be in ramp when stopped
+                        stepperDataP->stepsInRamp = 0;      // we cannot be in ramp when stopped
                         if (stepperDataP->enablePin != 255) {
                             // enable is active, wait for disabling
                             stepperDataP->aCycSteps = stepperDataP->cycDelay;
