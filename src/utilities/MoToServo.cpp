@@ -1,7 +1,7 @@
 /*
   MobaTools.h - a library for model railroaders
   Author: fpm, fpm@mnet-mail.de
-  Copyright (c) 2019 All right reserved.
+  Copyright (c) 2020 All rights reserved.
 
   Functions for the stepper part of MobaTools
 */
@@ -405,6 +405,7 @@ void MoToServo::write(uint16_t angleArg)
     // values between 0 and 180 are interpreted as degrees,
     // values between MINPULSEWIDTH and MAXPULSEWIDTH are interpreted as microseconds
     static int newpos;
+    bool startPulse = false;    // only for esp8266
     SET_TP1;
     #ifdef __AVR_MEGA__
 	//DB_PRINT( "Write: angleArg=%d, Soll=%d, OCR=%u", angleArg, _servoData.soll, OCRxA );
@@ -427,6 +428,7 @@ void MoToServo::write(uint16_t angleArg)
             // Serial.println( "first write");
             // this is the first pulse to be created after attach
             _servoData.on = true;
+            startPulse = true;
             _lastPos = newpos;
             noInterrupts();
             _servoData.soll= newpos ; 
@@ -442,10 +444,8 @@ void MoToServo::write(uint16_t angleArg)
             interrupts();
         }
         #ifdef ESP8266 // start creating pulses?
-            if ( (_servoData.ist == -1) || (_servoData.offcnt+_servoData.noAutoff) == 0  ) {
+            if ( (startPulse) || (_servoData.offcnt+_servoData.noAutoff) == 0  ) {
                 // first pulse after attach, or pulses have been switch off by autoff
-                // if this is first time after attach then ist = soll
-                if ( _servoData.ist == -1 ) _servoData.ist = _servoData.soll;
                 startServoPulse(_servoData.pin, _servoData.ist);
                 DB_PRINT( "start pulses at pin %d, ist=%d, soll=%d", _servoData.pin, _servoData.ist, _servoData.soll );
             }
@@ -453,6 +453,7 @@ void MoToServo::write(uint16_t angleArg)
         _servoData.offcnt = OFF_COUNT;   // auf jeden Fall wieder Pulse ausgeben
     }
     DB_PRINT( "Soll=%d, Ist=%d, Ix=%d, inc=%d, SR=%d", _servoData.soll,_servoData.ist, _servoData.servoIx, _servoData.inc, SPEED_RES );
+    delay(2);
     CLR_TP1;
 }
 
