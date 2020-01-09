@@ -1,6 +1,6 @@
 ﻿MobaTools
 =========
-### Arduino library for model railroaders ( and maybe for others too :) )
+### Arduino library for model railroaders ( and maybe for others too 😉 )
 
 **Latest changes:**
 
