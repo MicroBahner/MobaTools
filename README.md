@@ -6,7 +6,7 @@ MobaTools
 
 | Version |  Release Date  | Description
 | ------- |  ------------  | -----------
-| 2.0.0 | 2019-12-?? | managing an enable pin for steppers is possible
+| 2.0.0 | 2020-01-?? | managing an enable pin for steppers is possible
 | | | new method 'getSpeedSteps' returns actual speed
 | | | ESP8266 is now supported ( with limitations regarding stepper mode: only step/dir is possible )
 | | | classnames have changed ( the old names can still be used for compatibility, but should not be used in new sketches)
