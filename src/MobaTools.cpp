@@ -1,7 +1,7 @@
 
 /*
-  MobaTools V1.x
-   (C) 11-2017 fpm fpm@mnet-online.de
+  MobaTools V2.x
+   (C) 2020fpm fpm@mnet-online.de
    
         
   This library is free software; you can redistribute it and/or

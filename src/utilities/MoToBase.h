@@ -3,7 +3,7 @@
 /*
   MobaTools.h - a library for model railroaders
   Author: fpm, fpm@mnet-mail.de
-  Copyright (c) 2019 All right reserved.
+  Copyright (c) 2020 All right reserved.
 
   Base definitions and declarations for all parts of MobaTools
 */

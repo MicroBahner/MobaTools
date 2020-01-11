@@ -3,15 +3,21 @@
 /*
   MobaTools.h - a library for model railroaders
   Author: fpm, fpm-gh@mnet-mail.de
-  Copyright (c) 2019 All right reserved.
+  Copyright (c) 2020 All right reserved.
 
-  MobaTools V1.2
-   (C) 08-2019 fpm fpm@mnet-online.de
+  MobaTools V2.0
+   (C) 01-2020 fpm fpm@mnet-online.de
    
   History:
-  V1.2 08-2019
+  V2.0 01-2020
+      - classnames changed ( the old names can still be used for compatibility, 
+        but should not be used in new sketches)
+      - ESP8266 is supported
       - it is possible to define an enable pin for steppers. This is active
         only when the stepper is moving.
+      - new method 'getSpeedSteps' returns actual speed
+  V1.1.5 12-2019
+      - Servo: fix error when 1. and 2. write ( after attach ) are too close together
   V1.1.4 09-2019
       - speed = 0 is not allowsed( it is set to 1 internally )
 	  - fix error when repeatedly setting target position very fast

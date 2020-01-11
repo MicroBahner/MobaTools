@@ -1,7 +1,7 @@
 /*
   MobaTools.h - a library for model railroaders
   Author: fpm, fpm@mnet-mail.de
-  Copyright (c) 2019 All right reserved.
+  Copyright (c) 2020 All right reserved.
 
   ISR for stepper and softleds ( only for AVR and STM32F1 processors )
 */
