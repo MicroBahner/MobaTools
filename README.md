@@ -6,7 +6,7 @@
 
 | Version |  Release Date  | Description
 | ------- |  ------------  | -----------
-| 2.0.0 |not released yet| managing an enable pin for steppers is possible
+| 2.0.0 | 2020-01-13| managing an enable pin for steppers is possible
 | | | new method 'getSpeedSteps' returns actual speed
 | | | ESP8266 is now supported ( with limitations regarding stepper mode: only step/dir is possible )
 | | | classnames have changed ( the old names can still be used for compatibility, but should not be used in new sketches)
@@ -21,6 +21,10 @@
 | 1.1.2 | 2019-08-03 | fix error, when only servo objects are defined (sketch crashed), 2 more Stepper examples
 | 1.1.1 | 2019-07-29 | acceleration/deceleration for steppermotors is now possible
 | | | optimized flash usage when only part of the functionality is used
+
+### Installation
+
+Released versions can be installed by means of the library manager in arduino IDE
 
 ### Functionality
 

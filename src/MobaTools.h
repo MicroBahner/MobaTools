@@ -17,7 +17,7 @@
         only when the stepper is moving.
       - new method 'getSpeedSteps' returns actual speed
   V1.1.5 12-2019
-      - Servo: fix error when 1. and 2. write ( after attach ) are too close together
+      - Servo: fix error when 1st and 2nd write ( after attach ) are too close together
   V1.1.4 09-2019
       - speed = 0 is not allowsed( it is set to 1 internally )
 	  - fix error when repeatedly setting target position very fast
