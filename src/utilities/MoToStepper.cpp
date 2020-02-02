@@ -315,7 +315,7 @@ void MoToStepper::detach() {   // no more moving, detach from output
       #endif
       #ifdef FAST_PORTWRT
       case SINGLE_PINS:
-        nPins+=2;
+        nPins+=2;       // we have 2 more pins in Mode SINGLE_PINS compared to A4988Pins (  fallthrough to next case )
       case A4988_PINS:
         for ( byte i=0; i<nPins; i++ ) {
             *(_stepperData.portPins[i].Adr-1) &= ~_stepperData.portPins[i].Mask;
