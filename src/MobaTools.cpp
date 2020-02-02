@@ -113,33 +113,5 @@ void seizeTimer1() {
 }
 
 #endif
-// ========================= Class Definitions ============================================
-////////////////////////////////////////////////////////////////////////////
-// Class MoToTimer - Timerverwaltung für Zeitverzögerungen in der Loop-Schleife
-// 
-void MoToTimer::setTime(  long wert ) {
-    endtime =  (long) millis() + ( (long)wert>0?wert:1 );
-    active = true;
-}
-
-bool MoToTimer::running() {
-    if ( active ) active =  ( endtime - (long)millis() > 0 );
-    return active;
-}
-
-bool EggTimer::expired() { return !running(); }
-
-void EggTimer::stop() { active = false; }
-
-long EggTimer::getTime() {
-    // return remaining time
-    if ( running() ) return endtime - (long)millis();
-    else return 0;
-}
-MoToTimer::MoToTimer()
-{
-    active = false;
-}
-
 
 

@@ -2,8 +2,7 @@
 // mit Entprellung der Taster und Aufteilung in Eingabe - Verarbeitung - Ausgabe
 // mit Flankenerkennung im Eingabeblock
 
-#define BUTTON_CNT 4
-#include <MoToButton.h>
+#include <MoToButtons.h>
 // Variablen deklarieren und mit definierten Grundwerten vorbelegen
 const byte tasterPinNr [] = { A0, A1, A2, A3 };
 const byte anzahlTaster = sizeof(tasterPinNr);                  // Anzahl der angeschlossenen Taster
@@ -20,7 +19,7 @@ button_t tasterTemp = 0;
   return tasterTemp;
 }
 
-MoToButton Taster1( getHW, 20, 500 );
+MoToButtons Taster1( getHW, 20, 500 );
 
 void setup()
 {

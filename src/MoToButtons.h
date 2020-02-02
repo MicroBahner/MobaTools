@@ -1,4 +1,4 @@
-/* MoTobutton - a Arduino library to manage up to 8, 16 or 32 Buttons/Switches 
+/* MoToButtons - a Arduino library to manage up to 8, 16 or 32 buttons/Switches 
   with debouncing, edge detection and long/short press detection.
   Author: fpm, fpm-gh@mnet-mail.de
   Copyright (c) 2020 All right reserved.
@@ -20,9 +20,9 @@
     debTime                     Debouncetime in ms
     pressTime                   (in ms ) If the button is pressed longer, it is a 'long press'
                                 max presstime = debTime*255
-    MoToButton( button_t (*getHWbuttons)(), uint8_t debTime, uint16_t pressTime );
+    MoToButtons( button_t (*getHWbuttons)(), uint8_t debTime, uint16_t pressTime );
     example in sketch: 
-        MoToButton Buttons( readFunction, 20, 500 );
+        MoToButtons Buttons( readFunction, 20, 500 );
   
   Methods to be called in loop:
     void    processButtons();                   // must be called in the loop frequently
@@ -63,8 +63,8 @@
   Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 */
 
-#ifndef MOTOBUTTON_H
-#define MOTOBUTTON_H
+#ifndef MOTOBUTTONS_H
+#define MOTOBUTTONS_H
 
 #include <Arduino.h>
 
@@ -92,9 +92,9 @@ typedef uint16_t button_t;
 #endif
 
 
-class MoToButton {
+class MoToButtons {
   public:
-    MoToButton( button_t (*getHWbuttons)(), uint8_t debTime, uint16_t pressTime ) {
+    MoToButtons( button_t (*getHWbuttons)(), uint8_t debTime, uint16_t pressTime ) {
       _getHWbuttons = getHWbuttons;
       _debTime = debTime;
       _pressTime = pressTime / debTime;   // in debTime tics

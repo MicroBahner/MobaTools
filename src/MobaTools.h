@@ -111,6 +111,9 @@
 #include <utilities/MoToServo.h>
 #include <utilities/MoToSoftled.h>
 #include <utilities/MoToPwm.h>
-
+#ifndef INTERNALUSE
+#include <MoToButtons.h>
+#include <MoToTimer.h>
+#endif
 #endif
 

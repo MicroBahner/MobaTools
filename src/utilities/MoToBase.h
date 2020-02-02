@@ -153,20 +153,6 @@ void seizeTimer1();
 #endif
 
 
-class MoToTimer
-{
-  public:
-    MoToTimer();
-    void setTime( long);
-    void stop();
-    bool running();
-    bool expired();
-    long getTime();
-
-  private:
-    bool active;
-    long endtime;
-};
 #endif
 
 

@@ -1,6 +1,6 @@
 // Show Events of buttons in serial monitor
 
-#include <MoToButton.h>
+#include <MoToButtons.h>
 // define pin numbers
 const byte buttonPin [] = { A0, A1, A2, A3 };
 const byte anzahlButtons = sizeof(buttonPin);
@@ -15,7 +15,7 @@ button_t getHW( void ) {
   return buttonTemp;
 }
 
-MoToButton Buttons( getHW, 20, 500 );
+MoToButtons Buttons( getHW, 20, 500 );
 
 void setup()
 {
