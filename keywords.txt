@@ -6,8 +6,8 @@
 # Datatypes (KEYWORD1)
 #######################################
 MobaTools	KEYWORD1
-MoToButton	KEYWORD1
 
+MoToButtons	KEYWORD1
 MoToServo	KEYWORD1
 MoToTimer	KEYWORD1    
 MoToSoftLed	KEYWORD1   
@@ -73,7 +73,7 @@ read	KEYWORD2
 readSteps	KEYWORD2
 attached	KEYWORD2
 
-#Methods for Class MultiButton
+#Methods for Class MoToButtons
 processButtons	KEYWORD2
 state	KEYWORD2
 allStates	KEYWORD2
