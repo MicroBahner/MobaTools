@@ -9,6 +9,11 @@
    (C) 01-2020 fpm fpm@mnet-online.de
    
   History:
+  V2.1 02-2020
+      - new class 'MoToButtons' to manage up to 32 buttons/switches
+        ( debounce, events 'pressed', 'released', 'short press' and 'long press'
+      - MoToTimer: new method 'expired', which is only 'true' at the first call 
+        after timer expiry.
   V2.0 01-2020
       - classnames changed ( the old names can still be used for compatibility, 
         but should not be used in new sketches)

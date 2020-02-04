@@ -2,6 +2,7 @@
   with debouncing, edge detection and long/short press detection.
   Author: fpm, fpm-gh@mnet-mail.de
   Copyright (c) 2020 All right reserved.
+  This Library is part of MoBaTools
 
  Default is managing up to 16 buttons/switches.
  The default can be changed to save RAM (up to 8 buttons) or to manage up to 32 buttons (with additional RAM consumption). 
