@@ -65,7 +65,7 @@ class MoToServo
     void detach();
     void write(uint16_t);         // specify the angle in degrees, 0 to 180. Values obove 180 are interpreted
                              // as microseconds, limited to MaximumPulse and MinimumPulse
-    void setSpeed(int);      // Set Movement speed, the higher the faster
+    void setSpeed(int);      // Set movement speed, the higher the faster
                              // Zero means no speed control (default)
     void setSpeed(int,bool); // Set compatibility-Flag (true= compatibility with version V08 and earlier)
     #define HIGHRES 0

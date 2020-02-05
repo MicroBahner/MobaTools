@@ -85,9 +85,9 @@ void ICACHE_RAM_ATTR ISR_Stepper(stepperData_t *stepperDataP) {
                 //digitalWrite(16,0);
             } else {
                 stepperDataP->aUsSteps = stepperDataP->ustXramplen / (stepperDataP->stepsInRamp + RAMPOFFSET) ;//+1;
-                // do we have to start deceleration ( remaining steps < steps in ramp so far )
+                // do we have to start deceleration ( remaining steps <= steps in ramp so far )
                 // Ramp must be same length in accelerating and decelerating!
-                if ( stepperDataP->stepCnt <= (long)( stepperDataP->stepsInRamp+1  ) ) {
+                if ( stepperDataP->stepCnt <= ( stepperDataP->stepsInRamp+1  ) ) {
                     //CLR_TP2;
                     stepperDataP->rampState = rampStat::RAMPDECEL;
                     //SET_TP2;
@@ -103,7 +103,7 @@ void ICACHE_RAM_ATTR ISR_Stepper(stepperData_t *stepperDataP) {
             SET_TP2;
             if ( stepperDataP->stepsInRamp <= stepperDataP->stepRampLen ) {
                 // we are stopping the motor
-                if ( stepperDataP->stepCnt > (long)( stepperDataP->stepsInRamp ) ) {
+                if ( stepperDataP->stepCnt > ( stepperDataP->stepsInRamp ) ) {
                     //CLR_TP2; // ToDo: check whether this in necessary ( schould be done in method that changes steps to  move)
                     //steps to move has changed, accelerate again with next step
                     stepperDataP->rampState = rampStat::RAMPACCEL;
@@ -137,7 +137,7 @@ void ICACHE_RAM_ATTR ISR_Stepper(stepperData_t *stepperDataP) {
             //CLR_TP2;
             stepperDataP->aUsSteps = stepperDataP->tUsSteps;
             // do we have to start the deceleration
-            if ( stepperDataP->stepCnt <= stepperDataP->stepRampLen+1 ) {
+            if ( stepperDataP->stepCnt <= stepperDataP->stepRampLen+1U ) {
                 // in mode without ramp ( stepRampLen == 0 ) , this can never be true
                 stepperDataP->rampState = rampStat::RAMPDECEL;
             }
@@ -165,8 +165,8 @@ uint16_t MoToStepper::setSpeedSteps( uint32_t speed10, int16_t rampLen ) {
     rampStat newRampState;      // State of acceleration/deceleration
     uint32_t tUsSteps;         // nbr of IRQ cycles per step ( new target value of motorspeed  )
     uint32_t newUstXramplen;      // precompiled  tUsSteps*rampLen*RAMPOFFSET
-    int32_t newRampLen;         // new ramplen
-    int32_t newStepsInRamp;     // new stepcounter in ramp - according to new speed and ramplen
+    uint32_t newRampLen;         // new ramplen
+    uint32_t newStepsInRamp;     // new stepcounter in ramp - according to new speed and ramplen
     int32_t newDeltaSteps = 1;  //  only for SPEEDDECEL
     uint32_t newSpeed10;        // new target speed
     //digitalWrite( 16,HIGH );
@@ -206,9 +206,9 @@ uint16_t MoToStepper::setSpeedSteps( uint32_t speed10, int16_t rampLen ) {
         // local variables to hold data that might change in IRQ:
         // If there was a step during recomputing the rampvalues, we must recompute again
         // recomputing the rampvalues lasts too long to stop the IRQ during the whole time
-        long        __stepCnt;
-        long        __newStepCnt;
-        long        __newStepCnt2;
+        uint32_t        __stepCnt;
+        uint32_t        __newStepCnt;
+        uint32_t        __newStepCnt2;
         
         DB_PRINT("Speed changed! New: tUs=%u, ramp=%u, cXr=%u",tUsSteps,newRampLen,newUstXramplen );
         //Serial.print(_stepperData.rampState); Serial.print(" ( ");Serial.print( _stepperData.stepsInRamp );Serial.print("->");
@@ -222,9 +222,8 @@ uint16_t MoToStepper::setSpeedSteps( uint32_t speed10, int16_t rampLen ) {
             //with ramp and ramp or speed changed 
             // compute new 'steps in Ramp' according to new speed and ramp values. This maybe greater
             // than ramplen, if speed changed to slower
-            newStepsInRamp = ( (int64_t)newUstXramplen * (_stepperData.stepsInRamp + RAMPOFFSET ) / _stepperData.ustXramplen ) -RAMPOFFSET;
-            
-            if ( newStepsInRamp < 0 ) newStepsInRamp = 0; 
+            newStepsInRamp = ( (int64_t)newUstXramplen * (_stepperData.stepsInRamp + RAMPOFFSET ) / _stepperData.ustXramplen );
+            newStepsInRamp = newStepsInRamp<RAMPOFFSET? 0 : newStepsInRamp-RAMPOFFSET;
             
             if ( newSpeed10 != _stepSpeed10 ) {
                 // speed changed!

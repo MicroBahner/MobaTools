@@ -6,7 +6,8 @@
 
 | Version |  Release Date  | Description
 | ------- |  ------------  | -----------
-| 2.1.0 | 2020-??-??| new class 'MoToButtons' to manage multiple buttons and switches
+| 2.1.0 | 2020-??-??| new class 'MoToButtons' to manage multiple buttons and switches ( up to 32 in one instance )
+| | | MoToTimer: new method 'expired', which returns a 'true' only with the first call after the timer has expired
 | 2.0.0 | 2020-01-13| managing an enable pin for steppers is possible
 | | | new method 'getSpeedSteps' returns actual speed
 | | | ESP8266 is now supported ( with limitations regarding stepper mode: only step/dir is possible )
@@ -48,7 +49,7 @@ Allows easy softon / softoff of leds. It works on all digital outputs.
 Allows easy nonblocking timedelays in sketches. You don't have to bother with millis() directly
 
 #### MoToButtons: 
-Manage up to 32 buttons and switches with debounce and event handling (pressed, released, short press, long press ). The buttons/switches are read in via a user callback function. This enables matrix arrangements and e.g. I2C port expander to be used.
+Manage up to 32 buttons and switches with debounce and event handling (pressed, released, short press, long press ) in one instance. The buttons/switches are read in via a user callback function. This enables matrix arrangements and e.g. I2C port expander to be used.
 
 
 #### Additional Info:

@@ -315,7 +315,8 @@ void MoToStepper::detach() {   // no more moving, detach from output
       #endif
       #ifdef FAST_PORTWRT
       case SINGLE_PINS:
-        nPins+=2;       // we have 2 more pins in Mode SINGLE_PINS compared to A4988Pins (  fallthrough to next case )
+        nPins+=2;           // we have 2 more pins in Mode SINGLE_PINS compared to A4988Pins (  fallthrough to next case )
+        [[fallthrough]];    // supress warning
       case A4988_PINS:
         for ( byte i=0; i<nPins; i++ ) {
             *(_stepperData.portPins[i].Adr-1) &= ~_stepperData.portPins[i].Mask;
@@ -482,7 +483,7 @@ void MoToStepper::_doSteps( long stepValue, bool absPos ) {
                         _stepperData.stepCnt2 = stepsToStop-stepCnt;
                         // no state change!
                     }
-                } else if ( stepCnt <= _stepperData.stepsInRamp ) {
+                } else if ( stepCnt <= (long)_stepperData.stepsInRamp ) {
                     // We cannot reach target whitin actual ramp. So go beyond target and than back.
                     _stepperData.stepCnt = _stepperData.stepsInRamp+1;
                     _stepperData.stepCnt2 = _stepperData.stepCnt-stepCnt;

@@ -175,7 +175,7 @@ void stepperISR(uint8_t cyclesLastIRQ) {
                         }
                         // do we have to start deceleration ( remaining steps < steps in ramp so far )
                         // Ramp must be same length in accelerating and decelerating!
-                        if ( stepperDataP->stepCnt <= (long)( stepperDataP->stepsInRamp+1  ) ) {
+                        if ( stepperDataP->stepCnt <= ( stepperDataP->stepsInRamp+1U  ) ) {
                             //CLR_TP2;
                             stepperDataP->rampState = rampStat::RAMPDECEL;
                             //DB_PRINT( "scnt=%ld, sIR=%u\n\r", stepperDataP->stepCnt, stepperDataP->stepsInRamp );
@@ -237,7 +237,7 @@ void stepperISR(uint8_t cyclesLastIRQ) {
                         stepperDataP->aCycSteps++;
                     }
                     // do we have to start the deceleration
-                    if ( stepperDataP->stepCnt <= stepperDataP->stepRampLen+1 ) {
+                    if ( stepperDataP->stepCnt <= stepperDataP->stepRampLen+1U ) {
                         // in mode without ramp ( stepRampLen == 0 ) , this can never be true
                         stepperDataP->rampState = rampStat::RAMPDECEL;
                     }

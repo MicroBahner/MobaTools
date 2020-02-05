@@ -129,7 +129,7 @@ ISR ( TIMERx_COMPA_vect) {
     saveTIMSK = TIMSKx; // restore IE for stepper later ( maybe it is not enabled)
 #elif defined __STM32F1__
 void ISR_Servo( void) {
-    uint16_t OCRxA;
+    uint16_t OCRxA = 0;
 #endif
     SET_TP3;
     // Timer1 Compare A, used for servo motor
@@ -155,7 +155,7 @@ void ISR_Servo( void) {
             interrupts();
             #endif
             //CLR_TP3 ;
-            OCRxA = max ( ((long)activePulseOff + (long) MARGINTICS - (long) nextPulseLength), ( tmpTCNT1 ) );
+            OCRxA = max ( ((uint32_t)activePulseOff + (uint32_t) MARGINTICS - (uint32_t) nextPulseLength), ( tmpTCNT1 ) );
         } else {
             // we are at the end, no need to start another pulse in this cycle
             if ( activePulseOff ) {
@@ -400,6 +400,8 @@ void MoToServo::detach()
     pinMode( tPin, INPUT );
 }
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-but-set-variable"  // because of startPulse in NON esp8266 use
 void MoToServo::write(uint16_t angleArg)
 {   // set position to move to
     // values between 0 and 180 are interpreted as degrees,
@@ -428,7 +430,7 @@ void MoToServo::write(uint16_t angleArg)
             // Serial.println( "first write");
             // this is the first pulse to be created after attach
             _servoData.on = true;
-            startPulse = true;
+            startPulse = true;      // only for esp8266
             _lastPos = newpos;
             noInterrupts();
             _servoData.soll= newpos ; 
@@ -456,7 +458,10 @@ void MoToServo::write(uint16_t angleArg)
     delay(2);
     CLR_TP1;
 }
+#pragma GCC diagnostic pop
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-parameter"
 void MoToServo::setSpeed( int speed, bool compatibility ) {
     // set global compatibility-Flag
     #ifndef ESP8266
@@ -464,6 +469,7 @@ void MoToServo::setSpeed( int speed, bool compatibility ) {
     #endif
     setSpeed( speed );
 }
+#pragma GCC diagnostic pop
 
 void MoToServo::setSpeed( int speed ) {
     // Set increment value for movement to new angle
