@@ -6,7 +6,7 @@
 
 | Version |  Release Date  | Description
 | ------- |  ------------  | -----------
-| 2.1.0 | 2020-??-??| new class 'MoToButtons' to manage multiple buttons and switches ( up to 32 in one instance )
+| 2.1.0 | 2020-02-05| new class 'MoToButtons' to manage multiple buttons and switches ( up to 32 in one instance )
 | | | MoToTimer: new method 'expired', which returns a 'true' only with the first call after the timer has expired
 | 2.0.0 | 2020-01-13| managing an enable pin for steppers is possible
 | | | new method 'getSpeedSteps' returns actual speed
