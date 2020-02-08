@@ -156,7 +156,6 @@ void ISR_Servo( void) {
             #endif
             //CLR_TP3 ;
             OCRxA = max ( ((long)activePulseOff + (long) MARGINTICS - (long) nextPulseLength), ( tmpTCNT1 ) );
-            //OCRxA = max ( ((uint32_t)activePulseOff + (uint32_t) MARGINTICS - (uint32_t) nextPulseLength), ( tmpTCNT1 ) );
         } else {
             // we are at the end, no need to start another pulse in this cycle
             if ( activePulseOff ) {
@@ -411,7 +410,7 @@ void MoToServo::write(uint16_t angleArg)
     bool startPulse = false;    // only for esp8266
     SET_TP1;
     #ifdef __AVR_MEGA__
-    //DB_PRINT( "Write: angleArg=%d, Soll=%d, OCR=%u", angleArg, _servoData.soll, OCRxA );
+        //DB_PRINT( "Write: angleArg=%d, Soll=%d, OCR=%u", angleArg, _servoData.soll, OCRxA );
     #endif
     if ( _servoData.pin != NO_PIN ) { // only if servo is attached
         //Serial.print( "Pin:" );Serial.print (_servoData.pin);Serial.print("Wert:");Serial.println(angleArg);
