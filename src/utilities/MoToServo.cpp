@@ -149,13 +149,14 @@ void ISR_Servo( void) {
             // next starttime must behind actual timervalue and endtime of next pulse must
             // lay after endtime of runningpuls + safetymargin (it may be necessary to start
             // another pulse between these 2 ends)
-            word tmpTCNT1 = GET_COUNT + MARGINTICS/2;
+            long tmpTCNT1 = GET_COUNT + MARGINTICS/2;
             #ifdef __AVR_MEGA__
             _noStepIRQ();   // Stepper IRQ may be too long and must not interrupt the servo IRQ
             interrupts();
             #endif
             //CLR_TP3 ;
-            OCRxA = max ( ((uint32_t)activePulseOff + (uint32_t) MARGINTICS - (uint32_t) nextPulseLength), ( tmpTCNT1 ) );
+            OCRxA = max ( ((long)activePulseOff + (long) MARGINTICS - (long) nextPulseLength), ( tmpTCNT1 ) );
+            //OCRxA = max ( ((uint32_t)activePulseOff + (uint32_t) MARGINTICS - (uint32_t) nextPulseLength), ( tmpTCNT1 ) );
         } else {
             // we are at the end, no need to start another pulse in this cycle
             if ( activePulseOff ) {
@@ -332,7 +333,7 @@ uint8_t MoToServo::attach( int pinArg, uint16_t pmin, uint16_t pmax, bool autoOf
     // set pulselength for angle 0 and 180
     _minPw = constrain( pmin, MINPULSEWIDTH, MAXPULSEWIDTH );
     _maxPw = constrain( pmax, MINPULSEWIDTH, MAXPULSEWIDTH );
-	//DB_PRINT( "pin: %d, pmin:%d pmax%d autoOff=%d, _min16=%d, _max16=%d", pinArg, pmin, pmax, autoOff, _min16, _max16);
+	//DB_PRINT( "pin: %d, pmin:%d pmax%d autoOff=%d", pinArg, pmin, pmax, autoOff);
     
     // intialize objectspecific data
     _lastPos = 1500*TICS_PER_MICROSECOND*SPEED_RES ;    // initalize to middle position
@@ -410,7 +411,7 @@ void MoToServo::write(uint16_t angleArg)
     bool startPulse = false;    // only for esp8266
     SET_TP1;
     #ifdef __AVR_MEGA__
-	//DB_PRINT( "Write: angleArg=%d, Soll=%d, OCR=%u", angleArg, _servoData.soll, OCRxA );
+    //DB_PRINT( "Write: angleArg=%d, Soll=%d, OCR=%u", angleArg, _servoData.soll, OCRxA );
     #endif
     if ( _servoData.pin != NO_PIN ) { // only if servo is attached
         //Serial.print( "Pin:" );Serial.print (_servoData.pin);Serial.print("Wert:");Serial.println(angleArg);
