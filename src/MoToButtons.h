@@ -101,6 +101,28 @@ typedef uint16_t button_t;
 
 class MoToButtons {
   public:
+    MoToButtons( uint8_t (&pinNumbers)[], uint8_t debTime, uint16_t pressTime, uint16_t doubleClick = (300 ) );
+      _pinCnt = sizeof( pinMumbers );
+      _pinArray = &pinNumbers;
+      _getHWbuttons = getPinStates;
+      _debTime = debTime;
+      _pressTime = pressTime / debTime;   // in debTime tics
+      _dClickTime = doubleClick / debTime;
+      _lastReadTime = 0;     // Last time HW state was read
+      // Bit fields to hold various button states
+      _lastState = 0;
+      _lastChanged = 0;
+      _actState = 0;
+      _longPress = 0;
+      _shortPress = 0;
+      _leadingEdge = 0;
+      _trailingEdge = 0;
+      for ( byte i = 0; i < _buttonCnt; i++ ) {
+        _buttonTime[ i ] = 0; // Time in debounce tics
+      }
+    }
+
+    
     MoToButtons( button_t (*getHWbuttons)(), uint8_t debTime, uint16_t pressTime, uint16_t doubleClick = (300 ) ) {
       _getHWbuttons = getHWbuttons;
       _debTime = debTime;
@@ -119,7 +141,11 @@ class MoToButtons {
         _buttonTime[ i ] = 0; // Time in debounce tics
       }
     }
-
+    
+    button_t getPinStates() {
+      // read pins to get the HW state of the buttons
+      
+    }
     void processButtons() {
       // must be called in loop frequently
       if ( millis() - _lastReadTime > (uint32_t) _debTime ) {
@@ -231,6 +257,8 @@ class MoToButtons {
     }
 
     private:
+    uint8_t _pinCnt;
+    uint8_t *_pinArray;
     uint8_t _debTime;            // Debounce time im ms
     uint8_t _pressTime;          // pressTime measured in debounce tics
     uint8_t _dClickTime;        // double click time measured in debouce tics
