@@ -21,23 +21,29 @@
     debTime                     Debouncetime in ms
     pressTime                   (in ms ) If the button is pressed longer, it is a 'long press'
                                 max presstime = debTime*255
+    doubleClick                 max time between two presses to be recognized as dounle click
+                                ( optional, default: 2*pressTime )
     MoToButtons( button_t (*getHWbuttons)(), uint8_t debTime, uint16_t pressTime );
     example in sketch: 
         MoToButtons Buttons( readFunction, 20, 500 );
-  
+    The first parameter can alternativley by a reference to an array with pin numbers. In this case the state of the pins 
+    is read by the class itself. 'LOW' at the pins means 'pressed':
+    MoToButtons( uint8_t &pinNumbers[], uint8_t debTime, uint16_t pressTime );
+    
   Methods to be called in loop:
     void    processButtons();                   // must be called in the loop frequently
                                                 // if it is called less frequently than debTime, pressTime will be inaccurate
     Reading the debounced state of the Buttons/Switches:                                          
-      boolean state( uint8_t buttonNbr );       // get static state of button (debounced)
+      bool state( uint8_t buttonNbr );       // get static state of button (debounced)
       button_t allStates();                     // bit field of all buttons (debounced)
       button_t changed();                       // all bits are set where state has changed since last call
   
     Reading events:
-      boolean shortPress( uint8_t buttonNbr );  // true if button was pressed short ( set when button is released, reset after call )  
-      boolean longPress( uint8_t buttonNbr );   // true if button was pressed long ( set when button is released, reset after call )  
-      boolean pressed( uint8_t buttonNbr );     // true if button is pressed ( reset after call )
-      boolean released( uint8_t buttonNbr );    // true if button is released ( reset after call )
+      bool shortPress( uint8_t buttonNbr );  // true if button was pressed short ( set when button is released, reset after call )  
+      bool longPress( uint8_t buttonNbr );   // true if button was pressed long ( set when button is released, reset after call )  
+      bool pressed( uint8_t buttonNbr );     // true if button is pressed ( reset after call )
+      bool released( uint8_t buttonNbr );    // true if button is released ( reset after call )
+      bool doubleClick( uint8_t buttonNbr ); // true if a double click was detected ( reset after call )
   
     void forceChanged(){                        // force all changed with call of next 'pressed', 'released' ore 'changed'
     void resetChanged(){                        // clear alle events of 'pressed', 'released' or 'changed'
@@ -95,10 +101,11 @@ typedef uint16_t button_t;
 
 class MoToButtons {
   public:
-    MoToButtons( button_t (*getHWbuttons)(), uint8_t debTime, uint16_t pressTime ) {
+    MoToButtons( button_t (*getHWbuttons)(), uint8_t debTime, uint16_t pressTime, uint16_t doubleClick = (300 ) ) {
       _getHWbuttons = getHWbuttons;
       _debTime = debTime;
       _pressTime = pressTime / debTime;   // in debTime tics
+      _dClickTime = doubleClick / debTime;
       _lastReadTime = 0;     // Last time HW state was read
       // Bit fields to hold various button states
       _lastState = 0;
@@ -122,21 +129,29 @@ class MoToButtons {
         // edge bits are cleard when read or at the next inverted edge ( pressed-> released or vice versa )
         // leading edge
         _leadingEdge &= _actState;  // clear bits if button is no longer pressed
-        _leadingEdge = (~_lastState & _actState) | _leadingEdge;
+        button_t pressEvent  = ~_lastState & _actState;     // new press event 
+        _leadingEdge = pressEvent | _leadingEdge;
         // trailing edge
         _trailingEdge &= ~_actState;  // clear bits if button is pressed again
         _trailingEdge = (_lastState & ~_actState) | _trailingEdge ;
 
         _lastState = _actState;
-
         // process pressing time
         for ( byte i = 0; i < _buttonCnt; i++ ) {
-          if ( bitRead( _actState, i ) ) {
-            // button is still pressed, update time counter
+          if ( _buttonTime[i] < 255 ) _buttonTime[i]++;
+          if ( bitRead( pressEvent, i ) ) {
+            // button is pressed, check doubleClick and reset time counter
+            if ( _buttonTime[i] < _dClickTime ) {
+              // Time since last pressed  is short -> it's a double click
+              bitSet( _doubleClick, i );
+              } else {
+                // time too long, no double click
+                bitClear( _doubleClick, i );
+              }
             bitClear( _longPress, i );
             bitClear( _shortPress, i );
-            if ( _buttonTime[i] < _pressTime ) _buttonTime[i]++;
-          } else {
+            _buttonTime[i] = 0;
+          } else if ( bitRead( _trailingEdge, i ) ) {
             // button was released, check if it was presssd long or short
             if ( _buttonTime[i] > 0 ) { // check only once after releasing
               if (_buttonTime[i] < _pressTime) bitSet( _shortPress, i );
@@ -148,7 +163,7 @@ class MoToButtons {
       }
     }
 
-    boolean state( uint8_t buttonNbr ) {            // get static state of button (debounced)
+    bool state( uint8_t buttonNbr ) {            // get static state of button (debounced)
       if ( buttonNbr >= _buttonCnt ) return 0;
       return bitRead( _actState, buttonNbr );
     }
@@ -177,39 +192,48 @@ class MoToButtons {
       return;
     }
     
-    boolean shortPress( uint8_t buttonNbr ) {       // if button was pressed short
+    bool shortPress( uint8_t buttonNbr ) {       // if button was pressed short
      if ( buttonNbr >= _buttonCnt ) return 0;
       // get short pressed state of button (debounced)
-      boolean temp = bitRead( _shortPress, buttonNbr );
+      bool temp = bitRead( _shortPress, buttonNbr );
       bitClear( _shortPress, buttonNbr );
       return temp;
     }
-    boolean longPress( uint8_t buttonNbr ) {        // if button was pressed long
+    bool longPress( uint8_t buttonNbr ) {        // if button was pressed long
       if ( buttonNbr >= _buttonCnt ) return 0;
-      // get short pressed state of button (debounced)
-      boolean temp = bitRead( _longPress, buttonNbr );
+      // get long pressed state of button (debounced)
+      bool temp = bitRead( _longPress, buttonNbr );
       bitClear( _longPress, buttonNbr );
       return temp;
     }
 
-    boolean pressed( uint8_t buttonNbr ) {          // leading edge of button press
+    bool pressed( uint8_t buttonNbr ) {          // leading edge of button press
       if ( buttonNbr >= _buttonCnt ) return 0;
       // get momentarily pressed state of button (debounced)
-      boolean temp = bitRead( _leadingEdge, buttonNbr );
+      bool temp = bitRead( _leadingEdge, buttonNbr );
       bitClear( _leadingEdge, buttonNbr );
       return temp;
     }
-    boolean released( uint8_t buttonNbr ) {         // trailing edge of button press
+    bool released( uint8_t buttonNbr ) {         // trailing edge of button press
       if ( buttonNbr >= _buttonCnt ) return 0;
       // get momentarily released state of button (debounced)
-      boolean temp = bitRead( _trailingEdge, buttonNbr );
+      bool temp = bitRead( _trailingEdge, buttonNbr );
       bitClear( _trailingEdge, buttonNbr );
+      return temp;
+    }
+
+    bool doubleClick( uint8_t buttonNbr ) {         // double click of button press
+      if ( buttonNbr >= _buttonCnt ) return 0;
+      // get double click state of button (debounced)
+      bool temp = bitRead( _doubleClick, buttonNbr );
+      bitClear( _doubleClick, buttonNbr );
       return temp;
     }
 
     private:
     uint8_t _debTime;            // Debounce time im ms
     uint8_t _pressTime;          // pressTime measured in debounce tics
+    uint8_t _dClickTime;        // double click time measured in debouce tics
     uint32_t _lastReadTime;     // Last time HW state was read
     static const uint8_t   _buttonCnt = sizeof(button_t)*8;        // Number of buttons
     button_t  (*_getHWbuttons)();  // Ptr to user function to read raw state of buttons
@@ -221,6 +245,7 @@ class MoToButtons {
     button_t  _shortPress;
     button_t  _leadingEdge;
     button_t  _trailingEdge;
+    button_t  _doubleClick;
     uint8_t   _buttonTime[ _buttonCnt ]; // Time in debounce tics
 
   
