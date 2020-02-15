@@ -3,20 +3,20 @@
 #include <MobaTools.h>
 // define pin numbers
 const byte buttonPin [] = { A0, A1, A2, A3 };
-const byte anzahlButtons = sizeof(buttonPin);
+const byte buttonCnt = sizeof(buttonPin);
 char txtBuf[50];
 
 /*button_t getHW( void ) {
   // raw reading of buttons
   button_t buttonTemp = 0;
-  for (byte i = 0; i < anzahlButtons; i++) {
+  for (byte i = 0; i < buttonCnt; i++) {
     bitWrite( buttonTemp,i,!digitalRead(buttonPin[i]) ); 
   }
   return buttonTemp;
 }*/
 
 //MoToButtons Buttons( getHW, 30, 500, 500 );
-MoToButtons Buttons( buttonPin, anzahlButtons, 30, 500 );
+MoToButtons Buttons( buttonPin, buttonCnt, 30, 500 );
 
 void printPressedEvent( uint8_t buttonNbr ) {
   if ( Buttons.pressed(buttonNbr) ) {
@@ -67,7 +67,7 @@ void setup()
   Serial.begin(115200);
   while(!Serial);       // only for Leonardo/Micro ( mega32u4 based boards 
   
-  for (int i = 0; i < anzahlButtons; i++)  {    
+  for (int i = 0; i < buttonCnt; i++)  {    
     // buttons must switch to Gnc
     pinMode(buttonPin[i], INPUT_PULLUP); 
   }
