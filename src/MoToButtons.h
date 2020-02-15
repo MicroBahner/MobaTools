@@ -26,9 +26,11 @@
     MoToButtons( button_t (*getHWbuttons)(), uint8_t debTime, uint16_t pressTime );
     example in sketch: 
         MoToButtons Buttons( readFunction, 20, 500 );
-    The first parameter can alternativley by a reference to an array with pin numbers. In this case the state of the pins 
+    The first parameter can alternatively be replaced by a pointer to an array with pin numbers and the number of active pins. In this case the state of the pins 
     is read by the class itself. 'LOW' at the pins means 'pressed':
-    MoToButtons( uint8_t &pinNumbers[], uint8_t debTime, uint16_t pressTime );
+    MoToButtons( const uint8_t pinNumbers[], const uint8_t pinCnt, uint8_t debTime, uint16_t pressTime );
+    
+    In both cases there may be an additional parameter ( uint16_t clickTime  ) to define the time for clicks/double clicks ( default ist 300ms )
     
   Methods to be called in loop:
     void    processButtons();                   // must be called in the loop frequently
@@ -43,7 +45,7 @@
       bool longPress( uint8_t buttonNbr );   // true if button was pressed long ( set when button is released, reset after call )  
       bool pressed( uint8_t buttonNbr );     // true if button is pressed ( reset after call )
       bool released( uint8_t buttonNbr );    // true if button is released ( reset after call )
-      bool doubleClick( uint8_t buttonNbr ); // true if a double click was detected ( reset after call )
+      uint8_t clicked( uint8_t buttonNbr );  // = NOCLICK, SINGLECLICK or DOUBLECLICK ( reset to NOCLICK after call )
   
     void forceChanged(){                        // force all changed with call of next 'pressed', 'released' ore 'changed'
     void resetChanged(){                        // clear alle events of 'pressed', 'released' or 'changed'
@@ -104,58 +106,35 @@ typedef uint16_t button_t;
 
 class MoToButtons {
   public:
-   /* MoToButtons( uint8_t (&pinNumbers)[], uint8_t debTime, uint16_t pressTime, uint16_t doubleClick = (300 ) );
-      _pinCnt = sizeof( pinMumbers );
-      _pinArray = &pinNumbers;
-      _getHWbuttons = getPinStates;
+   MoToButtons( const uint8_t pinNumbers[], const uint8_t buttonCnt, uint8_t debTime, uint16_t pressTime, uint16_t doubleClick = (300 ) ) {
+      _pinCnt = buttonCnt;
+      _pinArray = pinNumbers;
+      _getHWbuttons = NULL;
       _debTime = debTime;
       _pressTime = pressTime / debTime;   // in debTime tics
       _dClickTime = doubleClick / debTime;
-      _lastReadTime = 0;     // Last time HW state was read
-      // Bit fields to hold various button states
-      _lastState = 0;
-      _lastChanged = 0;
-      _actState = 0;
-      _longPress = 0;
-      _shortPress = 0;
-      _leadingEdge = 0;
-      _trailingEdge = 0;
-      for ( byte i = 0; i < _buttonCnt; i++ ) {
-        _buttonTime[ i ] = 0; // Time in debounce tics
-      }
+      _initLocals( );
     }
-*/
     
     MoToButtons( button_t (*getHWbuttons)(), uint8_t debTime, uint16_t pressTime, uint16_t doubleClick = (400 ) ) {
       _getHWbuttons = getHWbuttons;
       _debTime = debTime;
+      _initLocals( );
       _pressTime = pressTime / debTime;   // in debTime tics
       _dClickTime = doubleClick / debTime;
-      _clickTime = _dClickTime/2;
-      _lastReadTime = 0;     // Last time HW state was read
-      // Bit fields to hold various button states
-      _lastState = 0;
-      _lastChanged = 0;
-      _actState = 0;
-      _longPress = 0;
-      _shortPress = 0;
-      _leadingEdge = 0;
-      _trailingEdge = 0;
-      for ( byte i = 0; i < _buttonCnt; i++ ) {
-        _buttonTime[ i ] = 0; // Time in debounce tics
-      }
+      _initLocals( );
     }
     
-    /*button_t getPinStates() {
-      // read pins to get the HW state of the buttons
-      
-    }*/
+    
     
     void processButtons() {
       // must be called in loop frequently
       if ( millis() - _lastReadTime > (uint32_t) _debTime ) {
         _lastReadTime = millis();
-        _actState = _getHWbuttons();    // read button states
+        if ( _getHWbuttons )
+            _actState = _getHWbuttons();    // read button states by user function
+        else
+            _actState = _getPinStates();    // read button states by ínternal function
         // edge detection - new detected edges are added to the corresponding bit field
         // edge bits are cleard when read or at the next inverted edge ( pressed-> released or vice versa )
         // leading edge
@@ -294,9 +273,32 @@ class MoToButtons {
     }
 
     private:
+    button_t _getPinStates() {
+      // read pins to get the HW state of the buttons
+      button_t buttonTemp = 0;
+      for (byte i = 0; i < _pinCnt; i++) {
+        bitWrite( buttonTemp,i,!digitalRead(*(_pinArray+i)) ); 
+      }
+      return buttonTemp;
+    }
     
+    void _initLocals() {
+      _lastReadTime = 0;     // Last time HW state was read
+      _clickTime = _dClickTime/2;
+      // Bit fields to hold various button states
+      _lastState = 0;
+      _lastChanged = 0;
+      _actState = 0;
+      _longPress = 0;
+      _shortPress = 0;
+      _leadingEdge = 0;
+      _trailingEdge = 0;
+      for ( byte i = 0; i < _buttonCnt; i++ ) {
+        _buttonTime[ i ] = 0; // Time in debounce tics
+      }
+    }
     uint8_t _pinCnt;
-    uint8_t *_pinArray;
+    const uint8_t *_pinArray;
     uint8_t _debTime;            // Debounce time im ms
     uint8_t _pressTime;          // pressTime measured in debounce tics
     uint8_t _clickTime;

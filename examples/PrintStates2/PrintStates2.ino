@@ -1,21 +1,66 @@
 // Show Events of buttons in serial monitor
-
-#include <MoToButtons.h>
+#define MAX8BUTTONS
+#include <MobaTools.h>
 // define pin numbers
 const byte buttonPin [] = { A0, A1, A2, A3 };
 const byte anzahlButtons = sizeof(buttonPin);
 char txtBuf[50];
 
-button_t getHW( void ) {
+/*button_t getHW( void ) {
   // raw reading of buttons
   button_t buttonTemp = 0;
   for (byte i = 0; i < anzahlButtons; i++) {
     bitWrite( buttonTemp,i,!digitalRead(buttonPin[i]) ); 
   }
   return buttonTemp;
+}*/
+
+//MoToButtons Buttons( getHW, 30, 500, 500 );
+MoToButtons Buttons( buttonPin, anzahlButtons, 30, 500 );
+
+void printPressedEvent( uint8_t buttonNbr ) {
+  if ( Buttons.pressed(buttonNbr) ) {
+    sprintf( txtBuf, "button %d pressed", buttonNbr );
+    Serial.println(txtBuf);
+  }
 }
 
-MoToButtons Buttons( getHW, 30, 500 );
+void printReleasedEvent( uint8_t buttonNbr ) {
+  if ( Buttons.released(buttonNbr) ) {
+    sprintf( txtBuf, "button %d released", buttonNbr );
+    Serial.println(txtBuf);
+  }
+}
+
+void printlongpressEvent( uint8_t buttonNbr ) {
+if ( Buttons.longPress(buttonNbr) ) {
+    sprintf( txtBuf, "button %d pressed long", buttonNbr );
+    Serial.println(txtBuf);
+  }
+}
+
+void printshortpressEvent( uint8_t buttonNbr ) {
+  if ( Buttons.shortPress(buttonNbr) ) {
+    sprintf( txtBuf, "button %d pressed short", buttonNbr );
+    Serial.println(txtBuf);
+  }
+}
+
+void printClickedEvent( uint8_t buttonNbr ) {
+  switch ( Buttons.clicked(buttonNbr) ) {
+    case NOCLICK:
+      ; // do nothing
+      break;
+    case DOUBLECLICK:
+      sprintf( txtBuf, "button %d double clicked", buttonNbr );
+      Serial.println(txtBuf);
+      break;
+    case SINGLECLICK:
+      sprintf( txtBuf, "button %d single clicked", buttonNbr );
+      Serial.println(txtBuf);
+      break;
+  }
+}
 
 void setup()
 {
@@ -39,42 +84,26 @@ void loop() {
   // 
   //--------------------------------------------------------
   // print state of buttons if at least one changed
-  /*if ( Buttons.changed() ) {
-    sprintf( txtBuf, "State: %d %d %d %d - ", Buttons.state(0), Buttons.state(1), Buttons.state(2), Buttons.state(3) );
+  if ( Buttons.changed() ) {
+    sprintf( txtBuf, "------------ State: %d %d %d %d - ", Buttons.state(0), Buttons.state(1), Buttons.state(2), Buttons.state(3) );
     Serial.print( txtBuf ); Serial.println( Buttons.allStates(),BIN );
-  }*/
+  }
   // print to serial monitor if an event happens ( pressing or releasing )
-  // Button 0 checked for pressing
+  // Button 0 checked for all events
+  printPressedEvent(0 );
+  printReleasedEvent( 0 );
+  printshortpressEvent( 0 );
+  printlongpressEvent( 0 );
+  printClickedEvent( 0 );
+
   // Button 1 checked for releasing
+  printReleasedEvent( 1 );
+  
   // Button 2 checked for short/long press
+  printshortpressEvent( 2 );
+  printlongpressEvent( 2 );
+
   // Button 3 checked for double Click
-  if ( Buttons.pressed(0) ) {
-    sprintf( txtBuf, "button %d pressed", 0 );
-    Serial.println(txtBuf);
-  }
-  if ( Buttons.released(1) ) {
-    sprintf( txtBuf, "button %d released", 1 );
-    Serial.println(txtBuf);
-  }
-  if ( Buttons.shortPress(2) ) {
-    sprintf( txtBuf, "button %d pressed short", 2 );
-    Serial.println(txtBuf);
-  }
-  if ( Buttons.longPress(2) ) {
-    sprintf( txtBuf, "button %d pressed long", 2 );
-    Serial.println(txtBuf);
-  }
-  switch ( Buttons.clicked(3) ) {
-    case DOUBLECLICK:
-      sprintf( txtBuf, "button %d double clicked", 3 );
-      Serial.println(txtBuf);
-      break;
-    case SINGLECLICK:
-      sprintf( txtBuf, "button %d single clicked", 3 );
-      Serial.println(txtBuf);
-      break;
-    default:
-      ;
-  }
+  printClickedEvent( 3 );
 
 }
