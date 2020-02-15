@@ -98,10 +98,13 @@ typedef uint8_t button_t;
 typedef uint16_t button_t;
 #endif
 
+#define NOCLICK     0
+#define SINGLECLICK 1
+#define DOUBLECLICK 2
 
 class MoToButtons {
   public:
-    MoToButtons( uint8_t (&pinNumbers)[], uint8_t debTime, uint16_t pressTime, uint16_t doubleClick = (300 ) );
+   /* MoToButtons( uint8_t (&pinNumbers)[], uint8_t debTime, uint16_t pressTime, uint16_t doubleClick = (300 ) );
       _pinCnt = sizeof( pinMumbers );
       _pinArray = &pinNumbers;
       _getHWbuttons = getPinStates;
@@ -121,13 +124,14 @@ class MoToButtons {
         _buttonTime[ i ] = 0; // Time in debounce tics
       }
     }
-
+*/
     
-    MoToButtons( button_t (*getHWbuttons)(), uint8_t debTime, uint16_t pressTime, uint16_t doubleClick = (300 ) ) {
+    MoToButtons( button_t (*getHWbuttons)(), uint8_t debTime, uint16_t pressTime, uint16_t doubleClick = (400 ) ) {
       _getHWbuttons = getHWbuttons;
       _debTime = debTime;
       _pressTime = pressTime / debTime;   // in debTime tics
       _dClickTime = doubleClick / debTime;
+      _clickTime = _dClickTime/2;
       _lastReadTime = 0;     // Last time HW state was read
       // Bit fields to hold various button states
       _lastState = 0;
@@ -142,10 +146,11 @@ class MoToButtons {
       }
     }
     
-    button_t getPinStates() {
+    /*button_t getPinStates() {
       // read pins to get the HW state of the buttons
       
-    }
+    }*/
+    
     void processButtons() {
       // must be called in loop frequently
       if ( millis() - _lastReadTime > (uint32_t) _debTime ) {
@@ -156,34 +161,56 @@ class MoToButtons {
         // leading edge
         _leadingEdge &= _actState;  // clear bits if button is no longer pressed
         button_t pressEvent  = ~_lastState & _actState;     // new press event 
+        button_t releaseEvent  = _lastState & ~_actState;     // new release event 
         _leadingEdge = pressEvent | _leadingEdge;
         // trailing edge
         _trailingEdge &= ~_actState;  // clear bits if button is pressed again
         _trailingEdge = (_lastState & ~_actState) | _trailingEdge ;
-
+        /* only for debugging if ( _lastState != _actState ) {
+            char txtBuf[80];
+            sprintf(txtBuf, "State= %04X, Lead=%04X, Trail=%04x, press=%04X, rel=%04X", _actState, _leadingEdge, _trailingEdge, pressEvent, releaseEvent );
+            Serial.println(txtBuf);
+        } */
         _lastState = _actState;
-        // process pressing time
+        // process pressing time ( long/short/clicked )
         for ( byte i = 0; i < _buttonCnt; i++ ) {
           if ( _buttonTime[i] < 255 ) _buttonTime[i]++;
+          
           if ( bitRead( pressEvent, i ) ) {
             // button is pressed, check doubleClick and reset time counter
-            if ( _buttonTime[i] < _dClickTime ) {
-              // Time since last pressed  is short -> it's a double click
-              bitSet( _doubleClick, i );
-              } else {
-                // time too long, no double click
-                bitClear( _doubleClick, i );
-              }
+            if ( bitRead( _clicked, i ) ) {
+              // there is a new press, but the previous click event has not yet been read
+              // clear all click events.
+              bitClear( _noDoubleClick, i );
+              bitClear( _clicked, i );
+            } else if ( bitRead( _noDoubleClick , i ) && _buttonTime[i] < _dClickTime ) {
+              // Time since last clicked  is short -> it's a double click
+              bitSet( _clicked, i );
+              bitClear( _noDoubleClick, i );
+            }
             bitClear( _longPress, i );
             bitClear( _shortPress, i );
             _buttonTime[i] = 0;
-          } else if ( bitRead( _trailingEdge, i ) ) {
-            // button was released, check if it was presssd long or short
-            if ( _buttonTime[i] > 0 ) { // check only once after releasing
-              if (_buttonTime[i] < _pressTime) bitSet( _shortPress, i );
-              else bitSet( _longPress, i );
-              _buttonTime[i] = 0;
+          } else if ( bitRead( releaseEvent, i ) ) {
+            // button was released, check if it was clicked,  presssd long or short
+            if ( ! bitRead( _clicked, i ) && bitRead( _noDoubleClick, i ) ) {
+              // it was the release of the second click with state already read
+              // only clear _noDoubleClick
+              bitClear( _noDoubleClick, i );
+            } else if ( _buttonTime[i] < _clickTime ) {
+                // it was a first click
+                bitSet( _noDoubleClick, i );
             }
+            if (_buttonTime[i] < _pressTime) bitSet( _shortPress, i );
+            else bitSet( _longPress, i );
+          }
+          // check if there was a single click. This has to be done without an button event.
+          // It's only time dependent after a click while the button is not pressed again.
+          //if ( !bitRead( _actState, i ) && bitRead(_noDoubleClick, i) && !bitRead( _clicked, i ) && _buttonTime[i] > _dClickTime ) {
+          if ( bitRead( ~_actState & _noDoubleClick & ~_clicked, i) && _buttonTime[i] > _dClickTime ) {
+            // there was a click, and double click time has passed without another click
+            // -> it is a single click
+            bitSet( _clicked, i );
           }
         }
       }
@@ -248,19 +275,31 @@ class MoToButtons {
       return temp;
     }
 
-    bool doubleClick( uint8_t buttonNbr ) {         // double click of button press
+    uint8_t clicked( uint8_t buttonNbr ) {         // single/double click of button press
       if ( buttonNbr >= _buttonCnt ) return 0;
-      // get double click state of button (debounced)
-      bool temp = bitRead( _doubleClick, buttonNbr );
-      bitClear( _doubleClick, buttonNbr );
-      return temp;
+      // get click state of button (debounced)
+      uint8_t clickType = NOCLICK;
+      if (bitRead( _clicked, buttonNbr ) ) {
+        if ( bitRead( _noDoubleClick, buttonNbr) ) clickType = SINGLECLICK;
+        else clickType = DOUBLECLICK;
+        // if button of second press ist still pressed, set _no_DoubleClick
+        // it will be reset when the button is released ( to mark that this
+        // is not a new click )
+        if ( bitRead( _actState, buttonNbr ) ) bitSet( _noDoubleClick, buttonNbr );
+        else bitClear( _noDoubleClick, buttonNbr );
+        //bitWrite( _noDoubleClick, buttonNbr, bitRead( _actState, buttonNbr )  );
+        bitClear( _clicked, buttonNbr );
+      }
+      return clickType;
     }
 
     private:
+    
     uint8_t _pinCnt;
     uint8_t *_pinArray;
     uint8_t _debTime;            // Debounce time im ms
     uint8_t _pressTime;          // pressTime measured in debounce tics
+    uint8_t _clickTime;
     uint8_t _dClickTime;        // double click time measured in debouce tics
     uint32_t _lastReadTime;     // Last time HW state was read
     static const uint8_t   _buttonCnt = sizeof(button_t)*8;        // Number of buttons
@@ -273,7 +312,13 @@ class MoToButtons {
     button_t  _shortPress;
     button_t  _leadingEdge;
     button_t  _trailingEdge;
-    button_t  _doubleClick;
+    // The next two Bits work together: After the first click (release Event) _noDoubleClick
+    // set. If there is a new pressing event within double click time, _clicked is set, and
+    // _noDoubleClick is reset. This is recognized as doubleClick Event in method 'clicked'.
+    // if double click time passes without a new pressing event, _noDoubleClick and _clicked are
+    // both set. This is recognized as single click.
+    button_t  _noDoubleClick;
+    button_t  _clicked;
     uint8_t   _buttonTime[ _buttonCnt ]; // Time in debounce tics
 
   

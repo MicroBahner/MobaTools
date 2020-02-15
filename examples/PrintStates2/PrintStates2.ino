@@ -15,7 +15,7 @@ button_t getHW( void ) {
   return buttonTemp;
 }
 
-MoToButtons Buttons( getHW, 20, 500 );
+MoToButtons Buttons( getHW, 30, 500 );
 
 void setup()
 {
@@ -39,10 +39,10 @@ void loop() {
   // 
   //--------------------------------------------------------
   // print state of buttons if at least one changed
-  if ( Buttons.changed() ) {
+  /*if ( Buttons.changed() ) {
     sprintf( txtBuf, "State: %d %d %d %d - ", Buttons.state(0), Buttons.state(1), Buttons.state(2), Buttons.state(3) );
     Serial.print( txtBuf ); Serial.println( Buttons.allStates(),BIN );
-  }
+  }*/
   // print to serial monitor if an event happens ( pressing or releasing )
   // Button 0 checked for pressing
   // Button 1 checked for releasing
@@ -64,9 +64,17 @@ void loop() {
     sprintf( txtBuf, "button %d pressed long", 2 );
     Serial.println(txtBuf);
   }
-  if ( Buttons.doubleClick(3) ) {
-    sprintf( txtBuf, "button %d double clicked", 3 );
-    Serial.println(txtBuf);
+  switch ( Buttons.clicked(3) ) {
+    case DOUBLECLICK:
+      sprintf( txtBuf, "button %d double clicked", 3 );
+      Serial.println(txtBuf);
+      break;
+    case SINGLECLICK:
+      sprintf( txtBuf, "button %d single clicked", 3 );
+      Serial.println(txtBuf);
+      break;
+    default:
+      ;
   }
 
 }
