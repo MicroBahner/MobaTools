@@ -16,7 +16,7 @@ Released versions can be installed by means of the library manager in arduino ID
 
 | Version |  Release Date  | Description
 | ------- |  ------------  | -----------
-| 2.2.0 | 2020-02-??| MoToButtons: new method 'clicked' to recognize single and double clicks.
+| 2.2.0 | 2020-02-23| MoToButtons: new method 'clicked' to recognize single and double clicks.
 | | | MoToButtons: if all buttons/switches are simply connected to input pins, MoToButtons can read them alone without a callback function.
 | 2.1.1 | 2020-02-08| Fix error in MoToServo: stopped working with more than one Servo
 | 2.1.0 | 2020-02-05| new class 'MoToButtons' to manage multiple buttons and switches ( up to 32 in one instance )
