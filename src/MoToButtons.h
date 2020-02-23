@@ -113,6 +113,8 @@ class MoToButtons {
       _debTime = debTime;
       _pressTime = pressTime / debTime;   // in debTime tics
       _dClickTime = doubleClick / debTime;
+      // Set Pins to INPUT_PULLUP
+      for ( byte i= 0; i < _pinCnt; i++ ) pinMode( pinNumbers[i], INPUT_PULLUP );
       _initLocals( );
     }
     

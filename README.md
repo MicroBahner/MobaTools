@@ -1,6 +1,16 @@
 ﻿MobaTools
 =========
 ### Arduino library for model railroaders ( and maybe for others too 😉 )
+This library contains functionality
+- to control up to 16 servos with speed control
+- to control up to 6 stepper motors with accelerating and decelerating
+- to softly turn leds on and off ( bulb simulation )
+- to implement time functions without delay.
+- to debounce and evaluate up to 32 buttons/switches
+
+### Installation
+
+Released versions can be installed by means of the library manager in arduino IDE
 
 **Latest changes:**
 
@@ -27,13 +37,7 @@
 | 1.1.1 | 2019-07-29 | acceleration/deceleration for steppermotors is now possible
 | | | optimized flash usage when only part of the functionality is used
 
-### Installation
-
-Released versions can be installed by means of the library manager in arduino IDE
-
-### Functionality
-
-The lib contains these classes:
+### Classes
 
 #### MoToServo: 
 Can control up to 16 servos. Compatible with arduino servo lib, but allows to control 
