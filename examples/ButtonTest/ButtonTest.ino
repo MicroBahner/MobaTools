@@ -19,20 +19,20 @@ button_t tasterTemp = 0;
   return tasterTemp;
 }
 
-MoToButtons Taster1( getHW, 20, 500 );
+MoToButtons Taster1( getHW, 20, 500 );  // 20ms Entprellzeit, 500ms für den Unterschied kurz/lang gedrückt.
 
 void setup()
 {
   Serial.begin(115200);
-  while(!Serial);
+  while(!Serial);                           // nur für Leonardo und Micro notwendig (Mega32u4)
   // alle Taster und LEDs definieren und Initialisieren
-  for (int i = 0; i < anzahlTaster; i++)  {     // Bei Abfrage auf < kann man das -1 sparen
+  for (int i = 0; i < anzahlTaster; i++)  { // Bei Abfrage auf < kann man das -1 sparen
     // Taster definieren
-    pinMode(tasterPinNr[i], INPUT_PULLUP);            // Taster-Pins als Input definieren (gedrückt = HIGH)
+    pinMode(tasterPinNr[i], INPUT_PULLUP);  // Taster-Pins als Input definieren (gedrückt = LOW)
 
     // LEDs definieren
-    pinMode(LEDgruenPinNr[i], OUTPUT);              // grüne LED-Pins als Output definieren
-    pinMode(LEDrotPinNr[i], OUTPUT);                // rote LED-Pins als Output definieren
+    pinMode(LEDgruenPinNr[i], OUTPUT);      // grüne LED-Pins als Output definieren
+    pinMode(LEDrotPinNr[i], OUTPUT);        // rote LED-Pins als Output definieren
   }
   Serial.println("Start loop");
 }
