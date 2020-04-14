@@ -182,8 +182,19 @@ class MoToButtons {
                 // it was a first click
                 bitSet( _noDoubleClick, i );
             }
-            if (_buttonTime[i] < _pressTime) bitSet( _shortPress, i );
-            else bitSet( _longPress, i );
+            if (_buttonTime[i] < _pressTime ) {
+                // this release event is a short press
+                bitSet( _shortPress, i );
+            } else {
+                // it was a long press, clear bit to not recognize as short press
+                bitClear ( _shortPress, i );
+            }
+
+          }
+          // check if it is a long press ( button is active, and longpresstime elapsed
+          if ( bitRead( _actState,i) && _buttonTime[i]>_pressTime &&!bitRead( _shortPress,i )  ) {
+            bitSet( _shortPress,i ); // to inhibit further setting of longpress bit while button is still pressed
+            bitSet( _longPress,i );
           }
           // check if there was a single click. This has to be done without an button event.
           // It's only time dependent after a click while the button is not pressed again.
@@ -229,8 +240,13 @@ class MoToButtons {
     bool shortPress( uint8_t buttonNbr ) {       // if button was pressed short
      if ( buttonNbr >= _buttonCnt ) return 0;
       // get short pressed state of button (debounced)
-      bool temp = bitRead( _shortPress, buttonNbr );
-      bitClear( _shortPress, buttonNbr );
+      bool temp = false;
+      if ( !bitRead(_actState,buttonNbr ) ) {
+        // shortpress can only be active is button is no longer pressed
+        // (_shorPress Bit is also set after lonpress time is elapsed an button is still pressed)
+        temp = bitRead( _shortPress, buttonNbr );
+        bitClear( _shortPress, buttonNbr );
+      }
       return temp;
     }
     bool longPress( uint8_t buttonNbr ) {        // if button was pressed long

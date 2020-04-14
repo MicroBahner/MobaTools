@@ -25,6 +25,49 @@
   License along with this library; if not, write to the Free Software
   Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 */
+class MoToTicker
+{   // create regular Events in fixed time distance
+  private:
+    long intervall;             //ticker time im ms ( <=0 menas not running )
+    unsigned long lastTick;     // Time of last tick
+    
+    MoToTicker() {
+        intervall = 0;
+    }
+    
+    void setTicker( long tickerTime ) {
+        // if tickerTime is negativ, than time is set, but ticker is not started and
+        // can be started later with 'start' method
+        intervall = tickerTime;
+        lastTick = millis();
+    }
+    
+    bool ticker() {
+        bool flag = false;
+        if ( intervall>0 ) {
+            // To be on the safe side, if ticker is called too rarely...
+            while ( millis() - lastTick >= (unsigned long) intervall ) {
+                lastTick += intervall;
+                flag = true;
+            }
+        }
+        return flag;
+    }
+    
+    void stop() {
+        // Stop ticker, if it is running
+        if ( intervall > 0 ) intervall = -intervall;
+    }
+    
+    void start() {
+        // Start tickeer if a time is set, but it is not running
+        if ( intervall < 0 ) {
+            intervall = -intervall;
+            lastTick = millis();
+        }
+    }
+};
+
 
 class MoToTimer
 {
