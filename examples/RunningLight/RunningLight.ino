@@ -1,19 +1,10 @@
 #define MAX8BUTTONS
 #include <MobaTools.h>
 
-const uint32_t BLENDZEIT = 800;
-/*const byte taster = 2;
-const byte LEDstart = 5;
-const byte LEDstop = 6;
-const byte LEDtaster = 7;*/
-const byte taster = 8;
-const byte LEDstart = 9;
-const byte LEDstop = 10;
-const byte LEDtaster = 11;
-//const byte pinArray[] = {8, 9, 10, 11, 12, 13, A0, A1, A2, A3};
-const byte pinArray[] = {0,1,2,3,4,5,6,7};
-const byte pinCount = sizeof(pinArray);
-uint32_t jetzt;
+const uint32_t BLENDZEIT = 100;
+const byte taster = A0;
+const byte ledPins[] = {2,3,4,5,6,7,8,9};
+const byte pinCount = sizeof(ledPins);
 enum {LAUF, AUSSCHALTEN, AUS};
 byte schritt = LAUF;
 
@@ -23,25 +14,22 @@ button_t getHW( void ) {    // User-Callback-Funktion für Tasterstatus
 
 MoToButtons Taster( getHW, 20, 500 );
 MoToSoftLed meineLeds[pinCount];
+MoToTimer myTimer;
 
 void setup() {
   //Serial.begin(115200);
   //while(!Serial);
   //Serial.println("Anfang");
   pinMode(taster, INPUT_PULLUP);
-  pinMode(LEDstart, OUTPUT);
-  pinMode(LEDstop, OUTPUT);
-  pinMode(LEDtaster, OUTPUT);
-
+  
   for (byte led = 0; led < pinCount; led++) {
-    meineLeds[led].attach(pinArray[led]);
-    meineLeds[led].riseTime( BLENDZEIT );    // Aufblendzeit in ms
+    meineLeds[led].attach(ledPins[led]);
+    meineLeds[led].riseTime( BLENDZEIT*5 );    // Aufblendzeit in ms
   }
 }
 
 void loop() {
   Taster.processButtons();
-  jetzt = millis();
   switch (schritt) {
     case LAUF: lauflicht();
       if (Taster.pressed(0)) {
@@ -64,18 +52,19 @@ void loop() {
   }
 }
 void lauflicht() {
-  static uint32_t vorhin = jetzt;
   static byte led = 0;
   static bool ein = true;
+  static bool hin = true;
 
-  if (jetzt - vorhin >= BLENDZEIT/8) {
+  if (!myTimer.running()) {
     if (ein) {
-      meineLeds[led].on();
+      meineLeds[hin ? led : pinCount - 1 - led].on();
     } else {
-      meineLeds[led].off();
-      led = (1 + led) % pinCount;
+      meineLeds[hin ? led : pinCount - 1 - led].off();
+      led = (1 + led) % (pinCount - 1);
+      if (!led) hin = !hin;
     }
-    vorhin = jetzt;
+    myTimer.setTime(BLENDZEIT);
     ein = !ein;
   }
 }

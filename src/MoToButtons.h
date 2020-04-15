@@ -328,8 +328,8 @@ class MoToButtons {
     button_t  _lastState;
     button_t  _lastChanged;
     button_t  _actState;
-    button_t  _longPress;
-    button_t  _shortPress;
+    button_t  _longPress;       // Set after longpresstime has elapsed and button is still pressed.
+    button_t  _shortPress;      // Bit is also set after longpress time has elapsed until button is released
     button_t  _leadingEdge;
     button_t  _trailingEdge;
     // The next two Bits work together: After the first click (release Event) _noDoubleClick

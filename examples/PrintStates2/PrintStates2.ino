@@ -6,17 +6,9 @@ const byte buttonPin [] = { A0, A1, A2, A3 };
 const byte buttonCnt = sizeof(buttonPin);
 char txtBuf[50];
 
-/*button_t getHW( void ) {
-  // raw reading of buttons
-  button_t buttonTemp = 0;
-  for (byte i = 0; i < buttonCnt; i++) {
-    bitWrite( buttonTemp,i,!digitalRead(buttonPin[i]) ); 
-  }
-  return buttonTemp;
-}*/
-
-//MoToButtons Buttons( getHW, 30, 500, 500 );
-MoToButtons Buttons( buttonPin, buttonCnt, 30, 500 );
+//this instance is without a callback ( pins are read directly )
+// double click time is 400ms
+MoToButtons Buttons( buttonPin, buttonCnt, 30, 500, 400 );
 
 void printPressedEvent( uint8_t buttonNbr ) {
   if ( Buttons.pressed(buttonNbr) ) {

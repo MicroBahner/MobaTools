@@ -28,26 +28,27 @@
 class MoToTicker
 {   // create regular Events in fixed time distance
   private:
-    long intervall;             //ticker time im ms ( <=0 menas not running )
-    unsigned long lastTick;     // Time of last tick
+    long _interval;             //ticker time im ms ( <=0 menas not running )
+    unsigned long _lastTick;     // Time of last tick
     
+  public:  
     MoToTicker() {
-        intervall = 0;
+        _interval = 0;
     }
     
     void setTicker( long tickerTime ) {
         // if tickerTime is negativ, than time is set, but ticker is not started and
         // can be started later with 'start' method
-        intervall = tickerTime;
-        lastTick = millis();
+        _interval = tickerTime;
+        _lastTick = millis();
     }
     
     bool ticker() {
         bool flag = false;
-        if ( intervall>0 ) {
+        if ( _interval>0 ) {
             // To be on the safe side, if ticker is called too rarely...
-            while ( millis() - lastTick >= (unsigned long) intervall ) {
-                lastTick += intervall;
+            while ( millis() - _lastTick >= (unsigned long) _interval ) {
+                _lastTick += _interval;
                 flag = true;
             }
         }
@@ -56,15 +57,25 @@ class MoToTicker
     
     void stop() {
         // Stop ticker, if it is running
-        if ( intervall > 0 ) intervall = -intervall;
+        if ( _interval > 0 ) _interval = -_interval;
     }
     
     void start() {
-        // Start tickeer if a time is set, but it is not running
-        if ( intervall < 0 ) {
-            intervall = -intervall;
-            lastTick = millis();
+        // Start ticker if a time is set, but it is not running
+        if ( _interval < 0 ) {
+            _interval = -_interval;
+            _lastTick = millis();
         }
+    }
+    
+    bool running() {
+        // return true if ticker is running
+        return ( _interval > 0 );
+    }
+    
+    bool inactive() {
+        // return true if ticker is running
+        return ( _interval == 0 );
     }
 };
 
