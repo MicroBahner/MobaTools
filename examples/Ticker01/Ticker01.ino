@@ -1,28 +1,31 @@
-// Blink 4 leds in random intervals by means of 
-// the ticker function
+// Blink 4 leds in random intervals with the ticker class.
 // Blinking starts with first press of the correspondig button 
-// and can be started and stopped by means of this button
+// and can be stopped and restarted by pressing this button.
+// The blink frequency is determined at the first start.
 
 #include <MobaTools.h>
 
 const byte ledPins[] = {2,3,4,5};
 const byte buttonPins[] = { A0,A1,A2,A3 };
-MoToTicker ledTicker[4];
-MoToButtons Buttons( buttonPins, 4, 20, 500 );
+const byte ledCnt = sizeof( ledPins );      // ledPins must be type of byte
+MoToTicker ledTicker[ledCnt];
+MoToButtons Buttons( buttonPins, ledCnt, 20, 500 );
 
 void setup() {
-    // put your setup code here, to run once:
-    //for ( byte i=0; i<4; i++ ) {
+    // Set ledPins to OUTPUT. The mode of the button pins is set
+    // by the MoToButtons class.
     for ( auto pin : ledPins  ) {
         pinMode( pin, OUTPUT );
+        digitalWrite( pin, HIGH );  // initial led test 
+        delay(500);
+        digitalWrite( pin, LOW );
     }
 }
 
 void loop() {
-    // put your main code here, to run repeatedly:
     Buttons.processButtons();
     
-    for ( byte i=0; i<4; i++ ) {
+    for ( byte i=0; i<ledCnt; i++ ) {
         if ( ledTicker[i].ticker() ) {
             digitalWrite( ledPins[i], !digitalRead( ledPins[i] ) );
         }
