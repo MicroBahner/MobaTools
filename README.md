@@ -16,7 +16,7 @@ Released versions can be installed by means of the library manager in arduino ID
 
 | Version |  Release Date  | Description
 | ------- |  ------------  | -----------
-| 2.3.0 | 2020-xx-xx| MoToButtons: The longpress event is already triggered when the time for longpress expires, not only when the button is released
+| 2.3.0 | 2020-xx-xx| MoToButtons: The longpress event is already triggered when the time for longpress expires, not when the button is released
 | | | New class MoToTicker to create a trigger in regular intervals
 | 2.2.0 | 2020-02-23| MoToButtons: new method 'clicked' to recognize single and double clicks.
 | | | MoToButtons: if all buttons/switches are simply connected to input pins, MoToButtons can read them alone without a callback function.
