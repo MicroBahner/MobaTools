@@ -13,7 +13,7 @@ MoToButtons Buttons( buttonPins, ledCnt, 20, 500 );
 
 void setup() {
     // Set ledPins to OUTPUT. The mode of the button pins is set
-    // by the MoToButtons class.
+    // by the MoToButtons constructor.
     for ( auto pin : ledPins  ) {
         pinMode( pin, OUTPUT );
         digitalWrite( pin, HIGH );  // initial led test 
