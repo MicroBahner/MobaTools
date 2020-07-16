@@ -106,7 +106,7 @@ typedef uint16_t button_t;
 
 class MoToButtons {
   public:
-   MoToButtons( const uint8_t pinNumbers[], const uint8_t buttonCnt, uint8_t debTime, uint16_t pressTime, uint16_t doubleClick = (300 ) ) {
+   MoToButtons( const uint8_t pinNumbers[], const uint8_t buttonCnt, uint8_t debTime, uint16_t pressTime, uint16_t doubleClick = (400 ) ) {
       _pinCnt = buttonCnt;
       _pinArray = pinNumbers;
       _getHWbuttons = NULL;
