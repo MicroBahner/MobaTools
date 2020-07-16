@@ -725,12 +725,15 @@ void MoToStepper::rotate(int8_t direction) {
             switch ( _stepperData.rampState ) {
               case rampStat::RAMPACCEL:
                 _stepperData.stepCnt = _stepperData.stepsInRamp;
+                DB_PRINT("rot:Accel");
                 break;
               case rampStat::CRUISING:
+              case rampStat::STARTING:
                 _stepperData.stepCnt = _stepperData.stepRampLen;
-                //DB_PRINT( "rot: sCnt=%u\n\r", _stepperData.stepCnt );
+                DB_PRINT( "rot: sCnt=%u\n\r", _stepperData.stepCnt );
                 break;
               default:
+                DB_PRINT("rot0: already stopped");
                 ; // already in Stop or decelerating - do nothing
             }
             stepsToMove = _stepperData.stepCnt;
@@ -747,10 +750,11 @@ void MoToStepper::stop() {
 	// immediate stop of the motor
     if ( _stepperData.output == NO_OUTPUT ) return; // not attached
     _noStepIRQ();
-    if (  _stepperData.rampState >= rampStat::CRUISING ) {
+    if (  _stepperData.rampState >= rampStat::STARTING ) {
         // its moving, stopping with next pulse
         stepsToMove = 0;
         _stepperData.stepCnt = 1;
+        DB_PRINT("Stopping!");
     }
     _stepIRQ();
 }
