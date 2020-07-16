@@ -173,7 +173,7 @@ class MoToButtons {
             bitClear( _shortPress, i );
             _buttonTime[i] = 0;
           } else if ( bitRead( releaseEvent, i ) ) {
-            // button was released, check if it was clicked,  presssd long or short
+            // button was released, check if it was clicked,  presssed long or short
             if ( ! bitRead( _clicked, i ) && bitRead( _noDoubleClick, i ) ) {
               // it was the release of the second click with state already read
               // only clear _noDoubleClick
