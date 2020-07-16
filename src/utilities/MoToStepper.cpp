@@ -724,13 +724,17 @@ void MoToStepper::rotate(int8_t direction) {
             _noStepIRQ();
             switch ( _stepperData.rampState ) {
               case rampStat::RAMPACCEL:
+              case rampStat::SPEEDDECEL:
                 _stepperData.stepCnt = _stepperData.stepsInRamp;
                 DB_PRINT("rot:Accel");
                 break;
               case rampStat::CRUISING:
-              case rampStat::STARTING:
                 _stepperData.stepCnt = _stepperData.stepRampLen;
                 DB_PRINT( "rot: sCnt=%u\n\r", _stepperData.stepCnt );
+                break;
+              case rampStat::STARTING:
+                // abort starting the stepper
+                _stepperData.stepCnt = 1;
                 break;
               default:
                 DB_PRINT("rot0: already stopped");
