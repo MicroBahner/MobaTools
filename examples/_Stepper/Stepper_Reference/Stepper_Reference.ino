@@ -50,7 +50,7 @@ MoToButtons taster( tasterPins, tasterZahl, 20, 500 );
 const byte refPin = A5;         // Input für Referenzpunktschalter
 const byte atRefpoint = HIGH;   // Einganspegel, wenn Refpunkt erreicht
 
-MoToTicker speedIntervall;      // Zeitinterval zum Auslesen des Speedpotentiometers
+MoToTimebase speedIntervall;      // Zeitinterval zum Auslesen des Speedpotentiometers
 
 const byte potiPin = A0;        //Poti fuer Geschwindigkeit
 int vspeed = 0;                 //Steppergeschwindigkeit in U/min*10
@@ -93,7 +93,7 @@ void setup()
   myStepper.setSpeed( 200 );
   vspeed = 200;
   myStepper.setRampLen( 100 );                       // Rampenlänge 100 Steps bei 20U/min
-  speedIntervall.setTicker( 100 );                  // 100ms Tickerzeit
+  speedIntervall.setBasetime( 100 );                  // 100ms Tickerzeit
   pinMode(LED_BUILTIN, OUTPUT);
   pinMode(refPin, INPUT_PULLUP );
   toRefPoint();
@@ -105,7 +105,7 @@ void loop() {
   digitalWrite( LED_BUILTIN, digitalRead( refPin ) );
 
   // Speed alle 100ms neu einlesen und setzen
-  if ( speedIntervall.ticker() ) {
+  if ( speedIntervall.tick() ) {
     // wird alle 100ms aufgerufen ( Tickerzeit = 100ms im setup() )
     vspeed = map((analogRead(potiPin)), 0, 1023, 20, 1800);  //Poti mappen auf 2 ... 180 Umdr/Min
     //min speed =2 and max speed =180 rpm

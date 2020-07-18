@@ -10,7 +10,7 @@ MobaTools	KEYWORD1
 MoToButtons	KEYWORD1
 MoToServo	KEYWORD1
 MoToTimer	KEYWORD1    
-MoToTicker	KEYWORD1    
+MoToTimebase	KEYWORD1    
 MoToSoftLed	KEYWORD1   
 MoToStepper	KEYWORD1
 MoToPwm	KEYWORD1
@@ -39,9 +39,9 @@ expired	KEYWORD2
 running	KEYWORD2
 stop	KEYWORD2
 
-#Methods for Class MoToTicker
-setTicker	KEYWORD2
-ticker	KEYWORD2
+#Methods for Class MoToTimebase
+setBasetime	KEYWORD2
+tick	KEYWORD2
 stop	KEYWORD2
 start	KEYWORD2
 running	KEYWORD2

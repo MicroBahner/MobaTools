@@ -25,28 +25,28 @@
   License along with this library; if not, write to the Free Software
   Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 */
-class MoToTicker
+class MoToTimebase
 {   // create regular Events in fixed time distance
   private:
-    long _interval;             //ticker time im ms ( <=0 menas not running )
+    long _interval;             //time base time im ms ( <=0 menas not running )
     unsigned long _lastTick;     // Time of last tick
     
   public:  
-    MoToTicker() {
+    MoToTimebase() {
         _interval = 0;
     }
     
-    void setTicker( long tickerTime ) {
-        // if tickerTime is negativ, than time is set, but ticker is not started and
+    void setBasetime( long baseTime ) {
+        // if time baseTime is negativ, than time is set, but time base is not started and
         // can be started later with 'start' method
-        _interval = tickerTime;
+        _interval = baseTime;
         _lastTick = millis();
     }
     
-    bool ticker() {
+    bool tick() {
         bool flag = false;
         if ( _interval>0 ) {
-            // To be on the safe side, if ticker is called too rarely...
+            // To be on the safe side, if tick is called too rarely...
             while ( millis() - _lastTick >= (unsigned long) _interval ) {
                 _lastTick += _interval;
                 flag = true;
@@ -56,12 +56,12 @@ class MoToTicker
     }
     
     void stop() {
-        // Stop ticker, if it is running
+        // Stop time base, if it is running
         if ( _interval > 0 ) _interval = -_interval;
     }
     
     void start() {
-        // Start ticker if a time is set, but it is not running
+        // Start time base if a time is set, but it is not running
         if ( _interval < 0 ) {
             _interval = -_interval;
             _lastTick = millis();
@@ -69,12 +69,12 @@ class MoToTicker
     }
     
     bool running() {
-        // return true if ticker is running
+        // return true if time base is running
         return ( _interval > 0 );
     }
     
     bool inactive() {
-        // return true if ticker is running
+        // return true if time base is not active
         return ( _interval == 0 );
     }
 };
