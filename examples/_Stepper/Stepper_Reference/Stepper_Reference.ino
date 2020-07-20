@@ -1,7 +1,7 @@
 /*  Beispiel für die Ansteuerung eines bipolaren Steppers
    über 4 Taster und ein Poti ( für die Geschwindigkeit )
    In diesem Beispiel werden neben der Stepperklasse (MoToStepper), auch die MoToButtons
-   und der MoToTicker genutzt.
+   und der MoToTimebase genutzt.
    Jedem Taster ist eine Position zugeordnet, die bei einem Klick auf den Taster
    angefahren wird.
    Ein Doppelklick führt zu endlosen Bewegungen:
@@ -15,7 +15,7 @@
    Die interne LED wird angesteuert, wenn der Referenzschalter aktiv ist.
 */
 /* Example for the control of a bipolar stepper with 4 buttons and a potentiometer (for speed)
-   In this example, besides the stepper class (MoToStepper), also the MoToButtons and the MoToTicker are used.
+   In this example, besides the stepper class (MoToStepper), also the MoToButtons and the MoToTimebase are used.
    A position is assigned to each button, which is approached when the stepper is clicked.
    A double click leads to endless movements:
         Button1: forward
@@ -26,15 +26,15 @@
    In this example, the reference run is a simple blocking function.
 
    The internal LED lights up when the reference switch is active.
- */
+*/
 
- 
+
 #define MAX8BUTTONS // spart Speicher, da nur 4 Taster benötigt werden
 #include <MobaTools.h>
 
 const int STEPS_UMDREHUNG = 800;
 //Stepper einrichten ( 800 Schritte / Umdrehung - 1/4 Microstep )
-MoToStepper myStepper( STEPS_UMDREHUNG, STEPDIR ); 
+MoToStepper myStepper( STEPS_UMDREHUNG, STEPDIR );
 const byte dirPin = 5;
 const byte stepPin = 6;
 const byte enaPin = 7;
@@ -69,20 +69,22 @@ void toRefPoint() {
   digitalWrite( LED_BUILTIN, digitalRead( refPin ) );
   // Refschalter erreicht, anhalten
   myStepper.rotate(0);
-  while ( myStepper.moving() );     // Brensrampe abwarten;
-  // Langsam zurück zum Schaltpunkt des Refpunktes fahren
+  while ( myStepper.moving() );     // Bremsrampe abwarten;
+  
+  // Langsam und ohne Rampe zurück zum Schaltpunkt des Refpunktes fahren
   myStepper.setSpeedSteps( 1000 );
   myStepper.setRampLen(0);
   myStepper.rotate( 1 );
   while ( digitalRead( refPin ) == atRefpoint );
+  
   digitalWrite( LED_BUILTIN, digitalRead( refPin ) );
   Serial.println("Referenzpunkt erreicht");
   myStepper.rotate(0);
   while (myStepper.moving() );
   myStepper.setZero();
   myStepper.setSpeed( 200 );
-  oldSpeed = 0;
-  myStepper.setRampLen( 100 );                       // Rampenlänge 100 Steps bei 20U/min
+  myStepper.setRampLen( 100 );        // Rampenlänge 100 Steps bei 20U/min
+  oldSpeed = 0;                       // Damit Speedwert vom Poti wieder übernommen wird
   Serial.println("Ende Reffahrt");
 }
 
@@ -120,13 +122,14 @@ void loop() {
 
   //
   for ( byte tastIx = 0; tastIx < tasterZahl; tastIx++ ) {
-    // die 4 Taster auf kurzen Druck abfragen
+    // die 4 Taster auf Click/Doppelclick abfragen
     byte clickTyp = taster.clicked(tastIx);
     if ( clickTyp == SINGLECLICK ) {
-      //Taste wurde gedrückt
+      //Taste wurde einfach gedrückt
       Serial.print("Fahre zu Pos "); Serial.println( tasterPos[tastIx] );
       myStepper.writeSteps(tasterPos[tastIx]);
     } else if ( clickTyp == DOUBLECLICK ) {
+      // ein Doppelclick wurde erkannt
       switch ( tastIx ) {
         case Taster1:
           myStepper.rotate(1);
