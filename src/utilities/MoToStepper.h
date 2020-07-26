@@ -127,7 +127,7 @@ class MoToStepper
     static byte     _stepperCount;  // number of objects ( objectcounter )
     stepperData_t _stepperData;      // Variables that are used in IRQ
     uint8_t _stepperIx;              // Objectnumber ( 0 ... MAX_STEPPER )
-    int stepsRev;                   // steps per full rotation
+    long stepsRev;                   // steps per full rotation
     uintxx_t _stepSpeed10;      	// speed in steps/10sec
     uint16_t _lastRampLen ;         // last manually set ramplen
     uintxx_t _lastRampSpeed;        // speed when ramp was set manually
@@ -139,13 +139,13 @@ class MoToStepper
     void _doSteps(long count, bool absPos ); // rotate count steps. abs=true means it was called from write methods
 
     bool _chkRunning();             // check if stepper is running
-    void initialize(int,uint8_t);
+    void initialize(long,uint8_t);
     uint16_t  _setRampValues();
     uint8_t attach(uint8_t outArg, uint8_t*  ); // internal attach function ( called by one of the public attach
   public:
-    MoToStepper(int steps);            // steps per 360 degree in HALFSTEP mode or A4988 Mode on ESP
+    MoToStepper(long steps);            // steps per 360 degree in HALFSTEP mode or A4988 Mode on ESP
 	#ifndef ESP8266 				// there are no different modes with ESP8266
-    MoToStepper(int steps, uint8_t mode ); 
+    MoToStepper(long steps, uint8_t mode ); 
                                     // mode means A4988 ( Step/Dir), HALFSTEP or FULLSTEP
     uint8_t attach( uint8_t,uint8_t,uint8_t,uint8_t); //single pins definition for output
     uint8_t attach(uint8_t outArg);    // stepMode defaults to halfstep
@@ -162,6 +162,7 @@ class MoToStepper
 	void writeSteps( long stepPos );// Go to position stepPos steps from zeropoint
     void setZero();                 // actual position is set as 0 angle (zeropoint)
     void setZero( long zeroPoint);  // new zeropoint ist zeroPoint steps apart from actual position
+    void setZero( long zeroPoint, long stepsPerRotation);  // beside zero point change steps per Rotation too
     int setSpeed(int rpm10 );       // Set movement speed, rpm*10
     uint16_t setSpeedSteps( uintxx_t speed10 ); // set speed withput changing ramp, returns ramp length
     uint16_t setSpeedSteps( uintxx_t speed10, int16_t rampLen ); // set speed and ramp, returns ramp length

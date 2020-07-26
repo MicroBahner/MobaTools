@@ -85,7 +85,7 @@ byte MoToStepper::_stepperCount = 0;
 #endif // esp8266 <-> other
 
 // constructor -------------------------
-MoToStepper::MoToStepper(int steps ) {
+MoToStepper::MoToStepper(long steps ) {
     // constuctor for stepper Class, initialize data
 	#ifdef ESP8266
     MoToStepper::initialize ( steps, A4988 );	// This is the only valid mode
@@ -95,14 +95,14 @@ MoToStepper::MoToStepper(int steps ) {
 }
 
 #ifndef ESP8266
-MoToStepper::MoToStepper(int steps, uint8_t mode ) {
+MoToStepper::MoToStepper(long steps, uint8_t mode ) {
     // constuctor for stepper Class, initialize data
     MoToStepper::initialize ( steps, mode );
 }
 #endif
 
 // private functions ---------------
-void MoToStepper::initialize ( int steps360, uint8_t mode ) {
+void MoToStepper::initialize ( long steps360, uint8_t mode ) {
     // create new instance
     _stepperIx = _stepperCount ;
     stepsRev = steps360;       // number of steps for full rotation in fullstep mode
@@ -630,6 +630,12 @@ void MoToStepper::setZero(long zeroPoint) {
     interrupts();
 }
 
+void MoToStepper::setZero(long zeroPoint, long steps360) {
+    if ( _stepperData.output == NO_OUTPUT ) return; // not attached
+    stepsRev = steps360;
+    setZero( zeroPoint );
+}
+
 void MoToStepper::write(long angleArg ) {
     // set next position as angle, measured from last setZero() - point
     DB_PRINT("write: %d", angleArg);
@@ -741,6 +747,7 @@ void MoToStepper::rotate(int8_t direction) {
                 ; // already in Stop or decelerating - do nothing
             }
             stepsToMove = _stepperData.stepCnt;
+            _stepperData.stepCnt2 = 0;      // No reverse moving after stop
             _stepIRQ();
         }
 	} else if (direction > 0 ) { // ToDo: Grenzwerte sauber berechnen

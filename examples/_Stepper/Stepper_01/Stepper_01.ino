@@ -1,12 +1,26 @@
-#include <MobaTools.h>
-/*  Demo zum Anschluß eines unipolaren Stepmotors 28BYJ-48 ( über SPI )
- *  und eines Standard bipolaren Steppers über 4 Pins und eine H-Brücke.
- *  
- *  Der Schrittmotor kann wahlweise direkt über 4 frei wählbare Pins, oder über die SPI-
- *  Schnittstelle und Schieberegister angeschlossen werden. 
- *  SPI belegt beim UNO oder nano die Pins 10(SS),11(MOSI) und 13(SCK)
- *  Pin 12 (MISO) wird zwar nicht genutzt, aber von der HW belegt
+/******************************************************************  
+   Demo zum Anschluß eines unipolaren Stepmotors 28BYJ-48 ( über SPI )
+  und eines Standard bipolaren Steppers über 4 Pins und eine H-Brücke.
+  Dieses Beispiel läuft nicht auf ESP8266!
+  
+  Der Schrittmotor kann wahlweise direkt über 4 frei wählbare Pins, oder über die SPI-
+  Schnittstelle und Schieberegister angeschlossen werden. 
+  SPI belegt beim UNO oder nano die Pins 10(SS),11(MOSI) und 13(SCK)
+  Pin 12 (MISO) wird zwar nicht genutzt, aber von der HW belegt
 */
+/*******************************************************************
+  Demo for connecting a unipolar stepper motor 28BYJ-48 ( via SPI ) and a standard bipolar stepper
+  via 4 pins and a H-bridge.  This example does not run on ESP8266!
+  
+  The stepper motor can be connected either directly via 4 freely selectable pins, or via the SPI 
+  interface and shift register (see circuit diagram in documentation). 
+  SPI occupies the pins 10(SS), 11(MOSI) and 13(SCK) of the UNO or nano.
+  Pin 12 (MISO) is not used, but is occupied by the hardware
+  In this example Step1 is connected directly while Step2 is connected via SPI.
+
+Translated with www.DeepL.com/Translator (free version)
+ */
+#include <MobaTools.h>
 const int FULLROT1 = 400;
 MoToStepper Step1(FULLROT1);           // HALFSTEP ist default
 MoToStepper Step2(2048,FULLSTEP);
