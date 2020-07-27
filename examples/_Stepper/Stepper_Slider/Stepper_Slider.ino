@@ -1,6 +1,7 @@
 /*  Demo zum Anschluß eines unipolaren Stepmotors 28BYJ-48
     mit Verwendung einer Beschleunigungsrampe
     Slider-Minimalprogramm: Endposition - Startposition - Bewegung von Start- zu Endposition
+    Dieses Beispiel läuft nicht auf ESP8266
     Danke an 'agmue' vom arduino.cc Forum für dieses Beispiel
 */
 

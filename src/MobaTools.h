@@ -5,10 +5,16 @@
   Author: fpm, fpm-gh@mnet-mail.de
   Copyright (c) 2020 All right reserved.
 
-  MobaTools V2.0
-   (C) 01-2020 fpm fpm@mnet-online.de
+  MobaTools V2.3
+   (C) 07-2020 fpm fpm@mnet-online.de
    
   History:
+  V2.3 07-2020
+     - New class MoToTimebase to create events in regular intervals
+     - MoToButton: The longpress event is already triggered when the time for longpress expires, not when the button is released
+     - MoToStepper: steps per rotation can be changed together with setting a new reference point.
+     
+  V2.2 03-2020
   V2.1 02-2020
       - new class 'MoToButtons' to manage up to 32 buttons/switches
         ( debounce, events 'pressed', 'released', 'short press' and 'long press'

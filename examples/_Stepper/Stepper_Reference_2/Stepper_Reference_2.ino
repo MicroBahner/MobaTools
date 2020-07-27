@@ -1,5 +1,6 @@
 /* An Example with 3 steppers ( 2 unipolar, 1 bipolar ).
  *  A reference run is started in setup.  2 limit switches are required for this.
+ *  This example does not run on ESP8266
  */
  
 #include <MobaTools.h>

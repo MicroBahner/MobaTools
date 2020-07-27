@@ -1,6 +1,10 @@
 /*  Demo zum Anschluß eines unipolaren Stepmotors 28BYJ-48
  *  mit Verwendung einer Beschleunigungsrampe
+ *  Dieses Beispiel läuft nicht auf ESP8266
  *      Danke an 'agmue' vom arduino.cc Forum für dieses Beispiel
+*/
+/* Demo for connecting a unipolar stepper motor 28BYJ-48 with use of an acceleration ramp
+   This example does not run on ESP8266
 */
 #include <MobaTools.h>
 MoToStepper Step1(4096);           // HALFSTEP ist default
