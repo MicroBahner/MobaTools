@@ -56,6 +56,12 @@ class MoToServo
     servoData_t _servoData;  // Servo data to be used in ISR
 
 	public:
+    // don't allow copying and moving of Servo objects
+    MoToServo &operator= (const MoToServo & )   =delete;
+    MoToServo &operator= (MoToServo && )        =delete;
+    MoToServo (const MoToServo & )              =delete;
+    MoToServo (MoToServo && )                   =delete;
+    
     MoToServo();
     uint8_t attach(int pin); // attach to a pin, sets pinMode, returns 0 on failure, won't
                              // position the servo until a subsequent write() happens

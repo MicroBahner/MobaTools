@@ -83,6 +83,12 @@ class MoToSoftLed
 { // Switch leds on/off softly.
   // 
   public:
+    // don't allow copying and moving of SoftLed objects
+    MoToSoftLed &operator= (const MoToSoftLed & )   =delete;
+    MoToSoftLed &operator= (MoToSoftLed && )        =delete;
+    MoToSoftLed (const MoToSoftLed & )              =delete;
+    MoToSoftLed (MoToSoftLed && )                   =delete;
+
     MoToSoftLed();
     uint8_t attach(uint8_t pinArg, uint8_t invArg = false );     // Led-pin with soft on
     void riseTime( uint16_t );       // in millisec - falltime is the same

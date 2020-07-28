@@ -143,10 +143,18 @@ class MoToStepper
     uint16_t  _setRampValues();
     uint8_t attach(uint8_t outArg, uint8_t*  ); // internal attach function ( called by one of the public attach
   public:
+    // don't allow copying and moving of Stepper objects
+    MoToStepper &operator= (const MoToStepper & )    =delete;
+    MoToStepper &operator= (MoToStepper && )       =delete;
+    MoToStepper (const MoToStepper & )             =delete;
+    MoToStepper (MoToStepper && )            =delete;
+
+    //Constuctor:
     MoToStepper(long steps);            // steps per 360 degree in HALFSTEP mode or A4988 Mode on ESP
 	#ifndef ESP8266 				// there are no different modes with ESP8266
     MoToStepper(long steps, uint8_t mode ); 
                                     // mode means A4988 ( Step/Dir), HALFSTEP or FULLSTEP
+    //Methods                                
     uint8_t attach( uint8_t,uint8_t,uint8_t,uint8_t); //single pins definition for output
     uint8_t attach(uint8_t outArg);    // stepMode defaults to halfstep
     #endif
