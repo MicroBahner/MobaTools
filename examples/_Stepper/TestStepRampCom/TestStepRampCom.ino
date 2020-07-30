@@ -38,7 +38,15 @@
 
 // Definition der Pins für verschiedene Platformen
 //==========================================================================
-#ifdef __STM32F1__  //===================== STM32F1 ========================
+#define stepMode  STEPDIR
+const int stPerRev = 400;
+#ifdef ESP8266  //===================== ESP8266 ========================
+const byte A4988Step=14, A4988Dir=2 ;
+#define enablePin 12
+// SPI1 = Pins MOSI=PA7, MISO=PA6, SCK=PA5, NSS=PA4
+// LA-Pins: TP1=PB12, TP2=PB13, TP3= PB14,  TP4=BP15
+//............................................................................
+#elif defined __STM32F1__  //===================== STM32F1 ========================
 const byte A4988Step=PB8, A4988Dir=PB5 ;
 // SPI1 = Pins MOSI=PA7, MISO=PA6, SCK=PA5, NSS=PA4
 // LA-Pins: TP1=PB12, TP2=PB13, TP3= PB14,  TP4=BP15
@@ -46,10 +54,7 @@ const byte A4988Step=PB8, A4988Dir=PB5 ;
 #elif defined __AVR_ATmega328P__ // ========- 328P ( Nano, Uno Mega ) ========--
 const byte A4988Step=6, A4988Dir=5;
 const byte stepPins[] = {16,18,17,19 };
-const byte stepMode = HALFSTEP;
-const int stPerRev = 400;
-
-const byte enablePin = 7;
+#define enablePin 7
 // SPI = Pins 10,11,12,13
 // LA-Pins: TP1=A1, TP2=A2, TP3= A3,  TP4=A4
 //............................................................................
@@ -59,7 +64,11 @@ const byte A4988Step=6, A4988Dir=5;
 // LA-Pins: TP1=A3, TP2=A2, TP3= D1,  TP4=D0
 #endif
 //====================================== Ende Pin-Definitionen ======================
-MoToStepper  myStepper(stPerRev, stepMode );
+#ifdef ESP8266
+    MoToStepper  myStepper(stPerRev );
+#else
+    MoToStepper  myStepper(stPerRev, stepMode );
+#endif
 
 #define printf( x, ... ) { char txtbuf[100]; sprintf_P( txtbuf, PSTR( x ), ##__VA_ARGS__ ) ; Serial.print( txtbuf ); }
 
@@ -142,12 +151,14 @@ void setup() {
   Serial.begin( 115200 );
   while( !Serial ); 
   Serial.println("Programmstart");
-  if ( stepMode == A4988 ) {
+  #if (stepMode == A4988 ) || ( stepMode == STEPDIR )
     if (myStepper.attach( A4988Step, A4988Dir )  ) Serial.println("Attach A4988 OK"); else Serial.println("Attach A4988 NOK");
-  } else {
+  #else
     if (myStepper.attach( stepPins[0],stepPins[1],stepPins[2],stepPins[3] )  ) Serial.println("Attach 4Wire OK"); else Serial.println("Attach A4988 NOK");
-  }
-  myStepper.attachEnable(enablePin, 30, LOW );
+  #endif
+  #ifdef enabelPin
+    myStepper.attachEnable(enablePin, 30, LOW );
+  #endif
   myStepper.setSpeedSteps( 6000, 100 );
   delay( 500 );
   Serial.println( "Starting loop" );
