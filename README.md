@@ -18,7 +18,7 @@ A documentation file in [german](MobaTools-23-de.pdf) and [english](MobaTools-23
 
 | Version |  Release Date  | Description
 | ------- |  ------------  | -----------
-| 2.3.0 | 2020-xx-xx| MoToButtons: The longpress event is already triggered when the time for longpress expires, not when the button is released
+| 2.3.0 | 2020-07-31| MoToButtons: The longpress event is already triggered when the time for longpress expires, not when the button is released
 | | | New class MoToTimebase to create a trigger in regular intervals
 | | | When setting the zero point, steps per rotation can be changed also.
 | | | fix error in rotate(0) - did not stop under special circumstances
