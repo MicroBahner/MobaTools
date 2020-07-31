@@ -409,7 +409,7 @@ uintxx_t MoToStepper::getSpeedSteps( ) {
         noInterrupts();
         actSpeedSteps = _stepperData.aUsSteps;
         interrupts();
-        actSpeedSteps = 10000000 / actSpeedSteps;
+        if ( actSpeedSteps > 0 ) actSpeedSteps = 10000000 / actSpeedSteps;
     #else
         uint16_t actSpeedSteps = 0;
         // get actual values from ISR

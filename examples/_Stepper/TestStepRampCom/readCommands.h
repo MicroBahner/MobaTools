@@ -3,6 +3,7 @@
 bool getCmd ( eeBefehl_t &cmdBuf ) {
     // Wenn Daten verfügbar, diese in den receive-Buffer lesen. Endezeichen ist LF oder CR
     // Funktionswert ist true, wenn ein kompletter Befehl empfangen, und im cmdBuf eingetragen wurde
+    const byte ETX = 03;
     bool fulCmd = false;
     int8_t eeIx = -1;         // default: kein EEPROM Eintrag
     static char rcvBuf[50];
@@ -14,7 +15,8 @@ bool getCmd ( eeBefehl_t &cmdBuf ) {
         Serial.readBytes( &rcvBuf[rcvIx], dataAnz );
         rcvIx += dataAnz;
         if ( rcvBuf[rcvIx-1] == 10 || rcvBuf[rcvIx-1] == 13 ) {
-            rcvBuf[rcvIx-1] = 0;
+            rcvBuf[rcvIx] = ETX; // Endekennung (strtok bei ESP erkennt kein Stringende-> Absturz, wenn über Ende gelesen wird)
+            rcvBuf[rcvIx+1] = 0;
             // komplette Zeile empfangen -> auswerten und in cmdBuf eintragen
             fulCmd = true;
             cmdBuf.bedingung = '-';
@@ -32,10 +34,10 @@ bool getCmd ( eeBefehl_t &cmdBuf ) {
                     // EEprom-Index lesen
                     eeIx = atoi( strtok( NULL, trenner ) );
                     // Ausführungsbedingung einlesen
-                    token = strtok( NULL, trenner );
+                    if ( *token != ETX ) token = strtok( NULL, trenner );
                     cmdBuf.bedingung = *token;
                     cmdBuf.bedParam  = atol( strtok( NULL, trenner) );
-                    token = strtok( NULL, trenner ); // ab hier Befehlsauswertung
+                    if ( *token != ETX ) token = strtok( NULL, trenner ); // ab hier Befehlsauswertung
                     tkPtr = strstr( comStr, token );
                     if ( tkPtr == NULL ) {
                         // unbekanntes Kommando, wie nop behandeln
@@ -45,14 +47,15 @@ bool getCmd ( eeBefehl_t &cmdBuf ) {
                     }
                 }
                 // Parameter einlesen
-                cmdBuf.comPar1 = atol( strtok( NULL, trenner ) );
-                token = strtok( NULL, trenner );
-                if ( strlen( token ) == 0 ) {
+                if ( *token != ETX ) token = strtok( NULL, trenner );
+                cmdBuf.comPar1 = atol( token );
+                if ( *token != ETX ) token = strtok( NULL, trenner );
+                if ( *token == ETX ) {
                     cmdBuf.comPar2 = -1;
                 } else {
                     cmdBuf.comPar2 = atoi( token );
                 }
-                 
+
                 switch ( cmdBuf.command )  {     
                   case estT: // ===============================  est nnn     -> Automat an Index nn starten ======
                     if ( eeIx < 0 ) {

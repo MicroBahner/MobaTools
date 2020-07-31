@@ -130,6 +130,14 @@ void storeCmd( byte eeIx, eeBefehl_t &cmdBuf ) {
     }
     #else
     EEPROM.put( eeIx*eeComLen, cmdBuf );
+    #ifdef ESP8266
+        Serial.print("Commit ");
+    if ( EEPROM.commit() ) {
+      Serial.println("OK");
+    } else {
+      Serial.println("NOK");
+    }
+    #endif
     #endif
 }
 
@@ -151,6 +159,9 @@ void setup() {
   Serial.begin( 115200 );
   while( !Serial ); 
   Serial.println("Programmstart");
+  #ifdef ESP8266
+  EEPROM.begin( 2048 );
+  #endif
   #if (stepMode == A4988 ) || ( stepMode == STEPDIR )
     if (myStepper.attach( A4988Step, A4988Dir )  ) Serial.println("Attach A4988 OK"); else Serial.println("Attach A4988 NOK");
   #else

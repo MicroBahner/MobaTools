@@ -12,6 +12,8 @@ This library contains functionality
 
 Released versions can be installed by means of the library manager in arduino IDE
 
+A documentation file in [german](MobaTools-23-de.pdf) and [english](MobaTools-23-en.pdf) is provided.
+
 **Latest changes:**
 
 | Version |  Release Date  | Description
