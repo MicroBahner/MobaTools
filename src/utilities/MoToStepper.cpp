@@ -558,7 +558,10 @@ void MoToStepper::_doSteps( long stepValue, bool absPos ) {
         if ( absPos ) stepCnt = abs( stepValue + lastSFZ - _stepperData.stepsFromZero );
         _stepperData.patternIxInc = patternIxInc;
         _stepperData.stepCnt = stepCnt;
-        if ( _stepperData.rampState < rampStat::CRUISING && stepValue!=0 ) {
+        if ( stepValue == 0 ) {
+            // No steps to do and without Ramp: immediate stop
+            _stepperData.rampState = rampStat::STOPPED;
+        } else if ( _stepperData.rampState < rampStat::CRUISING  ) {
             // stepper does not move, start it because we have to do steps
             #ifdef ESP8266
             _stepperData.rampState      = rampStat::CRUISING;   // we don't have a ramp
