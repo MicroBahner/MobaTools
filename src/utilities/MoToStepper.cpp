@@ -561,6 +561,9 @@ void MoToStepper::_doSteps( long stepValue, bool absPos ) {
         if ( stepValue == 0 ) {
             // No steps to do and without Ramp: immediate stop
             _stepperData.rampState = rampStat::STOPPED;
+            #ifdef ESP8266
+            stopWaveformMoTo(_stepperData.pins[0]);
+            #endif
         } else if ( _stepperData.rampState < rampStat::CRUISING  ) {
             // stepper does not move, start it because we have to do steps
             #ifdef ESP8266

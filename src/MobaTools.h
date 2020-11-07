@@ -5,10 +5,11 @@
   Author: fpm, fpm-gh@mnet-mail.de
   Copyright (c) 2020 All right reserved.
 
-  MobaTools V2.3
-   (C) 07-2020 fpm fpm@mnet-online.de
+  MobaTools V2.3.1
    
   History:
+  V2.3.1 11-2020
+     - Fix error with doSteps(0) and no ramp. Motor did not stop
   V2.3 07-2020
      - New class MoToTimebase to create events in regular intervals
      - MoToButton: The longpress event is already triggered when the time for longpress expires, not when the button is released
