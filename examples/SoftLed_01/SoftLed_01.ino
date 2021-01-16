@@ -9,14 +9,14 @@
  * SoftLed.off();               // 'weich' ausschalten
 */
 
-const byte ledPin =  5;  // beliebiger Digital Pin
+const byte ledPin =  13;  // beliebiger Digital Pin
 
 
 MoToSoftLed meinLed;
 
 void setup() {
     meinLed.attach(ledPin); 
-    meinLed.riseTime( 500 );    // Aufblendzeit in ms
+    meinLed.riseTime( 1000 );    // Aufblendzeit in ms
 }
 
 void loop() {

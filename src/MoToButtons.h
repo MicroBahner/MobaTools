@@ -131,7 +131,8 @@ class MoToButtons {
     
     void processButtons() {
       // must be called in loop frequently
-      if ( millis() - _lastReadTime > (uint32_t) _debTime ) {
+      if ( millis() - _lastReadTime > (uint32_t) _debTime || _lastReadTime == 0 ) {
+        // Read button state with first call or when debounce time has elapsed
         _lastReadTime = millis();
         if ( _getHWbuttons )
             _actState = _getHWbuttons();    // read button states by user function
