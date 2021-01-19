@@ -6,8 +6,8 @@
   Functions for the stepper part of MobaTools
 */
 #include <MobaTools.h>
-//#define debugTP
-//#define debugPrint
+#define debugTP
+#define debugPrint
 #include <utilities/MoToDbg.h>
 #define TODO	// ignore 
 // Global Data for all instances and classes  --------------------------------
@@ -113,12 +113,14 @@ void MoToStepper::initialize ( long steps360, uint8_t mode ) {
     _stepperData.patternIx = 0;
     _stepperData.patternIxInc = mode;         // positive direction
 	#ifdef ESP8266
-    _stepperData.aUsSteps = 0; // means no step
-    _stepperData.tUsSteps = _stepperData.aUsSteps; 
+		_stepperData.aCycSteps = 0; // means no step
+		_stepperData.tCycSteps = _stepperData.aCycSteps; 
 	#else
-    _stepperData.aCycSteps = TIMERPERIODE; //MIN_STEPTIME/CYCLETIME; 
-    _stepperData.tCycSteps = _stepperData.aCycSteps; 
-    _stepperData.tCycRemain = 0;                // work with remainder when cruising
+		_stepperData.aCycSteps = TIMERPERIODE; //MIN_STEPTIME/CYCLETIME; 
+		_stepperData.tCycSteps = _stepperData.aCycSteps; 
+	#endif
+	#ifndef IS_32BIT
+	    _stepperData.tCycRemain = 0;                // work with remainder when cruising ( only 8-bit processors )
 	#endif
     _stepperData.stepsFromZero = 0;
     _stepperData.rampState = rampStat::INACTIVE;
@@ -272,7 +274,7 @@ uint8_t MoToStepper::attach( byte outArg, byte pins[] ) {
         setSpeedSteps( DEF_SPEEDSTEPS, DEF_RAMP );
 		#ifdef ESP8266
 			// initialize ISR-Table and attach interrupt to step-Pin
-        // assign an ISR to the pin
+			// assign an ISR to the pin
             gpioTab[gpio2ISRx(_stepperData.pins[0])].MoToISR = (void (*)(void*))ISR_Stepper;
             gpioTab[gpio2ISRx(_stepperData.pins[0])].IsrData = &_stepperData;
             attachInterrupt( _stepperData.pins[0], gpioTab[gpio2ISRx(_stepperData.pins[0])].gpioISR, RISING );
@@ -373,7 +375,7 @@ void MoToStepper::attachEnable( uint8_t enablePin, uint16_t delay, bool active )
         gpioTab[gpio2ISRx(_stepperData.pins[1])].IsrData = &_stepperData;
         attachInterrupt( _stepperData.pins[1], gpioTab[gpio2ISRx(_stepperData.pins[1])].gpioISR, FALLING );
         setGpio(_stepperData.enable);    // mark pin as used
-        _stepperData.usDelay = delay;      // delay (ms) between enablePin HIGH/LOW and stepper moving
+        _stepperData.cycDelay = delay;      // delay (ms) between enablePin HIGH/LOW and stepper moving
     #else
     _stepperData.cycDelay = 1000L * delay / CYCLETIME;      // delay ( in cycles ) between enablePin HIGH/LOW and stepper moving
     #endif
@@ -404,10 +406,11 @@ uintxx_t MoToStepper::getSpeedSteps( ) {
 	// return actual speed in steps/ 10sec 
 	
     if ( _stepperData.output == NO_OUTPUT ) return -1; // not attached
-    #ifdef ESP8266
+    #ifdef IS_32BIT
+	    // there is no remainder on 32bit systems annd aCycSteps is in µs
         uint32_t actSpeedSteps = 0;
         noInterrupts();
-        actSpeedSteps = _stepperData.aUsSteps;
+        actSpeedSteps = _stepperData.aCycSteps;
         interrupts();
         if ( actSpeedSteps > 0 ) actSpeedSteps = 10000000 / actSpeedSteps;
     #else
@@ -457,6 +460,7 @@ void MoToStepper::_doSteps( long stepValue, bool absPos ) {
     #endif
     
     if ( _stepperData.output == NO_OUTPUT ) return; // not attached
+	SET_TP1;
     //Serial.print( "doSteps: " ); Serial.println( stepValue );
     DB_PRINT(">>>>>>>>>>doSteps(%ld)>>>>>>>>>>>>>>>", stepValue );
     stepsToMove = stepValue;
@@ -492,7 +496,7 @@ void MoToStepper::_doSteps( long stepValue, bool absPos ) {
                     _stepperData.stepCnt = stepCnt;
                 }
                 _stepIRQ();
-                //DB_PRINT( "StateErr1:, sCnt=%ld, sCnt2=%ld, sMove=%ld, aCyc=%d", _stepperData.stepCnt, _stepperData.stepCnt2, stepsToMove, _stepperData.aUsSteps );
+                //DB_PRINT( "StateErr1:, sCnt=%ld, sCnt2=%ld, sMove=%ld, aCyc=%d", _stepperData.stepCnt, _stepperData.stepCnt2, stepsToMove, _stepperData.aCycSteps );
             } else {
                 // direction changes, stop and go backwards
                 _noStepIRQ();
@@ -522,15 +526,17 @@ void MoToStepper::_doSteps( long stepValue, bool absPos ) {
                 
                 _noStepIRQ();
                 #ifdef ESP8266
-                    _stepperData.aUsSteps       = _stepperData.ustXramplen / RAMPOFFSET; // first steplen in ramp
+                    _stepperData.aCycSteps       = _stepperData.cyctXramplen / RAMPOFFSET; // first steplen in ramp
                     _stepperData.rampState      = rampStat::RAMPACCEL;
                     //digitalWrite( _stepperData.pins[1], patternIxInc<0 );      // setze dir-output
                     startMove = 1;
                 #else
                     _stepperData.cycCnt         = 0;            // start with the next IRQ
                     _stepperData.aCycSteps      = 0;
-                    _stepperData.aCycRemain     = 0;   
-                    #ifndef ESP8266
+					#ifndef IS_32BIT
+                    _stepperData.aCycRemain     = 0;  
+					#endif
+                    //#ifndef ESP8266
                     if ( _stepperData.enablePin != 255 ) {
                         // set enable pin to active and start delaytime
                         digitalWrite( _stepperData.enablePin, _stepperData.enable );
@@ -539,7 +545,7 @@ void MoToStepper::_doSteps( long stepValue, bool absPos ) {
                         // no delay
                         _stepperData.rampState      = rampStat::RAMPACCEL;
                     }
-                    #endif
+                    //#endif
                 #endif
                 _stepperData.patternIxInc   = patternIxInc;
                 _stepperData.stepsInRamp    = 0;
@@ -567,21 +573,23 @@ void MoToStepper::_doSteps( long stepValue, bool absPos ) {
         } else if ( _stepperData.rampState < rampStat::CRUISING  ) {
             // stepper does not move, start it because we have to do steps
             #ifdef ESP8266
-            _stepperData.rampState      = rampStat::CRUISING;   // we don't have a ramp
-            _stepperData.aUsSteps       = _stepperData.tUsSteps;
-            startMove = 1;
+				_stepperData.rampState      = rampStat::CRUISING;   // we don't have a ramp
+				_stepperData.aCycSteps       = _stepperData.tCycSteps;
+				startMove = 1;
             #else
-            _stepperData.cycCnt         = 0;            // start with the next IRQ
-            _stepperData.aCycSteps      = 0;
-            _stepperData.aCycRemain     = 0; 
-            if ( _stepperData.enablePin != 255 ) {
-                // set enable pin to active and start delaytime
-                digitalWrite( _stepperData.enablePin, _stepperData.enable );
-                _stepperData.rampState      = rampStat::STARTING;
-            } else {
-                // no delay
-                _stepperData.rampState      = rampStat::CRUISING;
-            }
+				_stepperData.cycCnt         = 0;            // start with the next IRQ
+				_stepperData.aCycSteps      = 0;
+				#ifndef IS_32BIT
+				_stepperData.aCycRemain     = 0; 
+				#endif
+				if ( _stepperData.enablePin != 255 ) {
+					// set enable pin to active and start delaytime
+					digitalWrite( _stepperData.enablePin, _stepperData.enable );
+					_stepperData.rampState      = rampStat::STARTING;
+				} else {
+					// no delay
+					_stepperData.rampState      = rampStat::CRUISING;
+				}
             #endif
         }
         _stepIRQ();
@@ -598,14 +606,14 @@ void MoToStepper::_doSteps( long stepValue, bool absPos ) {
                 digitalWrite( _stepperData.enablePin, _stepperData.enable );
                 // create a singlepulse on dir-output to measure delaytime
                 //delayMicroseconds( 10 );
-                startWaveformMoTo( _stepperData.pins[1], 1000*_stepperData.usDelay, 10000 , 1000*_stepperData.usDelay); 
+                startWaveformMoTo( _stepperData.pins[1], 1000*_stepperData.cycDelay, 10000 , 1000*_stepperData.cycDelay); 
                 _stepperData.delayActiv = true;
             }
         } else {
             // no enable control, start movement directly
             // set dir output
             digitalWrite( _stepperData.pins[1], (_stepperData.patternIxInc < 0) );
-            startWaveformMoTo( _stepperData.pins[0], CYCLETIME, _stepperData.aUsSteps-CYCLETIME, 0 ); 
+            startWaveformMoTo( _stepperData.pins[0], CYCLETIME, _stepperData.aCycSteps-CYCLETIME, 0 ); 
         }
     } else {
         // direction may have changed, so set it here
@@ -621,6 +629,7 @@ void MoToStepper::_doSteps( long stepValue, bool absPos ) {
     //DB_PRINT( "   - State=%s, Rampsteps=%u" , rsC[_stepperData.rampState], _stepperData.stepsInRamp );
     #endif
     prDynData();
+	CLR_TP1;
 }
 
 

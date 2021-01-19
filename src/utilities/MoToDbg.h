@@ -85,18 +85,18 @@
         #define SET_TP4  gpio_write_bit( GPIOB,15, HIGH );
         #define CLR_TP4  gpio_write_bit( GPIOB,15, LOW );*/
         //Test-HW füer Stepper:
-        #define MODE_TP1 pinMode( PA3,OUTPUT )   // TP1= PB12
-        #define SET_TP1  digitalWrite( PA3, HIGH );
-        #define CLR_TP1  digitalWrite( PA3, LOW );
-        #define MODE_TP2 //pinMode( PA2,OUTPUT )   // TP1= PB12
-        #define SET_TP2  //digitalWrite( PA2, HIGH );
-        #define CLR_TP2  //digitalWrite( PA2, LOW );
-        #define MODE_TP3 
-        #define SET_TP3 
-        #define CLR_TP3
-        #define MODE_TP4 
-        #define SET_TP4 
-        #define CLR_TP4 
+        #define MODE_TP1 pinMode( PA0,OUTPUT )   // TP1= PA1
+        #define SET_TP1  digitalWrite( PA0, HIGH );
+        #define CLR_TP1  digitalWrite( PA0, LOW );
+        #define MODE_TP2 pinMode( PA1,OUTPUT )  
+        #define SET_TP2  digitalWrite( PA1, HIGH );
+        #define CLR_TP2  digitalWrite( PA1, LOW );
+        #define MODE_TP3 pinMode( PA2,OUTPUT )   // 
+        #define SET_TP3  digitalWrite( PA2, HIGH );
+        #define CLR_TP3  digitalWrite( PA2, LOW );
+        #define MODE_TP4 pinMode( PA3,OUTPUT )   // 
+        #define SET_TP4  digitalWrite( PA3, HIGH );
+        #define CLR_TP4  digitalWrite( PA3, LOW );
     #elif defined ESP8266
         #define MODE_TP1 pinMode( 13,OUTPUT )  // GPIO 13
         #define SET_TP1  GPOS = (1 << 13)

@@ -11,11 +11,20 @@
 #include <utilities/MoToDbg.h>
 
 #ifndef ESP8266
-void stepperISR(uint8_t cyclesLastIRQ) __attribute__ ((weak));
-void softledISR(uint8_t cyclesLastIRQ) __attribute__ ((weak));
+// ISR on ESP is completely different - on ESP this File is empty
 
-uint8_t nextCycle;
-static uint8_t cyclesLastIRQ = 1;  // cycles since last IRQ
+#ifdef IS_32BIT
+	// On 32-Bit Processors Cycle counts in µsec
+	void stepperISR(int32_t cyclesLastIRQ) __attribute__ ((weak));
+	void softledISR(int32_t cyclesLastIRQ) __attribute__ ((weak));
+	int32_t nextCycle;
+	static int32_t cyclesLastIRQ = 1;  // µsec since last IRQ
+#else
+	void stepperISR(uint8_t cyclesLastIRQ) __attribute__ ((weak));
+	void softledISR(uint8_t cyclesLastIRQ) __attribute__ ((weak));
+	uint8_t nextCycle;
+	static uint8_t cyclesLastIRQ = 1;  // cycles since last IRQ
+#endif
 // ---------- OCRxB Compare Interrupt used for stepper motor and Softleds ----------------
 #ifdef __AVR_MEGA__
 ISR ( TIMERx_COMPB_vect) {
@@ -62,7 +71,7 @@ void ISR_Stepper(void) {
         OCRxB = tmp * TICS_PER_MICROSECOND;
     }
     #elif defined __STM32F1__
-    long tmpL = ( timer_get_compare(MT_TIMER, STEP_CHN) + nextCycle * CYCLETICS );
+    long tmpL = ( timer_get_compare(MT_TIMER, STEP_CHN) + nextCycle * TICS_PER_MICROSECOND );
     if ( tmpL > TIMER_OVL_TICS ) tmpL = tmpL - TIMER_OVL_TICS;
     timer_set_compare( MT_TIMER, STEP_CHN, tmpL ) ;
     #endif

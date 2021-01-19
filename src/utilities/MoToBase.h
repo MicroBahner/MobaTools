@@ -22,16 +22,28 @@
 #endif
 
 #ifdef __STM32F1__
+#define IS_32BIT
 #include <libmaple/timer.h>
 #include <libmaple/spi.h>
 #include <libmaple/nvic.h>
 #endif
 
 #ifdef ESP8266
+#define IS_32BIT
 #include <utilities/ESP8266_waveform.h>
 #endif
 
-#define ISR_IDLETIME    5000        // max time between two Stepper/Softled ISRs
+// type definitions ( if they are different for 8bit and 32bit platforms)
+#ifdef IS_32BIT
+	#define uintxx_t uint32_t
+	#define intxx_t	int32_t
+#else
+	#define uintxx_t	uint16_t
+	#define  intxx_t	int16_t
+#endif
+
+
+#define ISR_IDLETIME    5000        // max time between two Stepper/Softled ISRs ( µsec )
 
 // old Class names ( for compatibility with former sketches )
 #define Stepper4    MoToStepper
@@ -46,8 +58,11 @@
 #define FULL2Wire   4   // not yet used
 #define NOSTEP      0   // invalid-flag
 
-
+#ifdef IS_32BIT
+extern int32_t nextCycle;   // to be used in ISR for stepper and softled
+#else
 extern uint8_t nextCycle;   // to be used in ISR for stepper and softled
+#endif
 
 // for formatted printing to Serial( just like fprintf )
 // you need to define txtbuf with proper length to use this

@@ -8,15 +8,6 @@
   Definitions and declarations for the stepper part of MobaTools
 */
 
-// type definitions ( different for the platforms)
-#ifdef ESP8266
-	#define uintxx_t uint32_t
-	#define intxx_t	int32_t
-#else
-	#define uintxx_t	uint16_t
-	#define  intxx_t	int16_t
-#endif
-
 // defines for the stepper motor
 #define NOSTEP      0   // invalid-flag
 #ifndef ESP8266
@@ -71,25 +62,29 @@ typedef struct stepperData_t {
   volatile int8_t patternIx;    // Pattern-Index of actual Step (0-7)
   int8_t   patternIxInc;        // halfstep: +/-1, fullstep: +/-2, A4988 +1/-1  the sign defines direction
   #ifdef ESP8266
-	// on the ESP platform all time values are in µs
-	uint32_t tUsSteps;           // µseconds per step ( target value of motorspeed  )
-	volatile uint32_t aUsSteps;  // nµseconds per step ( actual motorspeed  )
-	uint32_t ustXramplen;        // precompiled  tUsSteps*(rampLen+RAMPOFFSET)
-    uint16_t usDelay;            // delay time: enable -> stepping
+	// on 32Bit-platforms all time values are in µs
+	uint32_t tCycSteps;           // µseconds per step ( target value of motorspeed  )
+	volatile uint32_t aCycSteps;  // nµseconds per step ( actual motorspeed  )
+	uint32_t cyctXramplen;        // precompiled  tCycSteps*(rampLen+RAMPOFFSET)
+    uint16_t cycDelay;            // delay time: enable -> stepping
     boolean  dirChange;          // Flag: Dir has to be changed ( at falling edge )
   #else
-	// on the other platforms the time values count in cycles
-	uint16_t tCycSteps;           // nbr of IRQ cycles per step ( target value of motorspeed  )
+	// on the other platforms the time values count in cycles.
+    // On 32-bit processors cyclelength is 1 µsec, and there is no remainder
+	uintxx_t tCycSteps;           // nbr of IRQ cycles per step ( target value of motorspeed  )
+	volatile uintxx_t aCycSteps;           // nbr of IRQ cycles per step ( actual motorspeed  )
+    #ifndef IS_32BIT
+    // Remainder needed only on 8-Bit processors
 	uint16_t tCycRemain;          // Remainder of division when computing tCycSteps
-	volatile uint16_t aCycSteps;           // nbr of IRQ cycles per step ( actual motorspeed  )
 	uint16_t aCycRemain;          // accumulate tCycRemain when cruising
-	uint16_t cyctXramplen;        // precompiled  tCycSteps*(rampLen+RAMPOFFSET)
-    volatile uint16_t cycCnt;     // counting cycles until cycStep
-	uint16_t cycDelay;            // delay time enable -> stepping
+    #endif
+	uintxx_t cyctXramplen;        // precompiled  tCycSteps*(rampLen+RAMPOFFSET)
+    volatile uintxx_t cycCnt;     // counting cycles until cycStep
+	uintxx_t cycDelay;            // delay time enable -> stepping
   #endif
-  uint16_t  stepRampLen;        // Length of ramp in steps
+  uintxx_t  stepRampLen;        // Length of ramp in steps
   uintxx_t  stepsInRamp;        // stepcounter within ramp ( counting from stop ( = 0 ): incrementing in startramp, decrementing in stopramp
-  uint16_t  deltaSteps;         // number of computed steps per real step in SPEEDDECEL
+  uintxx_t  deltaSteps;         // number of computed steps per real step in SPEEDDECEL
                                 // max value is stepRampLen
   rampStat rampState;        // State of acceleration/deceleration
   volatile long stepsFromZero;  // distance from last reference point ( always as steps in HALFSTEP mode )

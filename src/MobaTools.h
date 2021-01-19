@@ -97,8 +97,8 @@
 // gpio16 has no interrupt capability ( but can be used as dir-pin for a stepper)
 
 #elif defined ( __STM32F1__ )
-#define CYCLETIME       66     // Min. irq-periode in us ( STM-default is 66 )
-#define MIN_STEP_CYCLE  3       // Minimum number of cycles per step. 
+#define CYCLETIME       1     // Cycle count in µs on 32Bit processors
+#define MIN_STEP_CYCLE  60   // Minimum number of µsec  per step. ( max stepfreq = 10kHz )
 #else
 #define CYCLETIME       200     // Min. irq-periode in us ( default is 200 ), 
 #define MIN_STEP_CYCLE  2       // Minimum number of cycles per step. 

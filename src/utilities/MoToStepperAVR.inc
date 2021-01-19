@@ -3,7 +3,11 @@
 
 
 #pragma GCC optimize "O3"   // optimize ISR for speed
+#ifdef IS_32BIT
+void stepperISR(int32_t cyclesLastIRQ) {
+#else
 void stepperISR(uint8_t cyclesLastIRQ) {
+#endif
     SET_TP4;
     stepperData_t *stepperDataP;         // actual stepper data in IRQ
     uint8_t spiChanged, changedPins, bitNr;
@@ -28,12 +32,13 @@ void stepperISR(uint8_t cyclesLastIRQ) {
         }
         if ( stepperDataP->rampState >= rampStat::CRUISING ) {
             // only active motors
-            //SET_TP2;
+            SET_TP3;
             stepperDataP->cycCnt+=cyclesLastIRQ;
+			//Serial.println( stepperDataP->cycCnt ); // Nur für TEST
             if ( stepperDataP->cycCnt >= stepperDataP->aCycSteps ) {
                 // Do one step
                 SET_TP2;
-                stepperDataP->cycCnt = 0 ;
+                stepperDataP->cycCnt = stepperDataP->cycCnt - stepperDataP->aCycSteps ;
                 // update position for absolute positioning
                 stepperDataP->stepsFromZero += stepperDataP->patternIxInc;
                 
@@ -117,7 +122,7 @@ void stepperISR(uint8_t cyclesLastIRQ) {
                         #endif
                     }    
                     // Set step pulse 
-                    nextCycle = MIN_STEP_CYCLE/2; // will be resettet in max 2 cycles
+                    nextCycle = MIN_STEP_CYCLE/2; // will be resettet in half of min steptime
                     #ifdef FAST_PORTWRT
                     *stepperDataP->portPins[0].Adr |= stepperDataP->portPins[0].Mask;
                     #else
@@ -163,16 +168,20 @@ void stepperISR(uint8_t cyclesLastIRQ) {
                     if (stepperDataP->stepsInRamp >= stepperDataP->stepRampLen ) {
                         // we reached the end of the ramp
                         stepperDataP->aCycSteps = stepperDataP->tCycSteps;
+                        #ifndef IS_32BIT
                         stepperDataP->aCycRemain = stepperDataP->tCycRemain;
+                        #endif
                         stepperDataP->stepsInRamp = stepperDataP->stepRampLen;
                         stepperDataP->rampState = rampStat::CRUISING;
                     } else {
                         stepperDataP->aCycSteps = stepperDataP->cyctXramplen / (stepperDataP->stepsInRamp + RAMPOFFSET) ;//+1;
+                        #ifndef IS_32BIT
                         stepperDataP->aCycRemain += stepperDataP->cyctXramplen % (stepperDataP->stepsInRamp + RAMPOFFSET);
                        if ( stepperDataP->aCycRemain > (stepperDataP->stepsInRamp + RAMPOFFSET) ) {
                             stepperDataP->aCycSteps++;
                             stepperDataP->aCycRemain -= (stepperDataP->stepsInRamp + RAMPOFFSET);
                         }
+                        #endif
                         // do we have to start deceleration ( remaining steps < steps in ramp so far )
                         // Ramp must be same length in accelerating and decelerating!
                         if ( stepperDataP->stepCnt <= ( stepperDataP->stepsInRamp+1U  ) ) {
@@ -198,29 +207,35 @@ void stepperISR(uint8_t cyclesLastIRQ) {
                             //SET_TP2;
                         }
                         stepperDataP->aCycSteps = stepperDataP->cyctXramplen / ( --stepperDataP->stepsInRamp + RAMPOFFSET ) ;// +1 ;
+                        #ifndef IS_32BIT
                         stepperDataP->aCycRemain += stepperDataP->cyctXramplen % (stepperDataP->stepsInRamp + RAMPOFFSET);
                         if ( stepperDataP->aCycRemain > (stepperDataP->stepsInRamp + RAMPOFFSET) ) {
                             stepperDataP->aCycSteps++;
                             stepperDataP->aCycRemain -= (stepperDataP->stepsInRamp + RAMPOFFSET);
                         }
+                        #endif
                     } else {
                         // lower speed to new value 
                         if ( (stepperDataP->stepsInRamp-stepperDataP->stepRampLen) > stepperDataP->deltaSteps ) {
                             // steps in ramp still greater than delta
                             stepperDataP->stepsInRamp -=stepperDataP->deltaSteps;
                             stepperDataP->aCycSteps = stepperDataP->cyctXramplen / ( stepperDataP->stepsInRamp + RAMPOFFSET ) ;//+1 ;
+                            #ifndef IS_32BIT
                             stepperDataP->aCycRemain += stepperDataP->cyctXramplen % (stepperDataP->stepsInRamp + RAMPOFFSET);
                             if ( stepperDataP->aCycRemain > (stepperDataP->stepsInRamp + RAMPOFFSET) ) {
                                 stepperDataP->aCycSteps++;
                                 stepperDataP->aCycRemain -= (stepperDataP->stepsInRamp + RAMPOFFSET);
                             }
+                            #endif
                         } else {
                             // new targetspeed reached
                             //SET_TP3;
                             stepperDataP->rampState = rampStat::CRUISING;
                             stepperDataP->stepsInRamp =  stepperDataP->stepRampLen;
                             stepperDataP->aCycSteps = stepperDataP->tCycSteps;
+                            #ifndef IS_32BIT
                             stepperDataP->aCycRemain = 0;
+                            #endif
                             //CLR_TP3;
                         }
                         //ToDo - do we have to stop the motor
@@ -231,11 +246,13 @@ void stepperISR(uint8_t cyclesLastIRQ) {
                     // Not in ramp, targetspeed reached - or without ramp at all
                     //CLR_TP2;
                     stepperDataP->aCycSteps = stepperDataP->tCycSteps;
+                    #ifndef IS_32BIT
                     stepperDataP->aCycRemain += stepperDataP->tCycRemain;
                     if  ( stepperDataP->aCycRemain > CYCLETIME ) {
                         stepperDataP->aCycRemain -= CYCLETIME;
                         stepperDataP->aCycSteps++;
                     }
+                    #endif
                     // do we have to start the deceleration
                     if ( stepperDataP->stepCnt <= stepperDataP->stepRampLen+1U ) {
                         // in mode without ramp ( stepRampLen == 0 ) , this can never be true
@@ -251,7 +268,12 @@ void stepperISR(uint8_t cyclesLastIRQ) {
                 } // End of ramp-statemachine
                 CLR_TP2;
             } // End of do one step
+			CLR_TP3;
             nextCycle = min ( nextCycle, stepperDataP->aCycSteps-stepperDataP->cycCnt );
+			#ifdef IS_32BIT
+			// check minimum  ISR-distance in µsec
+			if ( nextCycle < MIN_STEP_CYCLE ) nextCycle = MIN_STEP_CYCLE;
+			#endif
             //SET_TP1;
         } // end of 'if stepper active AND moving'
         else if ( stepperDataP->rampState == rampStat::STARTING ) {
@@ -377,21 +399,22 @@ static void initSPI() {
     spiInitialized = true;  
 }
 
-uint16_t MoToStepper::setSpeedSteps( uint16_t speed10, int16_t rampLen ) {
+uint16_t MoToStepper::setSpeedSteps( uintxx_t speed10, int16_t rampLen ) {
     // Set speed and length of ramp to reach speed ( from stop )
     // neagtive ramplen means it was set automatically
     rampStat newRampState;      // State of acceleration/deceleration
-    uint16_t tCycSteps;         // nbr of IRQ cycles per step ( new target value of motorspeed  )
+    uintxx_t tCycSteps;         // nbr of IRQ cycles per step ( new target value of motorspeed  )
+	#ifndef IS_32BIT
     uint16_t tCycRemain;        // Remainder of division when computing tCycSteps
     long     tMicroSteps;       // Microseconds per step
-    uint16_t newCyctXramplen;      // precompiled  tCycSteps*rampLen*RAMPOFFSET
-    uint16_t newRampLen;         // new ramplen
-    uint16_t newStepsInRamp;     // new stepcounter in ramp - according to new speed and ramplen
-    int16_t  newDeltaSteps = 1;  //  only for SPEEDDECEL
-    uint16_t newSpeed10;        // new target speed
+	#endif
+    uintxx_t newCyctXramplen;      // precompiled  tCycSteps*rampLen*RAMPOFFSET
+    uintxx_t newRampLen;         // new ramplen
+    uintxx_t newStepsInRamp;     // new stepcounter in ramp - according to new speed and ramplen
+    intxx_t  newDeltaSteps = 1;  //  only for SPEEDDECEL
+    uintxx_t newSpeed10;        // new target speed
 
     if ( _stepperData.output == NO_OUTPUT ) return 0; // --------------->>>>>>>>>>>>>>>>not attached
-    
     // compute new speed values, adjust length of ramp if necessary
     //actSpeed10 = oldSpeed10 = _stepSpeed10;
         
@@ -401,8 +424,11 @@ uint16_t MoToStepper::setSpeedSteps( uint16_t speed10, int16_t rampLen ) {
     newSpeed10 = min( 1000000L / MIN_STEPTIME * 10, speed10 );
 	if ( newSpeed10 == 0 ) newSpeed10 = 1; // minimum speed
     
-    //DB_PRINT( "rampLen-new=%u, ramplenParam=%u", newRampLen, rampLen );
     // compute target steplength and check whether speed and ramp fit together: 
+	#ifdef IS_32BIT
+    tCycSteps = ( 1000000L * 10  / newSpeed10 );
+    newCyctXramplen = tCycSteps * ( newRampLen + RAMPOFFSET );
+	#else
     tMicroSteps = ( 1000000L * 10  / newSpeed10 );
     tCycSteps = tMicroSteps / CYCLETIME; 
     tCycRemain = tMicroSteps % CYCLETIME; 
@@ -416,7 +442,7 @@ uint16_t MoToStepper::setSpeedSteps( uint16_t speed10, int16_t rampLen ) {
     } else {
         newCyctXramplen = tmp;
     }
-
+	#endif
     if (rampLen >= 0) {
         // ramplength was set by user, update reference-values
         _lastRampSpeed = newSpeed10;
@@ -427,7 +453,6 @@ uint16_t MoToStepper::setSpeedSteps( uint16_t speed10, int16_t rampLen ) {
     // This needs to be done only, if a ramp is defined, the stepper is moving
     // and the speed an ramp values changed
     // In all other cases the new speed/ramp values will get active immediately
-    //DB_PRINT( "actRampLen=%u, cXr-new=%u, xCr-old=%u", newRampLen, newCyctXramplen, _stepperData.cyctXramplen );
     _noStepIRQ(); SET_TP2;
     if ( (_stepperData.stepRampLen + newRampLen ) != 0
         && _chkRunning() 
@@ -439,8 +464,6 @@ uint16_t MoToStepper::setSpeedSteps( uint16_t speed10, int16_t rampLen ) {
         uint32_t        __newStepCnt;
         uint32_t        __newStepCnt2;
         
-        //DB_PRINT("Speed changed! New: tcyc=%u, ramp=%u, cXr=%u",tCycSteps,newRampLen,newCyctXramplen );
-        //Serial.print(_stepperData.rampState); Serial.print(" ( ");Serial.print( _stepperData.stepsInRamp );Serial.print("->");
          do {
             // read actual ISR values
             newRampState = _stepperData.rampState;
@@ -451,9 +474,13 @@ uint16_t MoToStepper::setSpeedSteps( uint16_t speed10, int16_t rampLen ) {
             //with ramp and ramp or speed changed 
             // compute new 'steps in Ramp' according to new speed and ramp values. This maybe greater
             // than ramplen, if speed changed to slower
+			#ifdef IS_32BIT
+            newStepsInRamp = ( (int64_t)newCyctXramplen * (_stepperData.stepsInRamp + RAMPOFFSET ) / _stepperData.cyctXramplen );
+            newStepsInRamp = newStepsInRamp<RAMPOFFSET? 0 : newStepsInRamp-RAMPOFFSET;
+			#else
             newStepsInRamp = ( (long)newCyctXramplen * (_stepperData.stepsInRamp + RAMPOFFSET ) / _stepperData.cyctXramplen );
             if ( newStepsInRamp > RAMPOFFSET ) newStepsInRamp -= RAMPOFFSET; else newStepsInRamp = 0; 
-            //Serial.print( newStepsInRamp );
+			#endif
             
             if ( newSpeed10 != _stepSpeed10 ) {
                 // speed changed!
@@ -497,27 +524,40 @@ uint16_t MoToStepper::setSpeedSteps( uint16_t speed10, int16_t rampLen ) {
     }
     
     _stepperData.tCycSteps = tCycSteps;
+	#ifndef IS_32BIT
     _stepperData.tCycRemain = tCycRemain;
+	#endif
     _stepperData.cyctXramplen = newCyctXramplen;
     _stepperData.stepRampLen = newRampLen;
     _stepIRQ(); CLR_TP2;
     _stepSpeed10 = newSpeed10;
     
-    DB_PRINT( "NewSpeed=%u", _stepSpeed10 );
     prDynData();
     return _stepperData.stepRampLen;
 }
 
+#ifdef IS_32BIT
+// On 32-Bit Processors Cycle counts in µsec
+extern int32_t nextCycle;
+//static int32_t cyclesLastIRQ = 1;  // µsec since last IRQ
+#else
+extern uint8_t nextCycle;
+//static uint8_t cyclesLastIRQ = 1;  // cycles since last IRQ
+#endif
+
 void MoToStepper::prDynData() {             // print actual Stepperdata
  #ifdef debugPrint
     stepperData_t printData;  // vor Ausdruck eine lokale Kopie erstellen
+	intxx_t prNextCycle;
     noInterrupts();
     printData.stepCnt   = _stepperData.stepCnt;             // nmbr of steps to take
     printData.stepCnt2  = _stepperData.stepCnt2;            // nmbr of steps to take after automatic reverse
 	printData.tCycSteps =   _stepperData.tCycSteps;         // nbr of IRQ cycles per step ( target value of motorspeed  )
+	#ifndef IS_32BIT
 	printData.tCycRemain =  _stepperData.tCycRemain;        // Remainder of division when computing tCycSteps
-	printData.aCycSteps =   _stepperData.aCycSteps;         // nbr of IRQ cycles per step ( actual motorspeed  )
 	printData.aCycRemain =  _stepperData.aCycRemain;        // accumulate tCycRemain when cruising
+	#endif
+	printData.aCycSteps =   _stepperData.aCycSteps;         // nbr of IRQ cycles per step ( actual motorspeed  )
 	printData.cyctXramplen =_stepperData.cyctXramplen;     // precompiled  tCycSteps*(rampLen+RAMPOFFSET)
     printData.cycCnt =       _stepperData.cycCnt;             // counting cycles until cycStep
 	printData.cycDelay =    _stepperData.cycDelay;          // delay time enable -> stepping
@@ -527,15 +567,20 @@ void MoToStepper::prDynData() {             // print actual Stepperdata
     printData.rampState = _stepperData.rampState;           // State of acceleration/deceleration
     printData.stepsFromZero = _stepperData.stepsFromZero;   // distance from last reference point 
     printData.deltaSteps = _stepperData.deltaSteps;         // number of computed steps per real step in SPEEDDECEL
-
+    prNextCycle = nextCycle;
     interrupts();
     uint32_t time = micros();
     uint16_t usec = time%1000; time /=1000;
     uint16_t msec = time%1000; time /= 1000;
     DB_PRINT("Time:%5lu:%03u,%03u\t stepCnt=%5lu\t stepCnt2=%5lu\t sFZ=%5ld", time, msec,usec,printData.stepCnt, printData.stepCnt2, printData.stepsFromZero );
+	#ifdef IS_32BIT
+    DB_PRINT("tCySteps=%5u\t # aCySteps=%5u\t ", printData.tCycSteps,printData.aCycSteps);
+	#else
     DB_PRINT("tCySteps=%5u\t tCyRemain=%5u\t aCySteps=%5u\t aCyRemain=%5u", printData.tCycSteps,printData.tCycRemain,printData.aCycSteps,printData.aCycRemain);
+	#endif
     DB_PRINT(" XrampL=%5u\t rampLen=%4u\t stepsInRamp=%4u\t, rampState=%s(%u)",printData.cyctXramplen,printData.stepRampLen,printData.stepsInRamp,rsC[(int)printData.rampState],(int)printData.rampState);
-    DB_PRINT("dltaStp=%4d,\t cycnt=%4u", printData.deltaSteps, printData.cycCnt );
+    DB_PRINT("dltaStp=%4d,\t cycnt=%4ld, nextCyc=%4d", printData.deltaSteps, printData.cycCnt, prNextCycle );
+
     Serial.println("^^^^^^^^^^^^^^ISR-Data^^^^^^^^^^^^^^^^");
     #endif
 }
