@@ -270,10 +270,6 @@ void stepperISR(uint8_t cyclesLastIRQ) {
             } // End of do one step
 			CLR_TP3;
             nextCycle = min ( nextCycle, stepperDataP->aCycSteps-stepperDataP->cycCnt );
-			#ifdef IS_32BIT
-			// check minimum  ISR-distance in µsec
-			if ( nextCycle < MIN_STEP_CYCLE ) nextCycle = MIN_STEP_CYCLE;
-			#endif
             //SET_TP1;
         } // end of 'if stepper active AND moving'
         else if ( stepperDataP->rampState == rampStat::STARTING ) {

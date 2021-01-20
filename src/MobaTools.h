@@ -98,7 +98,7 @@
 
 #elif defined ( __STM32F1__ )
 #define CYCLETIME       1     // Cycle count in µs on 32Bit processors
-#define MIN_STEP_CYCLE  60   // Minimum number of µsec  per step. ( max stepfreq = 10kHz )
+#define MIN_STEP_CYCLE  10   // Minimum number of µsec  between to step IRQ's ( end of ISR to start of next )
 #else
 #define CYCLETIME       200     // Min. irq-periode in us ( default is 200 ), 
 #define MIN_STEP_CYCLE  2       // Minimum number of cycles per step. 
@@ -126,6 +126,10 @@
 #ifndef INTERNALUSE
 #include <MoToButtons.h>
 #include <MoToTimer.h>
+#endif
+
+#ifdef debug
+#include <utilities/MoToDbg.h>
 #endif
 #endif
 

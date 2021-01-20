@@ -7,31 +7,19 @@
 */
 
 #include <MobaTools.h>
-//#define debugTP
+#define debugTP
 #include <utilities/MoToDbg.h>
 
-#ifndef ESP8266
 // ISR on ESP is completely different - on ESP this File is empty
-
-#ifdef IS_32BIT
-	// On 32-Bit Processors Cycle counts in µsec
-	void stepperISR(int32_t cyclesLastIRQ) __attribute__ ((weak));
-	void softledISR(int32_t cyclesLastIRQ) __attribute__ ((weak));
-	int32_t nextCycle;
-	static int32_t cyclesLastIRQ = 1;  // µsec since last IRQ
-#else
-	void stepperISR(uint8_t cyclesLastIRQ) __attribute__ ((weak));
-	void softledISR(uint8_t cyclesLastIRQ) __attribute__ ((weak));
-	uint8_t nextCycle;
-	static uint8_t cyclesLastIRQ = 1;  // cycles since last IRQ
-#endif
+///////////////////////////////////////////////////////////////////////////////////////////////////
+#ifdef __AVR_MEGA__ // +++++++++++++++++++++++Variante f ür 8-Bit AVR Prozessoren +++++++++++++++++
 // ---------- OCRxB Compare Interrupt used for stepper motor and Softleds ----------------
-#ifdef __AVR_MEGA__
+void stepperISR(uint8_t cyclesLastIRQ) __attribute__ ((weak));
+void softledISR(uint8_t cyclesLastIRQ) __attribute__ ((weak));
+uint8_t nextCycle;
+static uint8_t cyclesLastIRQ = 1;  // cycles since last IRQ
 ISR ( TIMERx_COMPB_vect) {
     uint16_t tmp;
-#elif defined __STM32F1__
-void ISR_Stepper(void) {
-#endif
   // Timer1 Compare B, used for stepper motor, starts every CYCLETIME us
     // 26-09-15 An Interrupt is only created at timeslices, where data is to output
     SET_TP1;
@@ -40,10 +28,8 @@ void ISR_Stepper(void) {
     //============  End of steppermotor ======================================
    if ( softledISR ) softledISR(cyclesLastIRQ);
     // ======================= end of softleds =====================================
-    cyclesLastIRQ = nextCycle;
     // set compareregister to next interrupt time;
     // compute next IRQ-Time in us, not in tics, so we don't need long
-    #ifdef __AVR_MEGA__
     //noInterrupts(); // when manipulating 16bit Timerregisters IRQ must be disabled
     if ( nextCycle == 1 )  {
         CLR_TP1;
@@ -70,12 +56,43 @@ void ISR_Stepper(void) {
         if ( tmp > TIMERPERIODE ) tmp = tmp - TIMERPERIODE;
         OCRxB = tmp * TICS_PER_MICROSECOND;
     }
-    #elif defined __STM32F1__
-    long tmpL = ( timer_get_compare(MT_TIMER, STEP_CHN) + nextCycle * TICS_PER_MICROSECOND );
-    if ( tmpL > TIMER_OVL_TICS ) tmpL = tmpL - TIMER_OVL_TICS;
-    timer_set_compare( MT_TIMER, STEP_CHN, tmpL ) ;
-    #endif
+    cyclesLastIRQ = nextCycle;
     CLR_TP1; // Oszimessung Dauer der ISR-Routine
 }
-
+////////////////////////////////////////////////////////////////////////////////////////////
+#elif defined __STM32F1__  // +++++++++++++++++++++++ Variante für STM32F1 +++++++++++++++++
+void stepperISR(int32_t cyclesLastIRQ) __attribute__ ((weak));
+void softledISR(int32_t cyclesLastIRQ) __attribute__ ((weak));
+int32_t nextCycle;
+static int32_t cyclesLastIRQ = 1;  // µsec since last IRQ
+void ISR_Stepper(void) {
+    // Timer4 Channel 1, used for stepper motor, starts every CYCLETIME us
+    // 26-09-15 An Interrupt is only created at timeslices, where data is to output
+    SET_TP1;
+    nextCycle = ISR_IDLETIME  / CYCLETIME ;// min ist one cycle per IDLETIME
+    if ( stepperISR ) stepperISR(cyclesLastIRQ);
+    //============  End of steppermotor ======================================
+    if ( softledISR ) softledISR(cyclesLastIRQ);
+    // ======================= end of softleds =====================================
+    // set compareregister to next interrupt time;
+	//SET_TP2;
+	// next ISR must be at least MIN_STEP_CYCLE beyond actual counter value ( time between to ISR's )
+	int minOCR = timer_get_count(MT_TIMER);
+	int nextOCR = timer_get_compare(MT_TIMER, STEP_CHN);
+	if ( minOCR < nextOCR ) minOCR += TIMER_OVL_TICS; // timer had overflow already
+    minOCR = minOCR + ( MIN_STEP_CYCLE * TICS_PER_MICROSECOND ); // minimumvalue for next OCR
+	nextOCR = nextOCR + ( nextCycle * TICS_PER_MICROSECOND );
+	if ( nextOCR < minOCR ) {
+		// time till next ISR ist too short, set to mintime and adjust nextCycle
+		nextOCR = minOCR;
+		nextCycle = ( nextOCR - timer_get_compare(MT_TIMER, STEP_CHN)  ) / TICS_PER_MICROSECOND;
+	}
+    if ( nextOCR > TIMER_OVL_TICS ) nextOCR -= TIMER_OVL_TICS;
+    timer_set_compare( MT_TIMER, STEP_CHN, nextOCR ) ;
+	//CLR_TP2;
+    cyclesLastIRQ = nextCycle;
+    CLR_TP1; // Oszimessung Dauer der ISR-Routine
+}
+////////////////////////////////////////////////////////////////////////////////////////////
 #endif
+

@@ -6,7 +6,7 @@
   Functions for the stepper part of MobaTools
 */
 #include <MobaTools.h>
-#define debugTP
+//#define debugTP
 #define debugPrint
 #include <utilities/MoToDbg.h>
 #define TODO	// ignore 
@@ -104,6 +104,10 @@ MoToStepper::MoToStepper(long steps, uint8_t mode ) {
 // private functions ---------------
 void MoToStepper::initialize ( long steps360, uint8_t mode ) {
     // create new instance
+    MODE_TP1;       // activate debug-pins
+    MODE_TP2;
+    MODE_TP3;
+    MODE_TP4;
     _stepperIx = _stepperCount ;
     stepsRev = steps360;       // number of steps for full rotation in fullstep mode
     if ( mode != FULLSTEP && mode != A4988 ) mode = HALFSTEP;
@@ -460,7 +464,7 @@ void MoToStepper::_doSteps( long stepValue, bool absPos ) {
     #endif
     
     if ( _stepperData.output == NO_OUTPUT ) return; // not attached
-	SET_TP1;
+	//SET_TP1;
     //Serial.print( "doSteps: " ); Serial.println( stepValue );
     DB_PRINT(">>>>>>>>>>doSteps(%ld)>>>>>>>>>>>>>>>", stepValue );
     stepsToMove = stepValue;
@@ -629,7 +633,7 @@ void MoToStepper::_doSteps( long stepValue, bool absPos ) {
     //DB_PRINT( "   - State=%s, Rampsteps=%u" , rsC[_stepperData.rampState], _stepperData.stepsInRamp );
     #endif
     prDynData();
-	CLR_TP1;
+	//CLR_TP1;
 }
 
 
@@ -742,7 +746,7 @@ void MoToStepper::rotate(int8_t direction) {
             stop();
         } else {
             // start decelerating
-            _noStepIRQ();
+            _noStepIRQ(); digitalWrite( PB1, LOW ); // TEST
             switch ( _stepperData.rampState ) {
               case rampStat::RAMPACCEL:
               case rampStat::SPEEDDECEL:
@@ -751,7 +755,7 @@ void MoToStepper::rotate(int8_t direction) {
                 break;
               case rampStat::CRUISING:
                 _stepperData.stepCnt = _stepperData.stepRampLen;
-                DB_PRINT( "rot: sCnt=%u\n\r", _stepperData.stepCnt );
+                //DB_PRINT( "rot: sCnt=%u\n\r", _stepperData.stepCnt );
                 break;
               case rampStat::STARTING:
                 // abort starting the stepper
@@ -763,13 +767,14 @@ void MoToStepper::rotate(int8_t direction) {
             }
             stepsToMove = _stepperData.stepCnt;
             _stepperData.stepCnt2 = 0;      // No reverse moving after stop
-            _stepIRQ();
+            digitalWrite( PB1, HIGH ); _stepIRQ(); // TEST
         }
 	} else if (direction > 0 ) { // ToDo: Grenzwerte sauber berechnen
         doSteps(  2147483646L - _stepperData.stepRampLen );
 	} else {
         doSteps( -2147483646L + _stepperData.stepRampLen);
     }
+    prDynData();
 }
 
 void MoToStepper::stop() {
