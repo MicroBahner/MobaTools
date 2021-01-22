@@ -61,10 +61,10 @@ ISR ( TIMERx_COMPB_vect) {
 }
 ////////////////////////////////////////////////////////////////////////////////////////////
 #elif defined __STM32F1__  // +++++++++++++++++++++++ Variante für STM32F1 +++++++++++++++++
-void stepperISR(int32_t cyclesLastIRQ) __attribute__ ((weak));
-void softledISR(int32_t cyclesLastIRQ) __attribute__ ((weak));
+void stepperISR(int32_t cyclesLastIRQ)  __attribute__ ((weak));
+void softledISR(uint32_t cyclesLastIRQ)  __attribute__ ((weak));
 int32_t nextCycle;
-static int32_t cyclesLastIRQ = 1;  // µsec since last IRQ
+static uint32_t cyclesLastIRQ = 1;  // µsec since last IRQ
 void ISR_Stepper(void) {
     // Timer4 Channel 1, used for stepper motor, starts every CYCLETIME us
     // 26-09-15 An Interrupt is only created at timeslices, where data is to output

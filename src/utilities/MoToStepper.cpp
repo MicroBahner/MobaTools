@@ -6,7 +6,7 @@
   Functions for the stepper part of MobaTools
 */
 #include <MobaTools.h>
-//#define debugTP
+#define debugTP
 #define debugPrint
 #include <utilities/MoToDbg.h>
 #define TODO	// ignore 

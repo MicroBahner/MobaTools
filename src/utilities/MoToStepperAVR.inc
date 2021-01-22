@@ -35,7 +35,7 @@ void stepperISR(uint8_t cyclesLastIRQ) {
             SET_TP3;
             stepperDataP->cycCnt+=cyclesLastIRQ;
 			//Serial.println( stepperDataP->cycCnt ); // Nur für TEST
-            if ( stepperDataP->cycCnt >= stepperDataP->aCycSteps ) {
+            if ( stepperDataP->cycCnt >= ( stepperDataP->aCycSteps ) ) {
                 // Do one step
                 SET_TP2;
                 stepperDataP->cycCnt = stepperDataP->cycCnt - stepperDataP->aCycSteps ;
@@ -123,10 +123,13 @@ void stepperISR(uint8_t cyclesLastIRQ) {
                     }    
                     // Set step pulse 
                     nextCycle = MIN_STEP_CYCLE/2; // will be resettet in half of min steptime
+                    #ifndef IS_32BIT // on 32 bit processors step is set at end of ste computing because auf
+                                     // min lowtime between 2 pulses
                     #ifdef FAST_PORTWRT
                     *stepperDataP->portPins[0].Adr |= stepperDataP->portPins[0].Mask;
                     #else
                     digitalWrite( stepperDataP->pins[0], HIGH );
+                    #endif
                     #endif
                     break;
                   default:
@@ -266,6 +269,9 @@ void stepperISR(uint8_t cyclesLastIRQ) {
                     //CLR_TP2;
                     break;
                 } // End of ramp-statemachine
+                #ifdef IS_32BIT // set step output
+                if ( stepperDataP->output == A4988_PINS ) digitalWrite( stepperDataP->pins[0], HIGH );
+                #endif
                 CLR_TP2;
             } // End of do one step
 			CLR_TP3;

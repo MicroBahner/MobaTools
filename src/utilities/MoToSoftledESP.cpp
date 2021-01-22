@@ -294,7 +294,7 @@ void MoToSoftLed::riseTime( uint16_t riseTime ) {
     // adjust stepnumbers for ISR
     _computeBulbValues();
     noInterrupts();
-    _ledData.stepI = (long)_ledData.stepI * stepMax / _ledData.stepMax;
+    _ledData.stepI = (long)_ledData.stepI * stepMax / _ledData.stepMax; // adjust actual position to new risetime
     _ledData.stepMax = stepMax;
     interrupts();
     DB_PRINT( "_ledSpeed = %d ( risetime=%d ), StepMax=%d", _ledSpeed, riseTime, stepMax );

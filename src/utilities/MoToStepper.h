@@ -147,11 +147,11 @@ class MoToStepper
     //Constuctor:
     MoToStepper(long steps);            // steps per 360 degree in HALFSTEP mode or A4988 Mode on ESP
 	#ifndef ESP8266 				// there are no different modes with ESP8266
-    MoToStepper(long steps, uint8_t mode ); 
-                                    // mode means A4988 ( Step/Dir), HALFSTEP or FULLSTEP
-    //Methods                                
-    uint8_t attach( uint8_t,uint8_t,uint8_t,uint8_t); //single pins definition for output
-    uint8_t attach(uint8_t outArg);    // stepMode defaults to halfstep
+        MoToStepper(long steps, uint8_t mode ); 
+                                        // mode means A4988 ( Step/Dir), HALFSTEP or FULLSTEP
+        //Methods                                
+        uint8_t attach( uint8_t,uint8_t,uint8_t,uint8_t); //single pins definition for output
+        uint8_t attach(uint8_t outArg);    // stepMode defaults to halfstep
     #endif
     uint8_t attach( uint8_t stepP, uint8_t dirP); // Port for step and direction in A4988 mode
                                     // returns 0 on failure

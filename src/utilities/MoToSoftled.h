@@ -18,7 +18,7 @@
 // the PWM pulses are created together with stepper pulses
 //
 // table of pwm-steps for soft on/off in CYCLETIME units ( bulb simulation). The first value means pwm cycletime
-#ifdef ESP8266
+#ifdef IS_32BIT
     #define PWMCYC  10000   // Cycletime in µs ( = 100Hz )
     //#define MIN_PULSE  50    // = min time between ISR's
     //#define MAX_PULSE PWMCYC-MIN_PULSE
@@ -46,26 +46,29 @@ enum LedStats_t:byte { NOTATTACHED, STATE_OFF, STATE_ON, ACTIVE, INCBULB, DECBUL
                         // values >= ACTIVE means active in ISR routine ( pulses are generated )
                         
 typedef struct ledData_t {          // global led values ( used in IRQ )
-  #ifdef ESP8266
+  #ifndef ESP8266
+      struct ledData_t*  nextLedDataP;  // chaining the active Leds
+      struct ledData_t** backLedDataPP; // adress of pointer, that points to this led (backwards reference)
+      uint8_t   actPulse;               // PWM pulse is HIGH
+  #endif
+  #ifdef IS_32BIT
       uint16_t aPwm;                    // actual PWM value ( µs )
       uint16_t tPwmOn;                // target PWM value (µs )
       uint16_t tPwmOff;                 // target PWM value (µs )
       uint16_t stepI;                   // actual step during rising/falling   
-      uint16_t stepMax;                 // max nbr of steps between ON/OFF  
+      uint16_t stepMax;                 // max nbr of steps between ON/OFF  ( determines rising/falling time )
       //computing of bulb-simulation (hyperbolic ramp): 
       // this values must be recomputed if tPwmon, tPwmoff changes
       // formula: pwm = hypPo + hypB/(stepOfs+(stepRef-stepI))
       int hypB;
       int hypPo;
+
   #else
-      struct ledData_t*  nextLedDataP;  // chaining the active Leds
-      struct ledData_t** backLedDataPP; // adress of pointer, that points to this led (backwards reference)
       int16_t speed;                    // > 0 : steps per cycle switching on
                                         // < 0 : steps per cycle switching off
                                         // 0: led is inactive (not attached)
       int16_t   aStep;                  // actual step between on/off or off/on ( always counts up )
       int8_t    aCycle;                 // actual cycle ( =length of PWM pule )
-      uint8_t   actPulse;               // PWM pulse is HIGH
   #endif
   LedStats_t state;	                // actual state: steady or incementing/decrementing
     
@@ -94,7 +97,7 @@ class MoToSoftLed
     void riseTime( uint16_t );       // in millisec - falltime is the same
     void on();                   // 
     void off();                  // 
-    #ifdef ESP8266
+    #ifdef IS_32BIT
     void on(uint8_t);           // pwm value for ON ( in % )
     void off(uint8_t);           //  pwmValue for OFF ( in % )
     #endif

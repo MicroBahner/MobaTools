@@ -37,9 +37,13 @@
 #ifdef IS_32BIT
 	#define uintxx_t uint32_t
 	#define intxx_t	int32_t
+	#define uintx8_t uint32_t
+	#define intx8_t	int32_t
 #else
 	#define uintxx_t	uint16_t
 	#define  intxx_t	int16_t
+	#define uintx8_t uint8_t
+	#define intx8_t	int8_t
 #endif
 
 

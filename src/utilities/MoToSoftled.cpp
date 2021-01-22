@@ -6,10 +6,11 @@
   Functions for the stepper part of MobaTools
 */
 #include <MobaTools.h>
-//#define debugPrint
+#define debugPrint
+#define debugTP
 #include <utilities/MoToDbg.h>
 
-#ifndef ESP8266 // there is a special MoToSoftledESP.cpp for ESP8266
+#ifndef IS_32BIT  //this is ohy for 8Bit controllers
 // Global Data for all instances and classes  --------------------------------
 extern uint8_t timerInitialized;
 
@@ -25,8 +26,7 @@ static uint16_t ledCycleCnt = 0;    // count IRQ cycles within PWM cycle
 #endif
 
 static ledData_t*  ledDataP;              // pointer to active Led in ISR
-    
-void softledISR(uint8_t cyclesLastIRQ) {
+void softledISR(uintx8_t cyclesLastIRQ) { // uint8 for AVR, uint32 for 32-Bit processors
     // ---------------------- softleds -----------------------------------------------
     SET_TP2;
     ledCycleCnt += cyclesLastIRQ;
@@ -209,25 +209,24 @@ void MoToSoftLed::mount( LedStats_t stateVal ) {
     // new active Softleds are always inserted at the beginning of the chain
     // only leds in the ISR chain are processed in ISR
     noInterrupts();
-    SET_TP2;
+    //SET_TP2;
     // check if it's not already active (mounted)
     // Leds must not be mounted twice!
     if ( _ledData.state < ACTIVE ) {
         // write backward reference into the existing first entry 
         // only if the chain is not empty
         if ( ledRootP ) ledRootP->backLedDataPP = &_ledData.nextLedDataP;
-        CLR_TP2;
+        //CLR_TP2;
         _ledData.nextLedDataP = ledRootP;
         ledRootP = &_ledData;
         _ledData.backLedDataPP = &ledRootP;
-        SET_TP2;
+        //SET_TP2;
     }
     _ledData.state = stateVal;
-    CLR_TP2;
+    //CLR_TP2;
     interrupts();
 }   
     
-
 uint8_t MoToSoftLed::attach(uint8_t pinArg, uint8_t invArg ){
     // Led-Ausgang mit Softstart. 
     
@@ -259,6 +258,8 @@ uint8_t MoToSoftLed::attach(uint8_t pinArg, uint8_t invArg ){
         timer_cc_enable(MT_TIMER, STEP_CHN);
     #endif
     DB_PRINT("IX_MAX=%d, CYCLE_MAX=%d, PWMTIME=%d", LED_IX_MAX, LED_CYCLE_MAX, LED_PWMTIME );
+    DB_PRINT("SoftLedISR=%08X", (uint32_t)softledISR ); //(TEST
+    DB_PRINT("StepperISR=%08X", (uint32_t)stepperISR ); //TEST
     return true;
 }
 
@@ -285,7 +286,7 @@ void MoToSoftLed::on(){
         }
         mount(stateT);
     }
-    //DB_PRINT( "Led %d On, state=%d", ledIx, _ledData.state);
+    DB_PRINT( "Led %04X On, state=%d, ledRoot=%04X", (uint32_t)this, _ledData.state, (uintxx_t)ledRootP);
 }
 
 void MoToSoftLed::off(){
@@ -314,7 +315,7 @@ void MoToSoftLed::off(){
         //CLR_TP3;
         mount(stateT);
     }
-    //DB_PRINT( "Led %d Off, state=%d", ledIx, _ledData.state);
+    DB_PRINT( "Led %04X Off, state=%d", (uint32_t)this, _ledData.state);
 }
 
 void MoToSoftLed::toggle( void ) {
