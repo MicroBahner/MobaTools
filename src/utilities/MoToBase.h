@@ -9,7 +9,7 @@
 */
 #include <inttypes.h>
 #include <Arduino.h>
-#ifndef ESP8266
+#ifdef __AVR_MEGA__
 #include <avr/interrupt.h>
 #endif
 
@@ -82,7 +82,7 @@ extern uint8_t nextCycle;   // to be used in ISR for stepper and softled
         
 #elif defined __STM32F1__
     //defines only for STM32
-    #define TICS_PER_MICROSECOND (clockCyclesPerMicrosecond() / 36 ) // prescaler is 36 = 0.5us
+    #define TICS_PER_MICROSECOND (CYCLES_PER_MICROSECOND / 36 ) // prescaler is 36 = 0.5us
     
 #elif defined ESP8266
     //on ESP8266 all values are in µsec

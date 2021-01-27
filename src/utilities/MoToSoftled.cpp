@@ -6,24 +6,19 @@
   Functions for the stepper part of MobaTools
 */
 #include <MobaTools.h>
-#define debugPrint
-#define debugTP
+//#define debugPrint
+//#define debugTP
 #include <utilities/MoToDbg.h>
 
-#ifndef IS_32BIT  //this is ohy for 8Bit controllers
+#ifdef __AVR_MEGA__  //this is only for 8Bit AVR controllers
 // Global Data for all instances and classes  --------------------------------
 extern uint8_t timerInitialized;
 
 
 // variables for softLeds
 static ledData_t* ledRootP = NULL; //start of _ledData-chain
-#ifdef   __AVR_MEGA__
 static uint8_t ledNextCyc = TIMERPERIODE  / CYCLETIME;     // next Cycle that is relevant for leds
 static uint8_t ledCycleCnt = 0;    // count IRQ cycles within PWM cycle
-#else // for 32Bit processors
-static uint16_t ledNextCyc = TIMERPERIODE  / CYCLETIME;     // next Cycle that is relevant for leds
-static uint16_t ledCycleCnt = 0;    // count IRQ cycles within PWM cycle
-#endif
 
 static ledData_t*  ledDataP;              // pointer to active Led in ISR
 void softledISR(uintx8_t cyclesLastIRQ) { // uint8 for AVR, uint32 for 32-Bit processors
@@ -252,14 +247,10 @@ uint8_t MoToSoftLed::attach(uint8_t pinArg, uint8_t invArg ){
     // enable compareB- interrupt
     #if defined(__AVR_ATmega8__)|| defined(__AVR_ATmega128__)
         TIMSK |= ( _BV(OCIExB) );    // enable compare interrupts
-    #elif defined __AVR_MEGA__
+    #else
         TIMSKx |= _BV(OCIExB) ; 
-    #elif defined __STM32F1__
-        timer_cc_enable(MT_TIMER, STEP_CHN);
     #endif
     DB_PRINT("IX_MAX=%d, CYCLE_MAX=%d, PWMTIME=%d", LED_IX_MAX, LED_CYCLE_MAX, LED_PWMTIME );
-    DB_PRINT("SoftLedISR=%08X", (uint32_t)softledISR ); //(TEST
-    DB_PRINT("StepperISR=%08X", (uint32_t)stepperISR ); //TEST
     return true;
 }
 

@@ -6,8 +6,8 @@
   Functions for the stepper part of MobaTools
 */
 #include <MobaTools.h>
-//#define debugTP
-//#define debugPrint
+#define debugTP
+#define debugPrint
 #include <utilities/MoToDbg.h>
 
 // Global Data for all instances and classes  --------------------------------
@@ -22,8 +22,8 @@ static byte servoCount = 0;
     static servoData_t* stopPulseP = NULL;     // Ptr to Pulse whose stop time is already in OCR1
     static servoData_t* nextPulseP = NULL;
     static enum { PON, POFF } IrqType = PON; // Cycle starts with 'pulse on'
-    static word activePulseOff = 0;     // OCR-value of pulse end 
-    static word nextPulseLength = 0;
+    static uint16_t activePulseOff = 0;     // OCR-value of pulse end 
+    static uint16_t nextPulseLength = 0;
     static bool speedV08 = true;    // Compatibility-Flag for speed method
 /*#else
     static bool speedV08 = false;    // ESP8266 uses alwas high res speed*/
@@ -91,8 +91,8 @@ void ICACHE_RAM_ATTR ISR_Servo( servoData_t *_servoData ) {
 //        so other timecritical tasks can interrupt (nested interrupts)
 // 6.6.19 Because stepper IRQ now can last very long, it is disabled during servo IRQ
 static bool searchNextPulse() {
-    SET_TP4;
-   while ( pulseP != NULL && pulseP->soll < 0 ) {
+    //SET_TP4;
+    while ( pulseP != NULL && pulseP->soll < 0 ) {
         //SET_TP4;
         pulseP = pulseP->prevServoDataP;
         //CLR_TP4;
@@ -100,7 +100,7 @@ static bool searchNextPulse() {
     //CLR_TP2;
     if ( pulseP == NULL ) {
         // there is no more pulse to start, we reached the end
-        CLR_TP4;
+        //CLR_TP4;
         return false;
     } else { // found pulse to output
         //SET_TP2;
@@ -117,7 +117,7 @@ static bool searchNextPulse() {
             pulseP->ist -= pulseP->inc;
             if ( pulseP->ist < pulseP->soll ) pulseP->ist = pulseP->soll;
         } 
-        CLR_TP4;
+        //CLR_TP4;
         return true;
     } 
 } //end of 'searchNextPulse'
@@ -131,10 +131,11 @@ ISR ( TIMERx_COMPA_vect) {
 void ISR_Servo( void) {
     uint16_t OCRxA = 0;
 #endif
-    SET_TP3;
+    SET_TP2;
+    CLR_TP4;
     // Timer1 Compare A, used for servo motor
     if ( IrqType == POFF ) { // Pulse OFF time
-        SET_TP2; // Oszimessung Dauer der ISR-Routine OFF
+        //SET_TP2; // Oszimessung Dauer der ISR-Routine OFF
         //SET_TP3; // Oszimessung Dauer der ISR-Routine
         IrqType = PON ; // it's (nearly) always alternating
         // switch off previous started pulse
@@ -155,7 +156,7 @@ void ISR_Servo( void) {
             interrupts();
             #endif
             //CLR_TP3 ;
-            OCRxA = max ( ((long)activePulseOff + (long) MARGINTICS - (long) nextPulseLength), ( tmpTCNT1 ) );
+            OCRxA = max ( (long)((long)activePulseOff + (long) MARGINTICS - (long) nextPulseLength), tmpTCNT1 );
         } else {
             // we are at the end, no need to start another pulse in this cycle
             if ( activePulseOff ) {
@@ -172,7 +173,7 @@ void ISR_Servo( void) {
                 OCRxA = FIRST_PULSE;
             }
         }
-        CLR_TP2; // Oszimessung Dauer der ISR-Routine OFF
+        //CLR_TP2; // Oszimessung Dauer der ISR-Routine OFF
     } else { // Pulse ON - time
         //SET_TP2; // Oszimessung Dauer der ISR-Routine ON
         //if ( pulseP == lastServoDataP ) SET_TP3;
@@ -180,7 +181,7 @@ void ISR_Servo( void) {
         // do we know the next pulse already?
         if ( nextPulseLength > 0 ) {
             // yes we know, start this pulse and then look for next one
-            word tmpTCNT1= GET_COUNT-4; // compensate for computing time
+            uint16_t tmpTCNT1= GET_COUNT-4; // compensate for computing time
             if ( nextPulseP->on && (nextPulseP->offcnt+nextPulseP->noAutoff) > 0 ) {
                 // its a 'real' pulse, set output pin
                 //CLR_TP1;
@@ -208,7 +209,8 @@ void ISR_Servo( void) {
             // found a pulse
             if ( activePulseOff == 0 ) {
                 // it is the first pulse in the sequence, start it
-                TOG_TP2;
+                //TOG_TP2;
+                SET_TP3;
                 activePulseP = pulseP; 
                 activePulseOff = pulseP->ist/SPEED_RES + GET_COUNT - 4; // compensate for computing time
                 if ( pulseP->on && (pulseP->offcnt+pulseP->noAutoff) > 0 ) {
@@ -219,7 +221,7 @@ void ISR_Servo( void) {
                     digitalWrite( pulseP->pin, HIGH );
                     #endif
                 }
-                word tmpTCNT1 = GET_COUNT;
+                int32_t tmpTCNT1 = GET_COUNT+ MARGINTICS/2;
                 #ifdef __AVR_MEGA__
                 _noStepIRQ(); // Stepper ISR may be too long  and must not interrupt the servo IRQ
                 interrupts(); // the following isn't time critical, so allow nested interrupts
@@ -237,7 +239,7 @@ void ISR_Servo( void) {
                     pulseP = pulseP->prevServoDataP;
                     //CLR_TP4;
                     // set Starttime for 2. pulse in sequence
-                    OCRxA = max ( ((long)activePulseOff + (long) MARGINTICS - (long) nextPulseLength), ( (long)tmpTCNT1 + MARGINTICS/2 ) );
+                    OCRxA = max ( (long)((long)activePulseOff + (long) MARGINTICS - (long) nextPulseLength), tmpTCNT1  );
                 } else {
                     // no next pulse, there is only one pulse
                     OCRxA = activePulseOff;
@@ -245,7 +247,7 @@ void ISR_Servo( void) {
                     stopPulseP = activePulseP;
                     IrqType = POFF;
                 }
-                TOG_TP2;
+                CLR_TP3;
             } else {
                 // its a pulse in sequence, so this is the 'nextPulse'
                 nextPulseLength = pulseP->ist/SPEED_RES;
@@ -277,7 +279,7 @@ void ISR_Servo( void) {
     #ifdef __AVR_MEGA__
     TIMSKx = saveTIMSK;      // retore Interrupt enable reg
     #endif
-    CLR_TP3;
+    CLR_TP2;
 }
 
 #endif // not ESP8266
@@ -378,6 +380,7 @@ uint8_t MoToServo::attach( int pinArg, uint16_t pmin, uint16_t pmax, bool autoOf
         }
          interrupts();
     #endif // no ESP8266
+    DB_PRINT("OVLMARGIN=%d, OVL_TICS=%d, MARGINTICS=%d, SPEEDRES=%d", OVLMARGIN, OVL_TICS, MARGINTICS, SPEED_RES );
     return 1;
 }
 
@@ -408,7 +411,7 @@ void MoToServo::write(uint16_t angleArg)
     // values between MINPULSEWIDTH and MAXPULSEWIDTH are interpreted as microseconds
     static int newpos;
     bool startPulse = false;    // only for esp8266
-    SET_TP1;
+    //SET_TP1;
     #ifdef __AVR_MEGA__
         //DB_PRINT( "Write: angleArg=%d, Soll=%d, OCR=%u", angleArg, _servoData.soll, OCRxA );
     #endif
@@ -454,9 +457,9 @@ void MoToServo::write(uint16_t angleArg)
         #endif
         _servoData.offcnt = OFF_COUNT;   // auf jeden Fall wieder Pulse ausgeben
     }
-    DB_PRINT( "Soll=%d, Ist=%d, Ix=%d, inc=%d, SR=%d", _servoData.soll,_servoData.ist, _servoData.servoIx, _servoData.inc, SPEED_RES );
+    //DB_PRINT( "Soll=%d, Ist=%d, Ix=%d, inc=%d, SR=%d", _servoData.soll,_servoData.ist, _servoData.servoIx, _servoData.inc, SPEED_RES );
     delay(2);
-    CLR_TP1;
+    //CLR_TP1;
 }
 #pragma GCC diagnostic pop
 
@@ -494,7 +497,7 @@ uint8_t MoToServo::read() {
     return map( readMicroseconds() + offset, _minPw, _maxPw, 0, 180 );
 }
 
-int MoToServo::readMicroseconds() {
+uint16_t MoToServo::readMicroseconds() {
     // get position in microseconds
     int value;
     if ( _servoData.pin == NO_PIN ) return -1; // Servo not attached
@@ -502,7 +505,7 @@ int MoToServo::readMicroseconds() {
     value = _servoData.ist;
     interrupts();
     if ( value < 0 ) value = _servoData.soll; // there is no valid actual vlaue
-    DB_PRINT( "Ist=%d, Soll=%d, TpM=%d, SR=%d", value, _servoData.soll, TICS_PER_MICROSECOND, SPEED_RES );
+    //DB_PRINT( "Ist=%d, Soll=%d, TpM=%d, SR=%d", value, _servoData.soll, TICS_PER_MICROSECOND, SPEED_RES );
     return value/TICS_PER_MICROSECOND/SPEED_RES;   
 }
 

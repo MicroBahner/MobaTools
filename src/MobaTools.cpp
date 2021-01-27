@@ -20,8 +20,8 @@
 */
 
 #include <MobaTools.h>
-//#define debugTP
-//#define debugPrint
+#define debugTP
+#define debugPrint
 #include <utilities/MoToDbg.h>
 
 #ifdef ESP8266
@@ -110,6 +110,7 @@ void seizeTimer1() {
     MODE_TP2;
     MODE_TP3;
     MODE_TP4;
+    DB_PRINT("Testpins initialisiert");
 }
 
 #endif

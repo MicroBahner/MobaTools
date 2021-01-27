@@ -6,8 +6,8 @@
   Functions for the stepper part of MobaTools
 */
 #include <MobaTools.h>
-#define debugTP
-#define debugPrint
+//#define debugTP
+//#define debugPrint
 #include <utilities/MoToDbg.h>
 #define TODO	// ignore 
 // Global Data for all instances and classes  --------------------------------

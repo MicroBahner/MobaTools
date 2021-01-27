@@ -80,7 +80,7 @@ class MoToServo
     uint8_t moving();        // returns the remaining Way to the angle last set with write() in
                              // in percentage. '0' means, that the angle is reached
     uint8_t read();          // current position in degrees (0...180)
-    int   readMicroseconds();// current pulsewidth in microseconds
+    uint16_t  readMicroseconds();// current pulsewidth in microseconds
     uint8_t attached();
     void setMinimumPulse(uint16_t);  // pulse length for 0 degrees in microseconds, 700uS default
     void setMaximumPulse(uint16_t);  // pulse length for 180 degrees in microseconds, 2300uS default
