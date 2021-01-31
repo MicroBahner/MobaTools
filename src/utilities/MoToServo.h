@@ -41,7 +41,10 @@ typedef struct servoData_t {
   uint8_t* portAdr;     // port adress related to pin number
   uint8_t  bitMask;     // bitmask related to pin number
   #endif
-  uint8_t pin     ;     // pin 
+  uint8_t pin     ;     // pin
+  #ifdef ESP32
+  uint8_t pwmNr;        // Nummer des ESP32-PWM Timers ( 0...15 )  
+  #endif
 } servoData_t ;
 
 ////////////////////////////////////////////////////////////////////////////////////////

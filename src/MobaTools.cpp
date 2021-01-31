@@ -24,7 +24,63 @@
 #define debugPrint
 #include <utilities/MoToDbg.h>
 
-#ifdef ESP8266
+#ifdef __AVR_MEGA__ ///////////////////////////////////////// AVR-Mega /////////////////////////////////////////////////////
+bool timerInitialized = false;
+void ISR_Stepper(void);     // defined in MoToISR.cpp
+void seizeTimer1() {
+    uint8_t oldSREG = SREG;
+    cli();
+    
+    TCCRxA =0; /* CTC Mode, ICRx is TOP */
+    TCCRxB = _BV(WGMx3) | _BV(WGMx2) /* CTC Mode, ICRx is TOP */
+  | _BV(CS11) /* div 8 clock prescaler */
+  ;
+    ICRx = TIMERPERIODE * TICS_PER_MICROSECOND;  // timer periode is 20000us 
+    OCRxA = FIRST_PULSE;
+    OCRxB = 400;
+    // Serial.print( " Timer initialized " ); Serial.println( TIMSKx, HEX );
+    SREG = oldSREG;  // undo cli() 
+    timerInitialized = true;  
+    MODE_TP1;   // set debug-pins to Output
+    MODE_TP2;
+    MODE_TP3;
+    MODE_TP4;
+    DB_PRINT("Testpins initialisiert");
+}
+#endif //^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ AVR Mega ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+#ifdef __STM32F1__ //////////////////////////////////7777777/ STM32F1 //////////////////////////////////////////////////
+uint8_t timerInitialized = false;
+void ISR_Stepper(void);     // defined in MoToISR.cpp
+void seizeTimer1() {
+    timer_init( MT_TIMER );
+    timer_pause(MT_TIMER);
+    // IRQ-Priorität von timer 4 interrupt auf lowest (15) setzen
+    nvic_irq_set_priority ( NVIC_TIMER4, 15); // Timer 4 - stmduino sets all priorities to lowest level
+                                              // To be sure we set it here agai. These long lasting IRQ's 
+                                              // MUST be lowest priority
+    /*nvic_irq_set_priority ( NVIC_EXTI0, 8); // DCC-Input IRQ must be able to interrupt other long low priority IRQ's
+    nvic_irq_set_priority(NVIC_SYSTICK, 0); // Systic must be able to interrupt DCC-IRQ to get correct micros() values
+    */
+    timer_oc_set_mode( MT_TIMER, SERVO_CHN, TIMER_OC_MODE_FROZEN, 0 );  // comparison between output compare register and counter 
+                                                                //has no effect on the outputs
+    timer_oc_set_mode( MT_TIMER, STEP_CHN, TIMER_OC_MODE_FROZEN, 0 );
+    timer_set_prescaler(MT_TIMER, 36-1 );    // = 0.5µs Tics at 72MHz
+    timer_set_reload(MT_TIMER, TIMERPERIODE * TICS_PER_MICROSECOND );
+    timer_set_compare(MT_TIMER, STEP_CHN, 400 );
+    timer_attach_interrupt(MT_TIMER, TIMER_STEPCH_IRQ, (voidFuncPtr)ISR_Stepper );
+    timer_set_compare(MT_TIMER, SERVO_CHN, FIRST_PULSE );
+    timer_resume(MT_TIMER);
+    timerInitialized = true;  
+    MODE_TP1;   // set debug-pins to Output
+    MODE_TP2;
+    MODE_TP3;
+    MODE_TP4;
+    DB_PRINT("Testpins initialisiert");
+}
+#endif//^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ STM32F1 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+#ifdef ESP8266 /////////////////////////////////////////////  ESP8266 /////////////////////////////////////////////////////
 // definition of gpio ISR's ( there is one ISR entrypoint per gpio )
 // at max 10 gpio's can be used at an ESP12: gpio 0,1,2,3,4,5,12,13,14,15
 // gpio 6-11 is used for flash
@@ -65,54 +121,52 @@ void clrGpio( unsigned int gpio ) {
     gpioUsedMask &= ~( 1<<gpio );
     gpioUsedMask |= mask6_11;   // gpio 6...11 must never be cleared
 }
+#endif //^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ End of ESP8266 specific section ^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-#else // for AVR and arm based processors
-uint8_t timerInitialized = false;
+#ifdef ESP32 /////////////////////////////////////////////// ESP 32 /////////////////////////////////////////////////////
+bool timerInitialized = false;
+bool spiInitialized = false;
 void ISR_Stepper(void);     // defined in MoToISR.cpp
-
+timerConfig_t timerConfig;
+portMUX_TYPE timerMux = portMUX_INITIALIZER_UNLOCKED;
+portMUX_TYPE servoMux = portMUX_INITIALIZER_UNLOCKED;
+hw_timer_t * stepTimer = NULL;
+spi_t *spiHs = NULL;
+#ifdef USE_VSPI
+    #define SPI_USED    VSPI
+    #define MOSI        23
+    #define SCK         18
+    #define SS          5
+#else
+    // HSPI is used by default
+    #define SPI_USED    HSPI
+    #define MOSI        13
+    #define SCK         14
+    #define SS          15
+#endif
 
 void seizeTimer1() {
-# ifdef __AVR_MEGA__
-    uint8_t oldSREG = SREG;
-    cli();
-    
-    TCCRxA =0; /* CTC Mode, ICRx is TOP */
-    TCCRxB = _BV(WGMx3) | _BV(WGMx2) /* CTC Mode, ICRx is TOP */
-  | _BV(CS11) /* div 8 clock prescaler */
-  ;
-    ICRx = TIMERPERIODE * TICS_PER_MICROSECOND;  // timer periode is 20000us 
-    OCRxA = FIRST_PULSE;
-    OCRxB = 400;
-    // Serial.print( " Timer initialized " ); Serial.println( TIMSKx, HEX );
-    SREG = oldSREG;  // undo cli() 
-#elif defined __STM32F1__
-    timer_init( MT_TIMER );
-    timer_pause(MT_TIMER);
-    // IRQ-Priorität von timer 4 interrupt auf lowest (15) setzen
-    nvic_irq_set_priority ( NVIC_TIMER4, 15); // Timer 4 - stmduino sets all priorities to lowest level
-                                              // To be sure we set it here agai. These long lasting IRQ's 
-                                              // MUST be lowest priority
-    /*nvic_irq_set_priority ( NVIC_EXTI0, 8); // DCC-Input IRQ must be able to interrupt other long low priority IRQ's
-    nvic_irq_set_priority(NVIC_SYSTICK, 0); // Systic must be able to interrupt DCC-IRQ to get correct micros() values
-    */
-    timer_oc_set_mode( MT_TIMER, SERVO_CHN, TIMER_OC_MODE_FROZEN, 0 );  // comparison between output compare register and counter 
-                                                                //has no effect on the outputs
-    timer_oc_set_mode( MT_TIMER, STEP_CHN, TIMER_OC_MODE_FROZEN, 0 );
-    timer_set_prescaler(MT_TIMER, 36-1 );    // = 0.5µs Tics at 72MHz
-    timer_set_reload(MT_TIMER, TIMERPERIODE * TICS_PER_MICROSECOND );
-    timer_set_compare(MT_TIMER, STEP_CHN, 400 );
-    timer_attach_interrupt(MT_TIMER, TIMER_STEPCH_IRQ, (voidFuncPtr)ISR_Stepper );
-    timer_set_compare(MT_TIMER, SERVO_CHN, FIRST_PULSE );
-    timer_resume(MT_TIMER);
-#endif
+    // Initiieren des Stepper Timers ------------------------
+    stepTimer = timerBegin(STEPPER_TIMER, DIVIDER, true);
+    timerAttachInterrupt(stepTimer, &ISR_Stepper, true);
+    timerAlarmWrite(stepTimer, ISR_IDLETIME*TICS_PER_MICROSECOND , true);
+    timerAlarmEnable(stepTimer);
     timerInitialized = true;  
     MODE_TP1;   // set debug-pins to Output
     MODE_TP2;
     MODE_TP3;
     MODE_TP4;
-    DB_PRINT("Testpins initialisiert");
 }
 
+void initSPI() {
+    spiHs = spiStartBus(SPI_USED, SPI_CLOCK_DIV4, SPI_MODE0, SPI_MSBFIRST);
+    //if ( spiHs == NULL ) Serial.println( "Init SPI failed");
+    spiAttachSCK(spiHs, SCK);
+    // MISO is not used, only serial output
+    spiAttachMOSI(spiHs, MOSI);
+    spiAttachSS(spiHs, 0, SS);
+    spiSSEnable(spiHs);
+    spiInitialized = true;  
+}
 #endif
-
 

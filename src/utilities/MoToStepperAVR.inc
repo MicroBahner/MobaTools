@@ -1,10 +1,100 @@
-// MoToStepper: ISR functions and Methods that are not used in ESP8266
+// MoToStepper: ISR and SPI functions and Methods that are not used in ESP8266
 // The difference in these functions is too big to do it with function internal ifdef's
+
+//Variables not used with ESP8266
+extern bool timerInitialized;
+static uint8_t spiInitialized = false;
+
+// constants
+static const int stepPattern[8] = {0b0011, 0b0010, 0b0110, 0b0100, 0b1100, 0b1000, 0b1001,0b0001 };
+static stepperData_t *stepperRootP = NULL;    // start of stepper data chain ( NULL if no stepper object )
+static uint8_t spiData[2]; // step pattern to be output on SPI
+                            // low nibble of spiData[0] is SPI_1
+                            // high nibble of spiData[1] is SPI_4
+                            // spiData[1] is shifted out first
+
+
+// initialize SPI interface ( processordependent )
+#ifdef __AVR_MEGA__
+static uint8_t spiByteCount = 0;
+static void initSPI() {
+    // initialize SPI hardware.
+    // MSB first, default Clk Level is 0, shift on leading edge
+    uint8_t oldSREG = SREG;
+    cli();
+    pinMode( MOSI, OUTPUT );
+    pinMode( SCK, OUTPUT );
+    pinMode( SS, OUTPUT );
+    SPCR = (1<<SPIE)    // Interrupt enable
+         | (1<<SPE )    // SPI enable
+         | (0<<DORD)    // MSB first
+         | (1<<MSTR)    // Master Mode
+         | (0<<CPOL)    // Clock is low when idle
+         | (0<<CPHA)    // Data is sampled on leading edge
+         | (0<<SPR1) | (1<<SPR0);    // fosc/16
+    digitalWrite( SS, LOW );
+    SREG = oldSREG;  // undo cli() 
+    spiInitialized = true;  
+}
+    
+#elif defined __STM32F1__
+static int rxData;      // dummy for STM32
+static void initSPI() {
+    // initialize SPI hardware.
+    // MSB first, default Clk Level is 0, shift on leading edge
+    #ifdef USE_SPI2// use SPI 2 interface
+    spi_init(SPI2);
+    spi_config_gpios(SPI2, 1,  // initialize as master
+                     PIN_MAP[BOARD_SPI2_NSS_PIN].gpio_device, PIN_MAP[BOARD_SPI2_NSS_PIN].gpio_bit,        
+                     PIN_MAP[BOARD_SPI2_SCK_PIN].gpio_device, PIN_MAP[BOARD_SPI2_SCK_PIN].gpio_bit,
+                     PIN_MAP[BOARD_SPI2_MISO_PIN].gpio_bit,
+                     PIN_MAP[BOARD_SPI2_MOSI_PIN].gpio_bit);
+
+    uint32 flags = (SPI_FRAME_MSB | SPI_CR1_DFF_16_BIT | SPI_SW_SLAVE | SPI_SOFT_SS);
+    spi_master_enable(SPI2, (spi_baud_rate)SPI_BAUD_PCLK_DIV_64, (spi_mode)SPI_MODE_0, flags);
+    spi_irq_enable(SPI2, SPI_RXNE_INTERRUPT);
+    pinMode( BOARD_SPI2_NSS_PIN, OUTPUT);
+    digitalWrite( BOARD_SPI2_NSS_PIN, LOW );
+
+    #else// use SPI 1 interface
+    spi_init(SPI1);
+    spi_config_gpios(SPI1, 1,  // initialize as master
+                     PIN_MAP[BOARD_SPI1_NSS_PIN].gpio_device, PIN_MAP[BOARD_SPI1_NSS_PIN].gpio_bit,        
+                     PIN_MAP[BOARD_SPI1_SCK_PIN].gpio_device, PIN_MAP[BOARD_SPI1_SCK_PIN].gpio_bit,
+                     PIN_MAP[BOARD_SPI1_MISO_PIN].gpio_bit,
+                     PIN_MAP[BOARD_SPI1_MOSI_PIN].gpio_bit);
+
+    uint32 flags = (SPI_FRAME_MSB | SPI_CR1_DFF_16_BIT | SPI_SW_SLAVE | SPI_SOFT_SS);
+    spi_master_enable(SPI1, (spi_baud_rate)SPI_BAUD_PCLK_DIV_64, (spi_mode)SPI_MODE_0, flags);
+    spi_irq_enable(SPI1, SPI_RXNE_INTERRUPT);
+    pinMode( BOARD_SPI1_NSS_PIN, OUTPUT);
+    digitalWrite( BOARD_SPI1_NSS_PIN, LOW );
+    #endif
+    spiInitialized = true;  
+}
+
+#elif defined ESP32
+spi_t *spiHs = NULL;
+static void initSPI() {
+    // initialize SPI hardware.
+    // MSB first, default Clk Level is 0, shift on leading edge
+    spiHs = spiStartBus(SPI_USED, SPI_CLOCK_DIV4, SPI_MODE0, SPI_MSBFIRST);
+    //if ( spiHs == NULL ) Serial.println( "Init SPI failed");
+    spiAttachSCK(spiHs, SCK);
+    // MISO is not used, only serial output
+    spiAttachMOSI(spiHs, MOSI);
+    spiAttachSS(spiHs, 0, SS);
+    spiSSEnable(spiHs);
+
+    spiInitialized = true;  
+}
+#endif
+
 
 
 #pragma GCC optimize "O3"   // optimize ISR for speed
 #ifdef IS_32BIT
-void stepperISR(int32_t cyclesLastIRQ) {
+void IRAM_ATTR stepperISR(int32_t cyclesLastIRQ) {
 #else
 void stepperISR(uint8_t cyclesLastIRQ) {
 #endif
@@ -347,59 +437,6 @@ void __irq_spi1(void) {// STM32
     #endif
 #endif
 } // end of extern "C"
-
-static void initSPI() {
-    // initialize SPI hardware.
-    // MSB first, default Clk Level is 0, shift on leading edge
-#ifdef __AVR_MEGA__
-    uint8_t oldSREG = SREG;
-    cli();
-    pinMode( MOSI, OUTPUT );
-    pinMode( SCK, OUTPUT );
-    pinMode( SS, OUTPUT );
-    SPCR = (1<<SPIE)    // Interrupt enable
-         | (1<<SPE )    // SPI enable
-         | (0<<DORD)    // MSB first
-         | (1<<MSTR)    // Master Mode
-         | (0<<CPOL)    // Clock is low when idle
-         | (0<<CPHA)    // Data is sampled on leading edge
-         | (0<<SPR1) | (1<<SPR0);    // fosc/16
-    digitalWrite( SS, LOW );
-    SREG = oldSREG;  // undo cli() 
-    
-#elif defined __STM32F1__
-    #ifdef USE_SPI2// use SPI 2 interface
-    spi_init(SPI2);
-    spi_config_gpios(SPI2, 1,  // initialize as master
-                     PIN_MAP[BOARD_SPI2_NSS_PIN].gpio_device, PIN_MAP[BOARD_SPI2_NSS_PIN].gpio_bit,        
-                     PIN_MAP[BOARD_SPI2_SCK_PIN].gpio_device, PIN_MAP[BOARD_SPI2_SCK_PIN].gpio_bit,
-                     PIN_MAP[BOARD_SPI2_MISO_PIN].gpio_bit,
-                     PIN_MAP[BOARD_SPI2_MOSI_PIN].gpio_bit);
-
-    uint32 flags = (SPI_FRAME_MSB | SPI_CR1_DFF_16_BIT | SPI_SW_SLAVE | SPI_SOFT_SS);
-    spi_master_enable(SPI2, (spi_baud_rate)SPI_BAUD_PCLK_DIV_64, (spi_mode)SPI_MODE_0, flags);
-    spi_irq_enable(SPI2, SPI_RXNE_INTERRUPT);
-    pinMode( BOARD_SPI2_NSS_PIN, OUTPUT);
-    digitalWrite( BOARD_SPI2_NSS_PIN, LOW );
-
-    #else// use SPI 1 interface
-    spi_init(SPI1);
-    spi_config_gpios(SPI1, 1,  // initialize as master
-                     PIN_MAP[BOARD_SPI1_NSS_PIN].gpio_device, PIN_MAP[BOARD_SPI1_NSS_PIN].gpio_bit,        
-                     PIN_MAP[BOARD_SPI1_SCK_PIN].gpio_device, PIN_MAP[BOARD_SPI1_SCK_PIN].gpio_bit,
-                     PIN_MAP[BOARD_SPI1_MISO_PIN].gpio_bit,
-                     PIN_MAP[BOARD_SPI1_MOSI_PIN].gpio_bit);
-
-    uint32 flags = (SPI_FRAME_MSB | SPI_CR1_DFF_16_BIT | SPI_SW_SLAVE | SPI_SOFT_SS);
-    spi_master_enable(SPI1, (spi_baud_rate)SPI_BAUD_PCLK_DIV_64, (spi_mode)SPI_MODE_0, flags);
-    spi_irq_enable(SPI1, SPI_RXNE_INTERRUPT);
-    pinMode( BOARD_SPI1_NSS_PIN, OUTPUT);
-    digitalWrite( BOARD_SPI1_NSS_PIN, LOW );
-    #endif
-
-#endif
-    spiInitialized = true;  
-}
 
 uint16_t MoToStepper::setSpeedSteps( uintxx_t speed10, int16_t rampLen ) {
     // Set speed and length of ramp to reach speed ( from stop )

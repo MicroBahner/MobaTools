@@ -99,6 +99,11 @@
 #elif defined ( __STM32F1__ )
 #define CYCLETIME       1     // Cycle count in µs on 32Bit processors
 #define MIN_STEP_CYCLE  10   // Minimum number of µsec  between to step IRQ's ( end of ISR to start of next )
+
+#elif defined ( ESP32 )
+#define CYCLETIME       1     // Cycle count in µs on 32Bit processors
+#define MIN_STEP_CYCLE  10   // Minimum number of µsec  between to step IRQ's ( end of ISR to start of next )
+
 #else
 #define CYCLETIME       200     // Min. irq-periode in us ( default is 200 ), 
 #define MIN_STEP_CYCLE  2       // Minimum number of cycles per step. 

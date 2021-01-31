@@ -8,7 +8,7 @@
 #include <MobaTools.h>
 #include <utilities/MoToDbg.h>
 
-#ifdef ESP8266 // version for ESP8266
+#ifdef IS_ESP // version for ESP8266/32
 // Global Data for all instances and classes  --------------------------------
 void startLedPulse( uint8_t pin, uint8_t invFlg, uint32_t pulseLen ){
     // start or change the pwmpulses on the led pin.

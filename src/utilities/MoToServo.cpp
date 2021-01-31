@@ -11,11 +11,9 @@
 #include <utilities/MoToDbg.h>
 
 // Global Data for all instances and classes  --------------------------------
-extern uint8_t timerInitialized;
-
 // Variables for servos
 static byte servoCount = 0;
-#ifndef ESP8266 // following variables used only in 'classic' ISR
+#ifndef IS_ESP // following variables used only in 'classic' ISR
     static servoData_t* lastServoDataP = NULL; //start of ServoData-chain
     static servoData_t* pulseP = NULL;         // pulse Ptr in IRQ
     static servoData_t* activePulseP = NULL;   // Ptr to pulse to stop
@@ -36,7 +34,7 @@ inline void _noStepIRQ() {
             TIMSKx &= ~_BV(OCIExB) ; 
         #elif defined __STM32F1__
             timer_disable_irq(MT_TIMER, TIMER_STEPCH_IRQ);
-            //*bb_perip(&(MT_TIMER->regs).adv->DIER, TIMER_STEPCH_IRQ) = 0;
+            // *bb_perip(&(MT_TIMER->regs).adv->DIER, TIMER_STEPCH_IRQ) = 0;
 		#else
 			noInterrupts();
         #endif
@@ -56,9 +54,12 @@ inline void  _stepIRQ() {
 }
 
 ///////////////////////  Interrupt for Servos ////////////////////////////////////////////////////////////////////
-#ifdef ESP8266
-#define startServoPulse(pin,width) startWaveformMoTo(pin, width/TICS_PER_MICROSECOND/SPEED_RES, TIMERPERIODE-width/TICS_PER_MICROSECOND/SPEED_RES,0)
-
+#ifdef IS_ESP
+    #ifdef ESP8266
+    #define startServoPulse(pin,width) startWaveformMoTo(pin, width/TICS_PER_MICROSECOND/SPEED_RES, TIMERPERIODE-width/TICS_PER_MICROSECOND/SPEED_RES,0)
+    #else 
+    #define startServoPulse(pin,width)
+    #endif
 // --------------------- Pulse-interrupt for ESP8266 --------------------------
 // This ISR is fired at the falling edge of the servo pulse. It is specific to every servo Objekt and
 // computes the length of the next pulse. The pulse itself is created by the core_esp8266_waveform routines.
@@ -83,6 +84,7 @@ void ICACHE_RAM_ATTR ISR_Servo( servoData_t *_servoData ) {
     }
     
 }
+
 #else //---------------------- Timer-interrupt for non ESP8266 -----------------------------
 // create overlapping servo pulses
 // Positions of servopulses within 20ms cycle are variable, max 2 pulses at the same time
@@ -297,7 +299,7 @@ MoToServo::MoToServo() //: _servoData.pin(NO_PIN),_angle(NO_ANGLE),_min16(1000/1
     _servoData.pin = NO_PIN;
     _minPw = MINPULSEWIDTH ;
     _maxPw = MAXPULSEWIDTH ;
-    #ifndef ESP8266 // there is no servochain on ESP8266
+    #ifndef IS_ESP // there is no servochain on ESP
     noInterrupts(); // Add to servo-chain
     _servoData.prevServoDataP = lastServoDataP;
     lastServoDataP = &_servoData;

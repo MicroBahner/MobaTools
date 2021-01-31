@@ -12,8 +12,6 @@
 
 #ifdef __AVR_MEGA__  //this is only for 8Bit AVR controllers
 // Global Data for all instances and classes  --------------------------------
-extern uint8_t timerInitialized;
-
 
 // variables for softLeds
 static ledData_t* ledRootP = NULL; //start of _ledData-chain

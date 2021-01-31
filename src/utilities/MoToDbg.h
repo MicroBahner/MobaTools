@@ -4,6 +4,8 @@
 // so können die debugs klassenspezifisch eingeschaltet werden
 //#define debugTP
 //#define debugPrint
+#undef debugTP
+#undef debugPrint
 
 #ifdef debugTP 
     #if defined(__AVR_ATmega1280__) || defined(__AVR_ATmega2560__)

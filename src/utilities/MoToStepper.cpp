@@ -11,32 +11,10 @@
 #include <utilities/MoToDbg.h>
 #define TODO	// ignore 
 // Global Data for all instances and classes  --------------------------------
-#ifdef ESP8266
-#else
-extern uint8_t timerInitialized;
-static uint8_t spiInitialized = false;
-
-// constants
-static const int stepPattern[8] = {0b0011, 0b0010, 0b0110, 0b0100, 0b1100, 0b1000, 0b1001,0b0001 };
-#endif
-
 #ifdef debugPrint
      const char *rsC[] = { "INACTIVE", "STOPPED", "STOPPING", "STARTING", "CRUISING", "RAMPACCEL", "RAMPDECEL", "SPEEDDECEL" };    
 #endif
 
-// Variables for stepper motors
-#ifndef ESP8266
-static stepperData_t *stepperRootP = NULL;    // start of stepper data chain ( NULL if no stepper object )
-static uint8_t spiData[2]; // step pattern to be output on SPI
-                            // low nibble of spiData[0] is SPI_1
-                            // high nibble of spiData[1] is SPI_4
-                            // spiData[1] is shifted out first
-#ifdef __AVR_MEGA__
-static uint8_t spiByteCount = 0;
-#else
-static int rxData;      // dummy for STM32
-#endif
-#endif // no ESP
 
 //==========================================================================
 inline void _noStepIRQ() {
@@ -46,10 +24,11 @@ inline void _noStepIRQ() {
             TIMSKx &= ~_BV(OCIExB) ; 
         #elif defined __STM32F1__
             timer_disable_irq(MT_TIMER, TIMER_STEPCH_IRQ);
-            //*bb_perip(&(MT_TIMER->regs).adv->DIER, TIMER_STEPCH_IRQ) = 0;
+            // *bb_perip(&(MT_TIMER->regs).adv->DIER, TIMER_STEPCH_IRQ) = 0;
+        #elif defined ESP32
+            portENTER_CRITICAL_ISR(&stepperMmux);
 		#else
 			noInterrupts();
-            SET_TP2;
         #endif
 }
 inline void  _stepIRQ() {
@@ -61,8 +40,9 @@ inline void  _stepIRQ() {
             //timer_enable_irq(MT_TIMER, TIMER_STEPCH_IRQ) cannot be used, because this also clears pending irq's
             *bb_perip(&(MT_TIMER->regs).adv->DIER, TIMER_STEPCH_IRQ) = 1;
             interrupts();
+        #elif defined ESP32
+            portEXIT_CRITICAL_ISR(&stepperMmux);
 		#else
-            CLR_TP2;
 			interrupts();
         #endif
 }
@@ -746,7 +726,7 @@ void MoToStepper::rotate(int8_t direction) {
             stop();
         } else {
             // start decelerating
-            _noStepIRQ(); digitalWrite( PB1, LOW ); // TEST
+            _noStepIRQ();
             switch ( _stepperData.rampState ) {
               case rampStat::RAMPACCEL:
               case rampStat::SPEEDDECEL:
@@ -767,7 +747,7 @@ void MoToStepper::rotate(int8_t direction) {
             }
             stepsToMove = _stepperData.stepCnt;
             _stepperData.stepCnt2 = 0;      // No reverse moving after stop
-            digitalWrite( PB1, HIGH ); _stepIRQ(); // TEST
+            _stepIRQ(); 
         }
 	} else if (direction > 0 ) { // ToDo: Grenzwerte sauber berechnen
         doSteps(  2147483646L - _stepperData.stepRampLen );
