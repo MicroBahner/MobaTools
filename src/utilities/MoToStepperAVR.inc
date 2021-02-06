@@ -365,7 +365,7 @@ void stepperISR(uint8_t cyclesLastIRQ) {
                 CLR_TP2;
             } // End of do one step
 			CLR_TP3;
-            nextCycle = min ( nextCycle, stepperDataP->aCycSteps-stepperDataP->cycCnt );
+            nextCycle = min ( nextCycle, nextCycle_t(stepperDataP->aCycSteps-stepperDataP->cycCnt) );
             //SET_TP1;
         } // end of 'if stepper active AND moving'
         else if ( stepperDataP->rampState == rampStat::STARTING ) {
@@ -373,7 +373,7 @@ void stepperISR(uint8_t cyclesLastIRQ) {
             stepperDataP->aCycSteps = stepperDataP->cycDelay;
             if ( stepperDataP->stepRampLen > 0 ) stepperDataP->rampState = rampStat::RAMPACCEL;
             else                                stepperDataP->rampState = rampStat::CRUISING;
-            nextCycle = min ( nextCycle, stepperDataP->aCycSteps );
+            nextCycle = min ( nextCycle, nextCycle_t(stepperDataP->aCycSteps) );
         } else if ( stepperDataP->rampState == rampStat::STOPPING  ) {
             stepperDataP->cycCnt+=cyclesLastIRQ;
             if ( stepperDataP->cycCnt >= stepperDataP->aCycSteps ) {
@@ -460,7 +460,7 @@ uint16_t MoToStepper::setSpeedSteps( uintxx_t speed10, int16_t rampLen ) {
     newRampLen = abs(rampLen);    // negative values are invalid ( indicate automatically adjusted length )
     if (rampLen<0) newRampLen--;
     if (newRampLen > MAXRAMPLEN ) newRampLen = MAXRAMPLEN;
-    newSpeed10 = min( 1000000L / MIN_STEPTIME * 10, speed10 );
+    newSpeed10 = min( uintxx_t(1000000L / MIN_STEPTIME * 10), speed10 );
 	if ( newSpeed10 == 0 ) newSpeed10 = 1; // minimum speed
     
     // compute target steplength and check whether speed and ramp fit together: 
@@ -575,14 +575,8 @@ uint16_t MoToStepper::setSpeedSteps( uintxx_t speed10, int16_t rampLen ) {
     return _stepperData.stepRampLen;
 }
 
-#ifdef IS_32BIT
-// On 32-Bit Processors Cycle counts in µsec
-extern int32_t nextCycle;
-//static int32_t cyclesLastIRQ = 1;  // µsec since last IRQ
-#else
-extern uint8_t nextCycle;
-//static uint8_t cyclesLastIRQ = 1;  // cycles since last IRQ
-#endif
+extern nextCycle_t nextCycle;
+//static nextCycle_t cyclesLastIRQ = 1;  // µsec since last IRQ
 
 void MoToStepper::prDynData() {             // print actual Stepperdata
  #ifdef debugPrint

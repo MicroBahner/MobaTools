@@ -12,13 +12,12 @@
 
 #if defined ( IS_32BIT ) && !defined ( IS_ESP ) // version for 32bit controllers ( except ESP8266/32 )
 // Global Data for all instances and classes  --------------------------------
-extern uint8_t timerInitialized;
 
 // variables for softLeds
 // On 32bit controllers all cycle times are measured in µs ( 1 cycle = 1µs )
 static ledData_t* ledRootP = NULL; //start of _ledData-chain
-static uint32_t ledNextCyc = 1;     // next Cycle that is relevant for leds
-static uint32_t ledCycleCnt = 0;    // count IRQ cycles within PWM cycle
+static int32_t ledNextCyc = 1;     // next Cycle that is relevant for leds
+static int32_t ledCycleCnt = 0;    // count IRQ cycles within PWM cycle
 
 static ledData_t*  ledDataP;              // pointer to active Led in ISR
 

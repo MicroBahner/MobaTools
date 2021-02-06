@@ -50,7 +50,7 @@ void seizeTimer1() {
 #endif //^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ AVR Mega ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 #ifdef __STM32F1__ //////////////////////////////////7777777/ STM32F1 //////////////////////////////////////////////////
-uint8_t timerInitialized = false;
+bool timerInitialized = false;
 void ISR_Stepper(void);     // defined in MoToISR.cpp
 void seizeTimer1() {
     timer_init( MT_TIMER );
@@ -131,19 +131,6 @@ timerConfig_t timerConfig;
 portMUX_TYPE timerMux = portMUX_INITIALIZER_UNLOCKED;
 portMUX_TYPE servoMux = portMUX_INITIALIZER_UNLOCKED;
 hw_timer_t * stepTimer = NULL;
-spi_t *spiHs = NULL;
-#ifdef USE_VSPI
-    #define SPI_USED    VSPI
-    #define MOSI        23
-    #define SCK         18
-    #define SS          5
-#else
-    // HSPI is used by default
-    #define SPI_USED    HSPI
-    #define MOSI        13
-    #define SCK         14
-    #define SS          15
-#endif
 
 void seizeTimer1() {
     // Initiieren des Stepper Timers ------------------------
@@ -158,15 +145,5 @@ void seizeTimer1() {
     MODE_TP4;
 }
 
-void initSPI() {
-    spiHs = spiStartBus(SPI_USED, SPI_CLOCK_DIV4, SPI_MODE0, SPI_MSBFIRST);
-    //if ( spiHs == NULL ) Serial.println( "Init SPI failed");
-    spiAttachSCK(spiHs, SCK);
-    // MISO is not used, only serial output
-    spiAttachMOSI(spiHs, MOSI);
-    spiAttachSS(spiHs, 0, SS);
-    spiSSEnable(spiHs);
-    spiInitialized = true;  
-}
 #endif
 

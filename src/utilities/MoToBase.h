@@ -73,6 +73,7 @@
     #define TIMER_SERVOCH_IRQ TIMER_CC2_INTERRUPT
     #define GET_COUNT timer_get_count(MT_TIMER)
     
+    extern bool timerInitialized;
     void seizeTimer1();
     //#define USE_SPI2          // Use SPI1 if not defined
     //^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ STM32F1 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -99,7 +100,7 @@
     #define gpio2ISRx(gpio) (gpio>5?gpio-6:gpio) // gpio 6..11 are not allowed
     #define pin2Ix(gpio) (gpio>5?gpio-6:gpio) // gpio 6..11 are not allowed
     #define chkGpio(gpio) ( (gpio<=5) || ( gpio>11 && gpio<=16 ) );
-    //^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ ESP8266 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    //^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ end of ESP8266 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     //--------------------------------------------------------------------------------------------------------------
 #elif defined ( ESP32 ) //vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv  ESP32  vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
     #define IS_32BIT
@@ -144,17 +145,17 @@
     #define STEPPER_TIMER     3  // Timer 1, Group 1
     extern hw_timer_t * stepTimer;
     void seizeTimer1();
-    void initSPI();             // initSPI is defined in MoToStepperAVR.inc ( it is only used with MoToStepper
+    //void initSPI();             // initSPI is defined in MoToStepperAVR.inc ( it is only used with MoToStepper
     
     // defines for servo and softled ( ledPwm hardware on ESP32 is used )
     #define SERVO_FREQ  50          // 20000 
     #define SERVO_BITS  16          // bitresolution for duty cycle of servos
     #define SERVO_CYCLE ( 1000000L / SERVO_FREQ ) // Servo cycle in uS
-    #define DUTY100     (( 1<<SERVOBITS )-1)
+    #define DUTY100     (( 1<<SERVO_BITS )-1)
     // compute pulsewidt ( in usec ) to duty )
-    #define MS2DUTY( pulse ) ( (pulse *  DUTY100) / SERVO_CYCLE )  
+    #define time2tic(pulse) ( ( (pulse) *  DUTY100) / SERVO_CYCLE )  
     // compute duty to pulsewidth ( in uS )
-    #define DUTY2MS( duty )  ( (duty * SERVO_CYCLE) / DUTY100 )
+    #define tic2time(duty)  ( ( (duty) * SERVO_CYCLE) / DUTY100 )
     
     #define LED_FREQ    100
     #define LED_BITS    10          // bitresolution for duty cycle of leds
@@ -168,6 +169,12 @@
     #error "Processor not supported"
 
 #endif
+// defaults for macros that are not defined above
+
+#ifndef time2tic
+    #define time2tic(pulse)  ( (pulse) *  TICS_PER_MICROSECOND * SPEED_RES )
+    #define tic2time(tics)  ( (tics) / TICS_PER_MICROSECOND / SPEED_RES )
+#endif
 
 #ifndef IS_ESP
     #define  IRAM_ATTR  // Attribut IRAM_ATTR entfernen wenn nicht definiert
@@ -180,14 +187,16 @@
 	#define intxx_t	int32_t
 	#define uintx8_t uint32_t
 	#define intx8_t	int32_t
-    extern int32_t nextCycle;   // to be used in ISR for stepper and softled
+    #define nextCycle_t int32_t
 #else
 	#define uintxx_t	uint16_t
 	#define  intxx_t	int16_t
 	#define uintx8_t uint8_t
 	#define intx8_t	int8_t
+    #define nextCycle_t uint8_t
     extern uint8_t nextCycle;
 #endif
+extern nextCycle_t nextCycle;   // to be used in ISR for stepper and softled
 
 #define ISR_IDLETIME    5000        // max time between two Stepper/Softled ISRs ( µsec )
 

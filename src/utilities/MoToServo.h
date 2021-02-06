@@ -17,6 +17,7 @@
 
 #define MINPULSETICS    (MINPULSEWIDTH * TICS_PER_MICROSECOND)
 #define MAXPULSETICS    (MAXPULSEWIDTH * TICS_PER_MICROSECOND)
+
 #define OFF_COUNT       50  // if autoOff is set, a pulse is switched off, if it length does not change for
                             // OFF_COUNT cycles ( = OFF_COUNT * 20ms )
 #define FIRST_PULSE     100 // first pulse starts 200 tics after timer overflow, so we do not compete
@@ -30,9 +31,10 @@
 // global servo data ( used in ISR )
 typedef struct servoData_t {
   struct servoData_t* prevServoDataP;
-  uint8_t servoIx :6 ;  // Servo number
+  uint8_t servoIx :6 ;  // Servo number. On ESP32 this is also the nuber of  the PWM timer
   uint8_t on   :1 ;     // True: create pulse
   uint8_t noAutoff :1;  // don't switch pulses off automatically
+                        // on ESP32 'soll' 'ist' and 'inc' are in duty values (  0... DUTY100 )
   int soll;             // Position, die der Servo anfahren soll ( in Tics ). -1: not initialized
   volatile int ist;     // Position, die der Servo derzeit einnimt ( in Tics )
   int inc;              // Schrittweite je Zyklus um Ist an Soll anzugleichen
@@ -42,9 +44,6 @@ typedef struct servoData_t {
   uint8_t  bitMask;     // bitmask related to pin number
   #endif
   uint8_t pin     ;     // pin
-  #ifdef ESP32
-  uint8_t pwmNr;        // Nummer des ESP32-PWM Timers ( 0...15 )  
-  #endif
 } servoData_t ;
 
 ////////////////////////////////////////////////////////////////////////////////////////

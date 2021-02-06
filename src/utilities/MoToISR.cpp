@@ -10,14 +10,14 @@
 #define debugTP
 #include <utilities/MoToDbg.h>
 
+nextCycle_t nextCycle;
+static nextCycle_t cyclesLastIRQ = 1;  // cycles since last IRQ
 // ISR on ESP is completely different - on ESP this File is empty
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 #ifdef __AVR_MEGA__ // +++++++++++++++++++++++Variante f ür 8-Bit AVR Prozessoren +++++++++++++++++
 // ---------- OCRxB Compare Interrupt used for stepper motor and Softleds ----------------
 void stepperISR(uint8_t cyclesLastIRQ) __attribute__ ((weak));
 void softledISR(uint8_t cyclesLastIRQ) __attribute__ ((weak));
-uint8_t nextCycle;
-static uint8_t cyclesLastIRQ = 1;  // cycles since last IRQ
 ISR ( TIMERx_COMPB_vect) {
     uint16_t tmp;
   // Timer1 Compare B, used for stepper motor, starts every CYCLETIME us
@@ -63,8 +63,6 @@ ISR ( TIMERx_COMPB_vect) {
 #elif defined __STM32F1__  // +++++++++++++++++++++++ Variante für STM32F1 +++++++++++++++++
 void stepperISR(int32_t cyclesLastIRQ)  __attribute__ ((weak));
 void softledISR(uint32_t cyclesLastIRQ)  __attribute__ ((weak));
-int32_t nextCycle;
-static uint32_t cyclesLastIRQ = 1;  // µsec since last IRQ
 void ISR_Stepper(void) {
     // Timer4 Channel 1, used for stepper motor, starts every CYCLETIME us
     // 26-09-15 An Interrupt is only created at timeslices, where data is to output
@@ -97,8 +95,6 @@ void ISR_Stepper(void) {
 #elif defined ESP32  // +++++++++++++++++++++++ Variante für STM32F1 +++++++++++++++++
 void IRAM_ATTR stepperISR(int32_t cyclesLastIRQ)  __attribute__ ((weak));
 //void IRAM_ATTR softledISR(uint32_t cyclesLastIRQ)  __attribute__ ((weak));
-int32_t nextCycle;
-static uint32_t cyclesLastIRQ = 1;  // µsec since last IRQ
 void IRAM_ATTR ISR_Stepper(void) {
     // Timer4 autoreload, used for stepper motor, starts every CYCLETIME us
     SET_TP1;

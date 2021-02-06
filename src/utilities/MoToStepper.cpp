@@ -26,7 +26,7 @@ inline void _noStepIRQ() {
             timer_disable_irq(MT_TIMER, TIMER_STEPCH_IRQ);
             // *bb_perip(&(MT_TIMER->regs).adv->DIER, TIMER_STEPCH_IRQ) = 0;
         #elif defined ESP32
-            portENTER_CRITICAL_ISR(&stepperMmux);
+            portENTER_CRITICAL(&stepperMux);
 		#else
 			noInterrupts();
         #endif
@@ -41,7 +41,7 @@ inline void  _stepIRQ() {
             *bb_perip(&(MT_TIMER->regs).adv->DIER, TIMER_STEPCH_IRQ) = 1;
             interrupts();
         #elif defined ESP32
-            portEXIT_CRITICAL_ISR(&stepperMmux);
+            portEXIT_CRITICAL(&stepperMux);
 		#else
 			interrupts();
         #endif

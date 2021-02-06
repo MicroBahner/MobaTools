@@ -53,19 +53,29 @@ inline void  _stepIRQ() {
         #endif
 }
 
-///////////////////////  Interrupt for Servos ////////////////////////////////////////////////////////////////////
 #ifdef IS_ESP
-    #ifdef ESP8266
+    #ifdef ESP8266  //-------- ESP8266 ---------------------
     #define startServoPulse(pin,width) startWaveformMoTo(pin, width/TICS_PER_MICROSECOND/SPEED_RES, TIMERPERIODE-width/TICS_PER_MICROSECOND/SPEED_RES,0)
-    #else 
-    #define startServoPulse(pin,width)
+    #define SRVID   pin
+    #else           // -------- ESP 32 ---------------------
+    #define startServoPulse(pwmNr,duty) ledcWrite(pwmNr, duty )
+    #define SRVID   servoIx
+    #undef interrupts
+    #undef noInterrupts
+    #define interrupts()    portEXIT_CRITICAL(&servoMux);
+    #define noInterrupts()  portENTER_CRITICAL(&servoMux);
+
     #endif
-// --------------------- Pulse-interrupt for ESP8266 --------------------------
+/////////////////////////////  Pulse-interrupt for ESP8266 and ESP 32  /////////////////////////////////////////
 // This ISR is fired at the falling edge of the servo pulse. It is specific to every servo Objekt and
-// computes the length of the next pulse. The pulse itself is created by the core_esp8266_waveform routines.
-void ICACHE_RAM_ATTR ISR_Servo( servoData_t *_servoData ) {
+// computes the length of the next pulse. The pulse itself is created by the core_esp8266_waveform routines or by ledPWM HW ( ESP32 )
+//void ICACHE_RAM_ATTR ISR_Servo( servoData_t *_servoData ) {
+void ICACHE_RAM_ATTR ISR_Servo( void *arg ) {
+    servoData_t *_servoData = static_cast<servoData_t *>(arg);
+    portENTER_CRITICAL_ISR(&servoMux);
+    SET_TP1;
     if ( _servoData->ist != _servoData->soll ) {
-        //SetGPIO(0b100000);
+        SET_TP2;
         if ( _servoData->ist > _servoData->soll ) {
             _servoData->ist -= _servoData->inc;
             if ( _servoData->ist < _servoData->soll ) _servoData->ist = _servoData->soll;
@@ -73,19 +83,28 @@ void ICACHE_RAM_ATTR ISR_Servo( servoData_t *_servoData ) {
             _servoData->ist += _servoData->inc;
             if ( _servoData->ist > _servoData->soll ) _servoData->ist = _servoData->soll;
         }
-        startServoPulse(_servoData->pin, _servoData->ist);
-
-        //ClearGPIO(0b100000);
+        CLR_TP1;
+        //Serial.println(_servoData->ist );
+        startServoPulse(_servoData->SRVID, _servoData->ist);
+        SET_TP1;
+        CLR_TP2;
     } else if ( !_servoData->noAutoff ) { // no change in pulse length, look for autooff
-        if ( --_servoData->offcnt == 0 ) {
+        if ( --_servoData->offcnt <= 2 ) {
             // switch off pulses
-            stopWaveformMoTo( _servoData->pin );
+            #ifdef ESP8266
+                stopWaveformMoTo( _servoData->pin );
+            #elif defined ESP32
+                if ( _servoData->offcnt == 2 ) { SET_TP2; ledcWrite( _servoData->servoIx, 1000 ); CLR_TP2; }
+                else if ( _servoData->offcnt == 1 ) { SET_TP3; ledcWrite( _servoData->servoIx, 2000 ); CLR_TP3; }
+                else { SET_TP4; ledcWrite( _servoData->servoIx, 3000 ); _servoData->offcnt = 3; CLR_TP4; }
+            #endif
         }
     }
-    
+    portEXIT_CRITICAL_ISR(&servoMux);
+    CLR_TP1;
 }
 
-#else //---------------------- Timer-interrupt for non ESP8266 -----------------------------
+#else //---------------------- Timer-interrupt for non ESP -----------------------------
 // create overlapping servo pulses
 // Positions of servopulses within 20ms cycle are variable, max 2 pulses at the same time
 // 27.9.15 with variable overlap, depending on length of next pulse: 16 Servos
@@ -284,7 +303,7 @@ void ISR_Servo( void) {
     CLR_TP2;
 }
 
-#endif // not ESP8266
+#endif // not ESP
 // ------------ end of Interruptroutines ------------------------------
 ///////////////////////////////////////////////////////////////////////////////////
 // --------- Class MoToServo ---------------------------------
@@ -305,6 +324,10 @@ MoToServo::MoToServo() //: _servoData.pin(NO_PIN),_angle(NO_ANGLE),_min16(1000/1
     lastServoDataP = &_servoData;
     interrupts();
     #endif
+    MODE_TP1;   // set debug-pins to Output
+    MODE_TP2;
+    MODE_TP3;
+    MODE_TP4;
 }
 
 void MoToServo::setMinimumPulse(uint16_t t)
@@ -359,6 +382,9 @@ uint8_t MoToServo::attach( int pinArg, uint16_t pmin, uint16_t pmax, bool autoOf
         gpioTab[gpio2ISRx(_servoData.pin)].MoToISR = (void (*)(void*))ISR_Servo;
         gpioTab[gpio2ISRx(_servoData.pin)].IsrData = &_servoData;
         attachInterrupt( _servoData.pin, gpioTab[gpio2ISRx(_servoData.pin)].gpioISR, FALLING );
+    #elif defined ESP32
+        ledcSetup(_servoData.servoIx, SERVO_FREQ , SERVO_BITS );
+        attachInterruptArg( _servoData.pin, ISR_Servo, &_servoData, FALLING );
     #else
         if ( !timerInitialized) seizeTimer1();
         // initialize servochain pointer and ISR if not done already
@@ -402,6 +428,10 @@ void MoToServo::detach()
         clrGpio(tPin);
         detachInterrupt( tPin );
     #endif
+    #ifdef ESP32
+        detachInterrupt( tPin );
+        ledcDetachPin(tPin);
+    #endif
     pinMode( tPin, INPUT );
 }
 
@@ -425,10 +455,10 @@ void MoToServo::write(uint16_t angleArg)
         if ( angleArg <= 255) {
             // pulse width as degrees (byte values are always degrees) 09-02-2017
             angleArg = min( 180,(int)angleArg);
-            newpos = map( angleArg, 0,180, _minPw, _maxPw ) * TICS_PER_MICROSECOND * SPEED_RES;
+            newpos = time2tic( map( angleArg, 0,180, _minPw, _maxPw ) );
         } else {
             // pulsewidth as microseconds
-            newpos = constrain( angleArg, _minPw, _maxPw ) * TICS_PER_MICROSECOND * SPEED_RES;
+            newpos = time2tic( constrain( angleArg, _minPw, _maxPw ) );
             
         }
         if ( _servoData.soll < 0 ) {
@@ -450,16 +480,22 @@ void MoToServo::write(uint16_t angleArg)
             _servoData.soll= newpos ;
             interrupts();
         }
-        #ifdef ESP8266 // start creating pulses?
+        #ifdef IS_ESP // start creating pulses?
             if ( (startPulse) || (_servoData.offcnt+_servoData.noAutoff) == 0  ) {
+                SET_TP2;
                 // first pulse after attach, or pulses have been switch off by autoff
-                startServoPulse(_servoData.pin, _servoData.ist);
+                #ifdef ESP32  // connect pin to pwmtimer and attach interrupt to it
+                ledcAttachPin( _servoData.pin, _servoData.servoIx );
+                attachInterruptArg( _servoData.pin, ISR_Servo, &_servoData, FALLING );
+                #endif
+                startServoPulse(_servoData.SRVID, _servoData.ist);
                 DB_PRINT( "start pulses at pin %d, ist=%d, soll=%d", _servoData.pin, _servoData.ist, _servoData.soll );
+                CLR_TP3;
             }
         #endif
         _servoData.offcnt = OFF_COUNT;   // auf jeden Fall wieder Pulse ausgeben
     }
-    //DB_PRINT( "Soll=%d, Ist=%d, Ix=%d, inc=%d, SR=%d", _servoData.soll,_servoData.ist, _servoData.servoIx, _servoData.inc, SPEED_RES );
+    DB_PRINT( "Soll=%d, Ist=%d, Ix=%d, inc=%d, SR=%d", _servoData.soll,_servoData.ist, _servoData.servoIx, _servoData.inc, SPEED_RES );
     delay(2);
     //CLR_TP1;
 }
@@ -469,8 +505,8 @@ void MoToServo::write(uint16_t angleArg)
 #pragma GCC diagnostic ignored "-Wunused-parameter"
 void MoToServo::setSpeed( int speed, bool compatibility ) {
     // set global compatibility-Flag
-    #ifndef ESP8266
-    speedV08 = compatibility;   // not on ESP8266
+    #ifndef IS_ESP
+    speedV08 = compatibility;   // not on ESP8266/ESP32
     #endif
     setSpeed( speed );
 }
@@ -479,7 +515,7 @@ void MoToServo::setSpeed( int speed, bool compatibility ) {
 void MoToServo::setSpeed( int speed ) {
     // Set increment value for movement to new angle
     if ( _servoData.pin != NO_PIN ) { // only if servo is attached
-        #ifndef ESP8266
+        #ifndef IS_ESP
         if ( speedV08 ) speed *= SPEED_RES;
         #endif
         noInterrupts();
@@ -508,7 +544,7 @@ uint16_t MoToServo::readMicroseconds() {
     interrupts();
     if ( value < 0 ) value = _servoData.soll; // there is no valid actual vlaue
     //DB_PRINT( "Ist=%d, Soll=%d, TpM=%d, SR=%d", value, _servoData.soll, TICS_PER_MICROSECOND, SPEED_RES );
-    return value/TICS_PER_MICROSECOND/SPEED_RES;   
+    return tic2time( value );   
 }
 
 uint8_t MoToServo::moving() {

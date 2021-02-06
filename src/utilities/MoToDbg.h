@@ -4,8 +4,8 @@
 // so können die debugs klassenspezifisch eingeschaltet werden
 //#define debugTP
 //#define debugPrint
-#undef debugTP
-#undef debugPrint
+/*#undef debugTP
+#undef debugPrint*/
 
 #ifdef debugTP 
     #if defined(__AVR_ATmega1280__) || defined(__AVR_ATmega2560__)
@@ -113,6 +113,19 @@
         #define SET_TP4 
         #define CLR_TP4 
          
+    #elif defined ESP32
+        #define MODE_TP1 pinMode( 27,OUTPUT )  // GPIO 13
+        #define SET_TP1  digitalWrite( 27, HIGH )
+        #define CLR_TP1  digitalWrite( 27, LOW )
+        #define MODE_TP2 pinMode(26,OUTPUT )  
+        #define SET_TP2  digitalWrite( 26, HIGH )
+        #define CLR_TP2  digitalWrite( 26, LOW )
+        #define MODE_TP3  pinMode(25,OUTPUT )  
+        #define SET_TP3   digitalWrite( 25, HIGH )
+        #define CLR_TP3  digitalWrite( 25, LOW )
+        #define MODE_TP4  pinMode(33,OUTPUT )  
+        #define SET_TP4   digitalWrite( 33, HIGH )
+        #define CLR_TP4  digitalWrite( 33, LOW ) 
     #else
         #define MODE_TP1 DDRC |= (1<<3) //A3
         #define SET_TP1 PORTC |= (1<<3)
