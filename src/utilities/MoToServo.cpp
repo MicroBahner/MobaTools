@@ -54,17 +54,11 @@ inline void  _stepIRQ() {
 }
 
 #ifdef IS_ESP
-    #ifdef ESP8266  //-------- ESP8266 ---------------------
-    #define startServoPulse(pin,width) startWaveformMoTo(pin, width/TICS_PER_MICROSECOND/SPEED_RES, TIMERPERIODE-width/TICS_PER_MICROSECOND/SPEED_RES,0)
-    #define SRVID   pin
-    #else           // -------- ESP 32 ---------------------
-    #define startServoPulse(pwmNr,duty) ledcWrite(pwmNr, duty )
-    #define SRVID   servoIx
-    #undef interrupts
-    #undef noInterrupts
-    #define interrupts()    portEXIT_CRITICAL(&servoMux);
-    #define noInterrupts()  portENTER_CRITICAL(&servoMux);
-
+    #ifdef ESP32           // -------- ESP 32 ---------------------
+        #undef interrupts
+        #undef noInterrupts
+        #define interrupts()    portEXIT_CRITICAL(&servoMux);
+        #define noInterrupts()  portENTER_CRITICAL(&servoMux);
     #endif
 /////////////////////////////  Pulse-interrupt for ESP8266 and ESP 32  /////////////////////////////////////////
 // This ISR is fired at the falling edge of the servo pulse. It is specific to every servo Objekt and
@@ -85,19 +79,12 @@ void ICACHE_RAM_ATTR ISR_Servo( void *arg ) {
         }
         CLR_TP1;
         //Serial.println(_servoData->ist );
-        startServoPulse(_servoData->SRVID, _servoData->ist);
+            servoWrite( _servoData, _servoData->ist ); 
         SET_TP1;
         CLR_TP2;
     } else if ( !_servoData->noAutoff ) { // no change in pulse length, look for autooff
-        if ( --_servoData->offcnt <= 2 ) {
-            // switch off pulses
-            #ifdef ESP8266
-                stopWaveformMoTo( _servoData->pin );
-            #elif defined ESP32
-                if ( _servoData->offcnt == 2 ) { SET_TP2; ledcWrite( _servoData->servoIx, 1000 ); CLR_TP2; }
-                else if ( _servoData->offcnt == 1 ) { SET_TP3; ledcWrite( _servoData->servoIx, 2000 ); CLR_TP3; }
-                else { SET_TP4; ledcWrite( _servoData->servoIx, 3000 ); _servoData->offcnt = 3; CLR_TP4; }
-            #endif
+        if ( --_servoData->offcnt == 0 ) {
+            servoPulseOff( _servoData );
         }
     }
     portEXIT_CRITICAL_ISR(&servoMux);
@@ -316,6 +303,7 @@ MoToServo::MoToServo() //: _servoData.pin(NO_PIN),_angle(NO_ANGLE),_min16(1000/1
 {   _servoData.servoIx = servoCount++;
     _servoData.soll = -1;    // = not initialized
     _servoData.pin = NO_PIN;
+    _servoData.pwmNbr = -1;
     _minPw = MINPULSEWIDTH ;
     _maxPw = MAXPULSEWIDTH ;
     #ifndef IS_ESP // there is no servochain on ESP
@@ -377,14 +365,17 @@ uint8_t MoToServo::attach( int pinArg, uint16_t pmin, uint16_t pmax, bool autoOf
 	#endif
     pinMode (_servoData.pin,OUTPUT);
     digitalWrite( _servoData.pin,LOW);
+    _servoData.pwmNbr = 0; // >= 0 means 'successfully attached' on all architectures ( maybe ocerriten later in this function )
     #ifdef ESP8266
         // assign an ISR to the pin
         gpioTab[gpio2ISRx(_servoData.pin)].MoToISR = (void (*)(void*))ISR_Servo;
         gpioTab[gpio2ISRx(_servoData.pin)].IsrData = &_servoData;
         attachInterrupt( _servoData.pin, gpioTab[gpio2ISRx(_servoData.pin)].gpioISR, FALLING );
     #elif defined ESP32
-        ledcSetup(_servoData.servoIx, SERVO_FREQ , SERVO_BITS );
-        attachInterruptArg( _servoData.pin, ISR_Servo, &_servoData, FALLING );
+        // pwmNbr will be negative if there are no free pwm channels
+        _servoData.pwmNbr =  servoPwmSetup( &_servoData );
+        DB_PRINT("pwmNbr=%d", _servoData.pwmNbr );
+        
     #else
         if ( !timerInitialized) seizeTimer1();
         // initialize servochain pointer and ISR if not done already
@@ -409,7 +400,7 @@ uint8_t MoToServo::attach( int pinArg, uint16_t pmin, uint16_t pmax, bool autoOf
          interrupts();
     #endif // no ESP8266
     DB_PRINT("OVLMARGIN=%d, OVL_TICS=%d, MARGINTICS=%d, SPEEDRES=%d", OVLMARGIN, OVL_TICS, MARGINTICS, SPEED_RES );
-    return 1;
+    return ( _servoData.pwmNbr >= 0 );
 }
 
 void MoToServo::detach()
@@ -482,13 +473,9 @@ void MoToServo::write(uint16_t angleArg)
         }
         #ifdef IS_ESP // start creating pulses?
             if ( (startPulse) || (_servoData.offcnt+_servoData.noAutoff) == 0  ) {
-                SET_TP2;
+                SET_TP3;
                 // first pulse after attach, or pulses have been switch off by autoff
-                #ifdef ESP32  // connect pin to pwmtimer and attach interrupt to it
-                ledcAttachPin( _servoData.pin, _servoData.servoIx );
-                attachInterruptArg( _servoData.pin, ISR_Servo, &_servoData, FALLING );
-                #endif
-                startServoPulse(_servoData.SRVID, _servoData.ist);
+                startServoPulse( &_servoData, _servoData.ist);
                 DB_PRINT( "start pulses at pin %d, ist=%d, soll=%d", _servoData.pin, _servoData.ist, _servoData.soll );
                 CLR_TP3;
             }

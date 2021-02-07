@@ -28,8 +28,10 @@
                             // the real 'timer tics'
 
 ////////////////////////////////////////////////////////////////////////////////////
+void ISR_Servo( void *arg );
+
 // global servo data ( used in ISR )
-typedef struct servoData_t {
+struct servoData_t {
   struct servoData_t* prevServoDataP;
   uint8_t servoIx :6 ;  // Servo number. On ESP32 this is also the nuber of  the PWM timer
   uint8_t on   :1 ;     // True: create pulse
@@ -44,7 +46,8 @@ typedef struct servoData_t {
   uint8_t  bitMask;     // bitmask related to pin number
   #endif
   uint8_t pin     ;     // pin
-} servoData_t ;
+  int8_t pwmNbr;        // pwm channel on ESP32 , -1 means not attached on all platforms
+} ;
 
 ////////////////////////////////////////////////////////////////////////////////////////
 class MoToServo

@@ -128,6 +128,9 @@
 #include <utilities/MoToServo.h>
 #include <utilities/MoToSoftled.h>
 #include <utilities/MoToPwm.h>
+#ifdef ARCHITECT_INCLUDE
+#include ARCHITECT_INCLUDE
+#endif
 #ifndef INTERNALUSE
 #include <MoToButtons.h>
 #include <MoToTimer.h>
