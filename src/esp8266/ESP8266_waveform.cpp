@@ -41,7 +41,7 @@
 #ifdef ESP8266
 #include <Arduino.h>
 #include <ets_sys.h>
-#include <utilities/ESP8266_waveform.h>
+#include <esp8266/ESP8266_waveform.h>
 
 extern "C" {
 

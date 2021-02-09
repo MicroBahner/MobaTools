@@ -53,13 +53,37 @@ void seizeTimer1();
 //void initSPI();             // initSPI is defined in MoToStepperAVR.inc ( it is only used with MoToStepper
 
 // ----------------   defines for servo and softled ( ledc pwm hardware on ESP32 is used ) -----------------------
+#ifdef COMPILING_MOTOSERVO_CPP
+    #warning compiling servo.cpp for ESP32
+    #undef interrupts
+    #undef noInterrupts
+    #define interrupts()    portEXIT_CRITICAL(&servoMux);
+    #define noInterrupts()  portENTER_CRITICAL(&servoMux);
+#endif
+typedef struct {
+    union {
+        struct {
+            uint32_t pin     :8;     // used pwm HW ( 0... 15
+            uint32_t inUse   :1;     // 0 
+            uint32_t group   :1;     // leds group ( 0/1 )
+            uint32_t timer   :2;     // Timer used ( 2 for servo, 3 for softled, 0/1 unused by MobaTools
+            uint32_t channel :3;     // ledc  channel ( 0..7 )
+            uint32_t reserved:22;
+        };
+        uint32_t value;
+    };
+} pwmUse_t;
+extern pwmUse_t pwmUse[16];
+
+
+
 #define SERVO_TIMER         2
 #define LED_TIMER           3
 
 int8_t initPwmChannel( uint8_t pin, uint8_t timer );
 void IRAM_ATTR setPwmDuty(int8_t pwmNbr, uint32_t duty );
-
-
+void setPwmPin( uint8_t pwmNbr ) ;
+int8_t freePwmNbr( uint8_t pwmNbr );
 
 #define SERVO_FREQ  50          // 20000 
 #define SOFTLED_FREQ    100

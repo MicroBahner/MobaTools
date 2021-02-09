@@ -5,10 +5,12 @@
 
   Functions for the stepper part of MobaTools
 */
-#include <MobaTools.h>
+#define COMPILING_MOTOSERVO_CPP  // this allows servo-specific defines in includefiles
+
 #define debugTP
-#define debugPrint
+//#define debugPrint
 #include <utilities/MoToDbg.h>
+#include <MobaTools.h>
 
 // Global Data for all instances and classes  --------------------------------
 // Variables for servos
@@ -54,12 +56,6 @@ inline void  _stepIRQ() {
 }
 
 #ifdef IS_ESP
-    #ifdef ESP32           // -------- ESP 32 ---------------------
-        #undef interrupts
-        #undef noInterrupts
-        #define interrupts()    portEXIT_CRITICAL(&servoMux);
-        #define noInterrupts()  portENTER_CRITICAL(&servoMux);
-    #endif
 /////////////////////////////  Pulse-interrupt for ESP8266 and ESP 32  /////////////////////////////////////////
 // This ISR is fired at the falling edge of the servo pulse. It is specific to every servo Objekt and
 // computes the length of the next pulse. The pulse itself is created by the core_esp8266_waveform routines or by ledPWM HW ( ESP32 )
@@ -67,9 +63,10 @@ inline void  _stepIRQ() {
 void ICACHE_RAM_ATTR ISR_Servo( void *arg ) {
     servoData_t *_servoData = static_cast<servoData_t *>(arg);
     portENTER_CRITICAL_ISR(&servoMux);
-    SET_TP1;
+    SET_TP2;
     if ( _servoData->ist != _servoData->soll ) {
-        SET_TP2;
+        SET_TP1;
+        _servoData->offcnt = 50;
         if ( _servoData->ist > _servoData->soll ) {
             _servoData->ist -= _servoData->inc;
             if ( _servoData->ist < _servoData->soll ) _servoData->ist = _servoData->soll;
@@ -77,18 +74,20 @@ void ICACHE_RAM_ATTR ISR_Servo( void *arg ) {
             _servoData->ist += _servoData->inc;
             if ( _servoData->ist > _servoData->soll ) _servoData->ist = _servoData->soll;
         }
-        CLR_TP1;
+        //CLR_TP1;
         //Serial.println(_servoData->ist );
             servoWrite( _servoData, _servoData->ist ); 
-        SET_TP1;
-        CLR_TP2;
+        //SET_TP1;
+        CLR_TP1;
     } else if ( !_servoData->noAutoff ) { // no change in pulse length, look for autooff
         if ( --_servoData->offcnt == 0 ) {
+            SET_TP3;
             servoPulseOff( _servoData );
+            CLR_TP3;
         }
     }
     portEXIT_CRITICAL_ISR(&servoMux);
-    CLR_TP1;
+    CLR_TP2;
 }
 
 #else //---------------------- Timer-interrupt for non ESP -----------------------------
@@ -374,7 +373,7 @@ uint8_t MoToServo::attach( int pinArg, uint16_t pmin, uint16_t pmax, bool autoOf
     #elif defined ESP32
         // pwmNbr will be negative if there are no free pwm channels
         _servoData.pwmNbr =  servoPwmSetup( &_servoData );
-        DB_PRINT("pwmNbr=%d", _servoData.pwmNbr );
+        DB_PRINT("pwmNbr=%d, Pin=%d", _servoData.pwmNbr, _servoData.pin );
         
     #else
         if ( !timerInitialized) seizeTimer1();
@@ -420,8 +419,7 @@ void MoToServo::detach()
         detachInterrupt( tPin );
     #endif
     #ifdef ESP32
-        detachInterrupt( tPin );
-        ledcDetachPin(tPin);
+        servoDetach( &_servoData );
     #endif
     pinMode( tPin, INPUT );
 }
