@@ -5,6 +5,8 @@
 
   Functions for the stepper part of MobaTools
 */
+#define COMPILING_MOTOSTEPPER_CPP
+
 #include <MobaTools.h>
 //#define debugTP
 //#define debugPrint

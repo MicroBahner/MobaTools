@@ -128,8 +128,9 @@ bool timerInitialized = false;
 bool spiInitialized = false;
 void ISR_Stepper(void);     // defined in MoToISR.cpp
 timerConfig_t timerConfig;
-portMUX_TYPE timerMux = portMUX_INITIALIZER_UNLOCKED;
+portMUX_TYPE stepperMux = portMUX_INITIALIZER_UNLOCKED;
 portMUX_TYPE servoMux = portMUX_INITIALIZER_UNLOCKED;
+portMUX_TYPE softledMux = portMUX_INITIALIZER_UNLOCKED;
 hw_timer_t * stepTimer = NULL;
 
 void seizeTimer1() {

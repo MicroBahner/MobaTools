@@ -60,6 +60,20 @@ void seizeTimer1();
     #define interrupts()    portEXIT_CRITICAL(&servoMux);
     #define noInterrupts()  portENTER_CRITICAL(&servoMux);
 #endif
+#ifdef COMPILING_MOTOSOFTLED_CPP
+    #warning compiling softled.cpp for ESP32
+    #undef interrupts
+    #undef noInterrupts
+    #define interrupts()    portEXIT_CRITICAL(&softledMux);
+    #define noInterrupts()  portENTER_CRITICAL(&softledMux);
+#endif
+#ifdef COMPILING_MOTOSTEPPER_CPP
+    #warning compiling steppr.cpp for ESP32
+    #undef interrupts
+    #undef noInterrupts
+    #define interrupts()    portEXIT_CRITICAL(&timerMux);
+    #define noInterrupts()  portENTER_CRITICAL(&timerMux);
+#endif
 typedef struct {
     union {
         struct {
@@ -89,15 +103,22 @@ int8_t freePwmNbr( uint8_t pwmNbr );
 #define SOFTLED_FREQ    100
 #define LEDC_BITS  16          // bitresolution for duty cycle of servos and softleds
 #define SERVO_CYCLE ( 1000000L / SERVO_FREQ ) // Servo cycle in uS
-#define SOFTLED_CYCLE ( 1000000L / SOFTLED_FREQ ) // Servo cycle in uS
+#define SOFTLED_CYCLE ( 1000000L / SOFTLED_FREQ ) // softled cycle in uS
 #define DUTY100     (( 1<<LEDC_BITS )-1)
-// compute pulsewidth ( in usec ) to duty )
+// compute pulsewidth ( in usec ) to duty ) for Servos
 #define time2tic(pulse) ( ( (pulse) *  DUTY100) / SERVO_CYCLE )  
 // compute duty to pulsewidth ( in uS )
 #define tic2time(duty)  ( ( (duty) * SERVO_CYCLE) / DUTY100 )
 
+// compute pulsewidth ( in usec ) to duty ) for Softleds
+// all softled pwmValues are in µs
+#define slPwm2tic(pulse) ( ( (pulse) *  DUTY100) / SOFTLED_CYCLE )  
+// compute duty to pulsewidth ( in uS )
+#define tic2slPwm(duty)  ( ( (duty) * SOFTLED_CYCLE) / DUTY100 )
+
 extern portMUX_TYPE softledMux;
 extern portMUX_TYPE servoMux;
+extern portMUX_TYPE timerMux;
 
     //^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ end of ESP32 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 #ifdef __cplusplus

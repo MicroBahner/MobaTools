@@ -6,9 +6,9 @@ static const char* TAG = "pwmMod";
 #include <arduino.h>
 #include "drivers.h"
 
-// different versions of ledc programmimng: ( if both are defined, a mixed version is selected )
-//#define SDK_ACCESS
-#define REGISTER_ACCESS
+// different versions of ledc programmimng: ( if both are defined, a mixed version is selected - not yet implemented )
+#define SDK_ACCESS
+//#define REGISTER_ACCESS
 
 //===================================================================================
 #if defined SDK_ACCESS && !defined REGISTER_ACCESS  // sdk version
@@ -16,7 +16,7 @@ static const char* TAG = "pwmMod";
 // version with sdk calls
 #include <driver/ledc.h>
 
-#warning "HW specfic drivers.c - ESP32  --"
+#warning "HW specfic drivers.c (using sdk) - ESP32  --"
 
 // variant with using the sdk to configure ledc hardware
 #define groupUsed(pwmNr)    ((pwmNr)/8)
@@ -104,7 +104,7 @@ void IRAM_ATTR setPwmDuty(int8_t pwmNbr, uint32_t duty ){
 #include "soc/ledc_reg.h"
 #include "soc/ledc_struct.h"
 
-#warning "HW specfic drivers.c - ESP32 --"
+#warning "HW specfic drivers.c (direct reg access) - ESP32 --"
 // variant with direct acces to ledc PWM register
 // APB_CLK must be 80MHz
 

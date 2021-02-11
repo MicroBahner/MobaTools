@@ -3,7 +3,7 @@
   Author: fpm, fpm@mnet-mail.de
   Copyright (c) 2020 All right reserved.
 
-  ISR for stepper and softleds ( only for AVR and STM32F1 processors )
+  ISR for stepper and softleds ( not for ESP8266 )
 */
 
 #include <MobaTools.h>
@@ -60,7 +60,8 @@ ISR ( TIMERx_COMPB_vect) {
     CLR_TP1; // Oszimessung Dauer der ISR-Routine
 }
 ////////////////////////////////////////////////////////////////////////////////////////////
-#elif defined __STM32F1__  // +++++++++++++++++++++++ Variante für STM32F1 +++++++++++++++++
+#endif
+#if defined __STM32F1__  // +++++++++++++++++++++++ Variante für STM32F1 +++++++++++++++++
 void stepperISR(int32_t cyclesLastIRQ)  __attribute__ ((weak));
 void softledISR(uint32_t cyclesLastIRQ)  __attribute__ ((weak));
 void ISR_Stepper(void) {
@@ -92,7 +93,8 @@ void ISR_Stepper(void) {
     CLR_TP1; // Oszimessung Dauer der ISR-Routine
 }
 ////////////////////////////////////////////////////////////////////////////////////////////
-#elif defined ESP32  // +++++++++++++++++++++++ Variante für STM32F1 +++++++++++++++++
+#endif
+#if defined ESP32  // +++++++++++++++++++++++ Variante für STM32F1 +++++++++++++++++
 void IRAM_ATTR stepperISR(int32_t cyclesLastIRQ)  __attribute__ ((weak));
 //void IRAM_ATTR softledISR(uint32_t cyclesLastIRQ)  __attribute__ ((weak));
 void IRAM_ATTR ISR_Stepper(void) {

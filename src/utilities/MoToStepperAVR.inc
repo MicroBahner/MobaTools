@@ -393,16 +393,20 @@ void stepperISR(uint8_t cyclesLastIRQ) {
     if ( spiInitialized && spiChanged ) {
         digitalWrite( SS, LOW );
         #ifdef __AVR_MEGA__
-        spiByteCount = 0;
-        SPDR = spiData[1];
-        #elif defined __STM32F1__
-        #ifdef USE_SPI2
-        digitalWrite(BOARD_SPI2_NSS_PIN,LOW);
-        spi_tx_reg(SPI2, (spiData[1]<<8) + spiData[0] );
-        #else
-        digitalWrite(BOARD_SPI1_NSS_PIN,LOW);
-        spi_tx_reg(SPI1, (spiData[1]<<8) + spiData[0] );
+            spiByteCount = 0;
+            SPDR = spiData[1];
         #endif
+        #if defined __STM32F1__
+            #ifdef USE_SPI2
+            digitalWrite(BOARD_SPI2_NSS_PIN,LOW);
+            spi_tx_reg(SPI2, (spiData[1]<<8) + spiData[0] );
+            #else
+            digitalWrite(BOARD_SPI1_NSS_PIN,LOW);
+            spi_tx_reg(SPI1, (spiData[1]<<8) + spiData[0] );
+            #endif
+        #endif
+        #if defined ESP32
+            spiWriteShortNL(spiHs, (spiData[1]<<8) + spiData[0] );
         #endif
     }
     CLR_TP4;

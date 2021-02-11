@@ -20,8 +20,6 @@
 // table of pwm-steps for soft on/off in CYCLETIME units ( bulb simulation). The first value means pwm cycletime
 #ifdef IS_32BIT
     #define PWMCYC  10000   // Cycletime in µs ( = 100Hz )
-    //#define MIN_PULSE  50    // = min time between ISR's
-    //#define MAX_PULSE PWMCYC-MIN_PULSE
     const uint16_t MIN_PULSE = 50;
     const uint16_t MAX_PULSE = PWMCYC-MIN_PULSE;
     // following values determin characteristics of bulb simulation
@@ -62,7 +60,7 @@ typedef struct ledData_t {          // global led values ( used in IRQ )
       // formula: pwm = hypPo + hypB/(stepOfs+(stepRef-stepI))
       int hypB;
       int hypPo;
-
+      int8_t pwmNbr;                    // Number of leds HW ( ESP32 ), same as pin otherwise
   #else
       int16_t speed;                    // > 0 : steps per cycle switching on
                                         // < 0 : steps per cycle switching off
@@ -80,7 +78,7 @@ typedef struct ledData_t {          // global led values ( used in IRQ )
   #endif
 } ledData_t;
 
-
+void ISR_Softled( void *arg );
 //////////////////////////////////////////////////////////////////////////////////////////////
 class MoToSoftLed
 { // Switch leds on/off softly.

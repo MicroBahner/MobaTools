@@ -3,26 +3,17 @@
   Author: fpm, fpm@mnet-mail.de
   Copyright (c) 2020 All right reserved.
 
-  Functions for the stepper part of MobaTools
+  Functions for the softled part of MobaTools
 */
+#define COMPILING_MOTOSOFTLED_CPP
+
 #include <MobaTools.h>
 #include <utilities/MoToDbg.h>
 
-#ifdef ESP8266 // IS_ESP // version for ESP8266/32
+#ifdef IS_ESP// IS_ESP // version for ESP8266/32
 // Global Data for all instances and classes  --------------------------------
-void startLedPulse( uint8_t pin, uint8_t invFlg, uint32_t pulseLen ){
-    // start or change the pwmpulses on the led pin.
-    // with invFlg set pulseLen is lowtime, else hightime
-    if ( invFlg ) {
-        startWaveformMoTo(pin, PWMCYC-pulseLen, pulseLen,0);
-    } else {
-        startWaveformMoTo(pin, pulseLen, PWMCYC-pulseLen,0);
-    }
-
-}
-
-void ICACHE_RAM_ATTR ISR_Softled( ledData_t *_ledData ) {
-    // ---------------------- softleds -----------------------------------------------
+void ICACHE_RAM_ATTR ISR_Softled( void *arg ) {
+    ledData_t *_ledData = static_cast<ledData_t *>(arg);    // ---------------------- softleds -----------------------------------------------
     SET_TP2;
     int changePulse = BULB; // change LINEAR or BULB ( -1: don't change )
     uint32_t pwm ;   // new value
@@ -30,8 +21,7 @@ void ICACHE_RAM_ATTR ISR_Softled( ledData_t *_ledData ) {
     switch ( _ledData->state ) {
       case STATE_ON: // last ISR ( at leading edge )
         changePulse = -1; // nothing to change
-        stopWaveformMoTo( _ledData->pin );
-        attachInterrupt( _ledData->pin, gpioTab[gpio2ISRx(_ledData->pin)].gpioISR, _ledData->invFlg?RISING:FALLING ); //trailing edge 
+        softLedOn2AS(  _ledData->pwmNbr, _ledData->invFlg ); // pwmNbr == pin for ESP8266
         break;
       case INCLIN:
         changePulse = LINEAR;
@@ -42,11 +32,11 @@ void ICACHE_RAM_ATTR ISR_Softled( ledData_t *_ledData ) {
             _ledData->stepI = _ledData->stepMax;
             if ( _ledData->tPwmOn == PWMCYC ) {
                 // switch on static after pulse end (leading edge)
-                 attachInterrupt( _ledData->pin, gpioTab[gpio2ISRx(_ledData->pin)].gpioISR, _ledData->invFlg?FALLING:RISING ); // leading edge
+                softLedOnAS(  _ledData->pwmNbr, _ledData->invFlg ); // pwmNbr == pin for ESP8266
                 _ledData->state = STATE_ON;
             } else {
                 // pwm constant with tPwmOn
-                startLedPulse(_ledData->pin, _ledData->invFlg, _ledData->tPwmOn );
+                startLedPulseAS(_ledData->pwmNbr, _ledData->invFlg, _ledData->tPwmOn );
                 _ledData->state = ACTIVE;
                 detachInterrupt( _ledData->pin );
             }
@@ -60,13 +50,12 @@ void ICACHE_RAM_ATTR ISR_Softled( ledData_t *_ledData ) {
             // full off is reached
              changePulse = -1; // nothing to change
            if ( _ledData->tPwmOff == 0 ) {
-                // switch on static
-                stopWaveformMoTo( _ledData->pin );
-                digitalWrite( _ledData->pin , _ledData->invFlg );
+                // switch off static
+                softLedOffAS(  _ledData->pwmNbr, _ledData->invFlg ); // pwmNbr == pin for ESP8266
                 _ledData->state = STATE_OFF;
             } else {
                 // pwm constant with tPwmOff
-                startLedPulse(_ledData->pin, _ledData->invFlg, _ledData->tPwmOff );
+                startLedPulseAS(_ledData->pwmNbr, _ledData->invFlg, _ledData->tPwmOff );
                 _ledData->state = ACTIVE;
                 detachInterrupt( _ledData->pin );
             }
@@ -86,7 +75,7 @@ void ICACHE_RAM_ATTR ISR_Softled( ledData_t *_ledData ) {
         } else {
             pwm = _ledData->hypPo + _ledData->hypB/(stepOfs+stepRef - (stepRef * _ledData->stepI / _ledData->stepMax) );
         }
-        startLedPulse(_ledData->pin,_ledData->invFlg, pwm );
+        startLedPulseAS(_ledData->pwmNbr,_ledData->invFlg, pwm );
     }  
 
     CLR_TP2;
@@ -141,11 +130,14 @@ MoToSoftLed::MoToSoftLed() {
 
 uint8_t MoToSoftLed::attach(uint8_t pinArg, uint8_t invArg ){
     // Led-Ausgang mit Softstart. 
+    if ( _ledData.state != NOTATTACHED ) return 0; // already attached
     
+    #ifdef ESP8266
     // wrong pinnbr or pin in use?
     if ( pinArg >15 || gpioUsed(pinArg ) ) return 0;
-    
     setGpio(pinArg);    // mark pin as used
+    #endif
+    
     _ledData.invFlg  = invArg;
     pinMode( pinArg, OUTPUT );
     //DB_PRINT( "Led attached, ledIx = 0x%x, Count = %d", ledIx, ledCount );
@@ -160,12 +152,13 @@ uint8_t MoToSoftLed::attach(uint8_t pinArg, uint8_t invArg ){
     _ledData.pin=pinArg ;      // Pin-Nbr 
     _computeBulbValues();
     // assign an ISR to the pin
-    gpioTab[gpio2ISRx(_ledData.pin)].MoToISR = (void (*)(void*))ISR_Softled;
-    gpioTab[gpio2ISRx(_ledData.pin)].IsrData = &_ledData;
-    attachInterrupt( _ledData.pin, gpioTab[gpio2ISRx(_ledData.pin)].gpioISR, _ledData.invFlg?RISING:FALLING );
+    if ( (_ledData.pwmNbr=attachSoftledAS( &_ledData ) ) < 0 ) {
+        // cannot attach 
+        _ledData.state   = NOTATTACHED ; 
+    }
     
      //DB_PRINT("IX_MAX=%d, CYCLE_MAX=%d, PWMTIME=%d", LED_IX_MAX, LED_CYCLE_MAX, LED_PWMTIME );
-    return true;
+    return _ledData.state != NOTATTACHED;
 }
 
 void MoToSoftLed::on(uint8_t brightness ){
@@ -220,11 +213,11 @@ void MoToSoftLed::on(){
         interrupts();
         if ( oldState == ACTIVE ) {
             // const pwm, no interrupt active
-            attachInterrupt( _ledData.pin, gpioTab[gpio2ISRx(_ledData.pin)].gpioISR, _ledData.invFlg?RISING:FALLING );
+            attachInterruptAS( &_ledData );
         } else if ( oldState < ACTIVE ) {
             // no pulses at all
             _ledData.stepI++; // we will create the first pulse here
-            startLedPulse( _ledData.pin, _ledData.invFlg, MIN_PULSE );
+            startLedPulseAS( _ledData.pwmNbr, _ledData.invFlg, MIN_PULSE );
         }
     }
     //DB_PRINT( "Led %d On, state=%d", ledIx, _ledData.state);
@@ -248,11 +241,11 @@ void MoToSoftLed::off(){
         interrupts();
         if ( oldState == ACTIVE ) {
             // const pwm, no interrupt active
-            attachInterrupt( _ledData.pin, gpioTab[gpio2ISRx(_ledData.pin)].gpioISR, _ledData.invFlg?RISING:FALLING );
+            attachInterruptAS( &_ledData );
         } else if ( oldState < ACTIVE ) {
             // no pulses at all
             _ledData.stepI--; // we will create the first pulse here
-            startLedPulse( _ledData.pin, _ledData.invFlg, MAX_PULSE );
+            startLedPulseAS( _ledData.pwmNbr, _ledData.invFlg, MAX_PULSE );
         }
         //CLR_TP3;
     }

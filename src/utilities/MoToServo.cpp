@@ -296,13 +296,14 @@ void ISR_Servo( void) {
 // Class-specific Variables
 
 const byte NO_ANGLE = 0xff;
-const byte NO_PIN = 0xff;
+ const byte NO_PIN = 0xff;
+const byte NOT_ATTACHED = -1;
 
 MoToServo::MoToServo() //: _servoData.pin(NO_PIN),_angle(NO_ANGLE),_min16(1000/16),_max16(2000/16)
 {   _servoData.servoIx = servoCount++;
     _servoData.soll = -1;    // = not initialized
     _servoData.pin = NO_PIN;
-    _servoData.pwmNbr = -1;
+    _servoData.pwmNbr = NOT_ATTACHED;
     _minPw = MINPULSEWIDTH ;
     _maxPw = MAXPULSEWIDTH ;
     #ifndef IS_ESP // there is no servochain on ESP
@@ -338,7 +339,7 @@ uint8_t MoToServo::attach(int pinArg, uint16_t pmin, uint16_t pmax ) {
 
 uint8_t MoToServo::attach( int pinArg, uint16_t pmin, uint16_t pmax, bool autoOff ) {
     // return false if already attached or too many servos
-    if ( _servoData.pin != NO_PIN ||  _servoData.servoIx >= MAX_SERVOS ) return 0;
+    if ( _servoData.pwmNbr != NOT_ATTACHED ||  _servoData.servoIx >= MAX_SERVOS ) return 0;
     #ifdef ESP8266 // check pinnumber
         if ( pinArg <0 || pinArg >15 || gpioUsed(pinArg ) ) return 0;
         setGpio(pinArg);    // mark pin as used
@@ -404,14 +405,13 @@ uint8_t MoToServo::attach( int pinArg, uint16_t pmin, uint16_t pmax, bool autoOf
 
 void MoToServo::detach()
 {
-    if ( _servoData.pin == NO_PIN ) return; // only if servo is attached
+    if ( _servoData.pwmNbr == NOT_ATTACHED ) return; // only if servo is attached
     byte tPin = _servoData.pin;
     while( digitalRead( _servoData.pin ) ); // don't detach during an active pulse
     noInterrupts();
     _servoData.on = false;  
     _servoData.soll = -1;  
     _servoData.ist = -1;  
-    _servoData.pin = NO_PIN;  
     interrupts();
     #ifdef ESP8266
         stopWaveformMoTo(tPin); //stop creating pulses
@@ -422,6 +422,8 @@ void MoToServo::detach()
         servoDetach( &_servoData );
     #endif
     pinMode( tPin, INPUT );
+    _servoData.pwmNbr = NOT_ATTACHED;  
+    _servoData.pin = NO_PIN;  
 }
 
 #pragma GCC diagnostic push
@@ -436,7 +438,7 @@ void MoToServo::write(uint16_t angleArg)
     #ifdef __AVR_MEGA__
         //DB_PRINT( "Write: angleArg=%d, Soll=%d, OCR=%u", angleArg, _servoData.soll, OCRxA );
     #endif
-    if ( _servoData.pin != NO_PIN ) { // only if servo is attached
+    if ( _servoData.pwmNbr != NOT_ATTACHED ) { // only if servo is attached
         //Serial.print( "Pin:" );Serial.print (_servoData.pin);Serial.print("Wert:");Serial.println(angleArg);
         #ifdef __AVR_MEGA__
 		//DB_PRINT( "Stack=0x%04x, &sIx=0x%04x", ((SPH&0x7)<<8)|SPL, &_servoData.servoIx );
@@ -499,7 +501,7 @@ void MoToServo::setSpeed( int speed, bool compatibility ) {
 
 void MoToServo::setSpeed( int speed ) {
     // Set increment value for movement to new angle
-    if ( _servoData.pin != NO_PIN ) { // only if servo is attached
+    if ( _servoData.pwmNbr != NOT_ATTACHED ) { // only if servo is attached
         #ifndef IS_ESP
         if ( speedV08 ) speed *= SPEED_RES;
         #endif
@@ -515,7 +517,7 @@ void MoToServo::setSpeed( int speed ) {
 uint8_t MoToServo::read() {
     // get position in degrees
     int offset;
-    if ( _servoData.pin == NO_PIN ) return -1; // Servo not attached
+    if ( _servoData.pwmNbr == NOT_ATTACHED ) return -1; // Servo not attached
     offset = (_maxPw - _minPw)/180/2;
     return map( readMicroseconds() + offset, _minPw, _maxPw, 0, 180 );
 }
@@ -523,7 +525,7 @@ uint8_t MoToServo::read() {
 uint16_t MoToServo::readMicroseconds() {
     // get position in microseconds
     int value;
-    if ( _servoData.pin == NO_PIN ) return -1; // Servo not attached
+    if ( _servoData.pwmNbr == NOT_ATTACHED ) return -1; // Servo not attached
     noInterrupts();
     value = _servoData.ist;
     interrupts();
@@ -534,7 +536,7 @@ uint16_t MoToServo::readMicroseconds() {
 
 uint8_t MoToServo::moving() {
     // return how much still to move (percentage)
-    if ( _servoData.pin == NO_PIN ) return 0; // Servo not attached
+    if ( _servoData.pwmNbr == NOT_ATTACHED ) return 0; // Servo not attached
     long total , remaining;
     total = abs( _lastPos - _servoData.soll );
     noInterrupts(); // disable interrupt, because integer _servoData.ist is changed in interrupt
@@ -546,7 +548,7 @@ uint8_t MoToServo::moving() {
 
 uint8_t MoToServo::attached()
 {
-    return ( _servoData.pin != NO_PIN );
+    return ( _servoData.pwmNbr != NOT_ATTACHED );
 }
 
 
