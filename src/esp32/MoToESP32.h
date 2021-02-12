@@ -7,6 +7,7 @@
 
 //returns the channelnumber ( 0...15 ) of the leds channel to be used, or -1 if no channel is availabele
 static inline __attribute__((__always_inline__)) int8_t servoPwmSetup( servoData_t *servoDataP ) {
+    DB_PRINT("Search fre ledc channel")
     int8_t pwmNbr = initPwmChannel( servoDataP->pin, SERVO_TIMER );
     pinMode( servoDataP->pin, OUTPUT );
     attachInterruptArg( servoDataP->pin, ISR_Servo, (void*)servoDataP, FALLING );

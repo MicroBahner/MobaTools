@@ -1,8 +1,6 @@
 // ESP32 HW-spcific Functions
 #ifdef ARDUINO_ARCH_ESP32
 // Logging
-static const char* TAG = "pwmMod";
-#define LOG_LOCAL_LEVEL ESP_LOG_VERBOSE
 #include <arduino.h>
 #include "drivers.h"
 
@@ -200,8 +198,6 @@ static void _initLedcHw(int8_t pwmNbr) {
         LEDC_CHAN(group, channel).conf0.clk_en = 0;
     }
     LEDC_MUTEX_UNLOCK();
-    ESP_LOGW(TAG,"Fin: %f, Fclk: %uMhz, bits: %u, DIV: %u, Fout: %f",
-            freq, 80, bit_num, div_num, (clk_freq >> bit_num) / (double)div_num);
 }
 int8_t freePwmNbr( uint8_t pwmNbr ) {
     if ( pwmNbr > 15 ) return false;
@@ -261,4 +257,5 @@ void IRAM_ATTR setPwmDuty(int8_t pwmNbr, uint32_t duty ){
 //  mixed version: sdk calls and direkt register access (experimental )
 #endif //======== end of mixed version
 //=======================================================================================================
+
 #endif // End of file

@@ -7,6 +7,9 @@
 */
 #define COMPILING_MOTOSOFTLED_CPP
 
+#define debugTP
+#define debugPrint
+#include <utilities/MoToDbg.h>
 #include <MobaTools.h>
 #include <utilities/MoToDbg.h>
 
@@ -97,7 +100,7 @@ void MoToSoftLed::_computeBulbValues() {
     _ledData.hypPo = hypPo;
     _ledData.hypB = hypB;
     interrupts();
-    #ifdef debugPrint
+    #ifdef nodebug //debugPrint
     // print pwmval for step= 0, step=max/2, step=max
     int pwmOff = hypPo + hypB/(stepOfs+(stepRef - 0 ));
     int pwm2 = hypPo + hypB/(stepOfs+(stepRef/2 ));
@@ -158,7 +161,8 @@ uint8_t MoToSoftLed::attach(uint8_t pinArg, uint8_t invArg ){
     }
     
      //DB_PRINT("IX_MAX=%d, CYCLE_MAX=%d, PWMTIME=%d", LED_IX_MAX, LED_CYCLE_MAX, LED_PWMTIME );
-    return _ledData.state != NOTATTACHED;
+    //return _ledData.state != NOTATTACHED;
+    return _ledData.pwmNbr+1;
 }
 
 void MoToSoftLed::on(uint8_t brightness ){
@@ -194,6 +198,7 @@ void MoToSoftLed::off(uint8_t brightness ){
     }
     _computeBulbValues();
     off();
+    DB_PRINT("Off: Br=%d, PwmOn=%d ( %d ), PwmOff=%d", brightness, _ledData.tPwmOn, tmp, _ledData.tPwmOff);
 }
 
 void MoToSoftLed::on(){

@@ -71,8 +71,8 @@ void seizeTimer1();
     #warning compiling steppr.cpp for ESP32
     #undef interrupts
     #undef noInterrupts
-    #define interrupts()    portEXIT_CRITICAL(&timerMux);
-    #define noInterrupts()  portENTER_CRITICAL(&timerMux);
+    #define interrupts()    portEXIT_CRITICAL(&stepperMux);
+    #define noInterrupts()  portENTER_CRITICAL(&stepperMux);
 #endif
 typedef struct {
     union {

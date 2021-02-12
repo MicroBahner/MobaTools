@@ -8,7 +8,7 @@
 #define COMPILING_MOTOSERVO_CPP  // this allows servo-specific defines in includefiles
 
 #define debugTP
-//#define debugPrint
+#define debugPrint
 #include <utilities/MoToDbg.h>
 #include <MobaTools.h>
 
@@ -339,7 +339,8 @@ uint8_t MoToServo::attach(int pinArg, uint16_t pmin, uint16_t pmax ) {
 
 uint8_t MoToServo::attach( int pinArg, uint16_t pmin, uint16_t pmax, bool autoOff ) {
     // return false if already attached or too many servos
-    if ( _servoData.pwmNbr != NOT_ATTACHED ||  _servoData.servoIx >= MAX_SERVOS ) return 0;
+    DB_PRINT("Servoattach: pwmNbr=%d, servoIx=%d, Pin=%d", _servoData.pwmNbr, _servoData.servoIx, pinArg );
+    if ( _servoData.pwmNbr >= 0 /*!= NOT_ATTACHED */ ||  _servoData.servoIx >= MAX_SERVOS ) return 0;
     #ifdef ESP8266 // check pinnumber
         if ( pinArg <0 || pinArg >15 || gpioUsed(pinArg ) ) return 0;
         setGpio(pinArg);    // mark pin as used
@@ -347,7 +348,7 @@ uint8_t MoToServo::attach( int pinArg, uint16_t pmin, uint16_t pmax, bool autoOf
     // set pulselength for angle 0 and 180
     _minPw = constrain( pmin, MINPULSEWIDTH, MAXPULSEWIDTH );
     _maxPw = constrain( pmax, MINPULSEWIDTH, MAXPULSEWIDTH );
-	//DB_PRINT( "pin: %d, pmin:%d pmax%d autoOff=%d", pinArg, pmin, pmax, autoOff);
+	DB_PRINT( "pin: %d, pmin:%d pmax%d autoOff=%d", pinArg, pmin, pmax, autoOff);
     
     // intialize objectspecific data
     _lastPos = 1500*TICS_PER_MICROSECOND*SPEED_RES ;    // initalize to middle position
@@ -361,7 +362,7 @@ uint8_t MoToServo::attach( int pinArg, uint16_t pmin, uint16_t pmax, bool autoOf
     // compute portaddress and bitmask related to pin number
     _servoData.portAdr = (byte *) pgm_read_word_near(&port_to_output_PGM[pgm_read_byte_near(&digital_pin_to_port_PGM[ pinArg])]);
     _servoData.bitMask = pgm_read_byte_near(&digital_pin_to_bit_mask_PGM[pinArg]);
-    //DB_PRINT( "Idx: %d Portadr: 0x%x, Bitmsk: 0x%x", _servoData.servoIx, _servoData.portAdr, _servoData.bitMask );
+    DB_PRINT( "Idx: %d Portadr: 0x%x, Bitmsk: 0x%x", _servoData.servoIx, _servoData.portAdr, _servoData.bitMask );
 	#endif
     pinMode (_servoData.pin,OUTPUT);
     digitalWrite( _servoData.pin,LOW);
@@ -400,7 +401,8 @@ uint8_t MoToServo::attach( int pinArg, uint16_t pmin, uint16_t pmax, bool autoOf
          interrupts();
     #endif // no ESP8266
     DB_PRINT("OVLMARGIN=%d, OVL_TICS=%d, MARGINTICS=%d, SPEEDRES=%d", OVLMARGIN, OVL_TICS, MARGINTICS, SPEED_RES );
-    return ( _servoData.pwmNbr >= 0 );
+    //return ( _servoData.pwmNbr >= 0 );
+    return ( _servoData.pwmNbr +1 );
 }
 
 void MoToServo::detach()
