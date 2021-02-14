@@ -8,7 +8,7 @@
 #define COMPILING_MOTOSERVO_CPP  // this allows servo-specific defines in includefiles
 
 #define debugTP
-#define debugPrint
+//#define debugPrint
 #include <utilities/MoToDbg.h>
 #include <MobaTools.h>
 
@@ -484,6 +484,7 @@ void MoToServo::write(uint16_t angleArg)
         #endif
         _servoData.offcnt = OFF_COUNT;   // auf jeden Fall wieder Pulse ausgeben
     }
+    //DB_PRINT( "Soll=%d, Ist=%d, Ix=%d, inc=%d, SR=%d, Duty100=%d, LEDC_BITS=%d", _servoData.soll,_servoData.ist, _servoData.servoIx, _servoData.inc, SPEED_RES, DUTY100, LEDC_BITS );
     DB_PRINT( "Soll=%d, Ist=%d, Ix=%d, inc=%d, SR=%d", _servoData.soll,_servoData.ist, _servoData.servoIx, _servoData.inc, SPEED_RES );
     delay(2);
     //CLR_TP1;
@@ -503,6 +504,7 @@ void MoToServo::setSpeed( int speed, bool compatibility ) {
 
 void MoToServo::setSpeed( int speed ) {
     // Set increment value for movement to new angle
+    // 'speed' is 0,5µs increment per 20ms
     if ( _servoData.pwmNbr != NOT_ATTACHED ) { // only if servo is attached
         #ifndef IS_ESP
         if ( speedV08 ) speed *= SPEED_RES;
@@ -511,7 +513,7 @@ void MoToServo::setSpeed( int speed ) {
         if ( speed == 0 )
             _servoData.inc = 2000*SPEED_RES;  // means immediate movement
         else
-            _servoData.inc = speed;
+            _servoData.inc = time2tic(speed)/2;
         interrupts();
     }
 }

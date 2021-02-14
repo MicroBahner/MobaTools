@@ -4,8 +4,10 @@
 // so können die debugs klassenspezifisch eingeschaltet werden
 //#define debugTP
 //#define debugPrint
-/*#undef debugTP
-#undef debugPrint*/
+
+// über diese undefs kann das Debugging global abgeschaltet werden
+//#undef debugTP
+//#undef debugPrint
 
 #ifdef debugTP 
     #if defined(__AVR_ATmega1280__) || defined(__AVR_ATmega2560__)
@@ -100,12 +102,12 @@
         #define SET_TP4  digitalWrite( PA3, HIGH );
         #define CLR_TP4  digitalWrite( PA3, LOW );
     #elif defined ESP8266
-        #define MODE_TP1 pinMode( 13,OUTPUT )  // GPIO 13
-        #define SET_TP1  GPOS = (1 << 13)
-        #define CLR_TP1  GPOC = (1 << 13)
-        #define MODE_TP2 //pinMode( 5,OUTPUT )  
-        #define SET_TP2  //digitalWrite( 5, HIGH );
-        #define CLR_TP2  //digitalWrite( 5, LOW );
+        #define MODE_TP1 pinMode( 15,OUTPUT )  // GPIO 15
+        #define SET_TP1  GPOS = (1 << 15)
+        #define CLR_TP1  GPOC = (1 << 15)
+        #define MODE_TP2 pinMode( 13,OUTPUT )  
+        #define SET_TP2  digitalWrite( 13, HIGH );
+        #define CLR_TP2  digitalWrite( 13, LOW );
         #define MODE_TP3 
         #define SET_TP3 
         #define CLR_TP3

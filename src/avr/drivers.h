@@ -1,3 +1,5 @@
+#ifndef AVR_DRIVER_H
+#define AVR_DRIVER_H
 //////////////////////////////////////// processor dependent defines and declarations //////////////////////////////////////////
 //vvvvvvvvvvvvvvvvvvvvvvvvvvvvv  AVR ATMega vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
 #include <avr/interrupt.h>
@@ -43,5 +45,7 @@
 extern bool timerInitialized;
 
 void seizeTimer1();
-//^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ AVR ATMega ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+
+#define ARCHITECT_INCLUDE <avr/MoToAVR.h>
+#endif

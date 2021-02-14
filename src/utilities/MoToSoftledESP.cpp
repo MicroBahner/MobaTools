@@ -8,16 +8,15 @@
 #define COMPILING_MOTOSOFTLED_CPP
 
 #define debugTP
-#define debugPrint
+//#define debugPrint
 #include <utilities/MoToDbg.h>
 #include <MobaTools.h>
-#include <utilities/MoToDbg.h>
 
 #ifdef IS_ESP// IS_ESP // version for ESP8266/32
 // Global Data for all instances and classes  --------------------------------
 void ICACHE_RAM_ATTR ISR_Softled( void *arg ) {
     ledData_t *_ledData = static_cast<ledData_t *>(arg);    // ---------------------- softleds -----------------------------------------------
-    SET_TP2;
+    SET_TP1;
     int changePulse = BULB; // change LINEAR or BULB ( -1: don't change )
     uint32_t pwm ;   // new value
     
@@ -29,6 +28,7 @@ void ICACHE_RAM_ATTR ISR_Softled( void *arg ) {
       case INCLIN:
         changePulse = LINEAR;
       case INCBULB: // no difference in first version 
+        SET_TP1;
         if ( ++_ledData->stepI >= _ledData->stepMax ) {
             // full on is reached
             changePulse = -1; // nothing to change
@@ -44,6 +44,7 @@ void ICACHE_RAM_ATTR ISR_Softled( void *arg ) {
                 detachInterrupt( _ledData->pin );
             }
         }
+        CLR_TP1;
         break;
       case DECLIN:
         changePulse = LINEAR;
@@ -81,7 +82,7 @@ void ICACHE_RAM_ATTR ISR_Softled( void *arg ) {
         startLedPulseAS(_ledData->pwmNbr,_ledData->invFlg, pwm );
     }  
 
-    CLR_TP2;
+    CLR_TP1;
 } //=============================== End of softledISR ========================================
 /////////////////////////////////////////////////////////////////////////////
 //Class MoToSoftLed - for Led with soft on / soft off ---------------------------
@@ -127,6 +128,10 @@ MoToSoftLed::MoToSoftLed() {
     _setpoint = OFF ;                // initialize to off
     _ledType = LINEAR;
     _ledData.invFlg = false;
+    MODE_TP1;   // set debug-pins to Output
+    MODE_TP2;
+    MODE_TP3;
+    MODE_TP4;
 }
 
    
@@ -204,6 +209,7 @@ void MoToSoftLed::off(uint8_t brightness ){
 void MoToSoftLed::on(){
     LedStats_t oldState, stateT;
     if ( _ledData.state ==  NOTATTACHED ) return;  // this is not a valid instance
+    SET_TP3;
     // Don't do anything if its already ON 
     if ( _setpoint != ON  ) {
         _setpoint        = ON ;
@@ -225,12 +231,14 @@ void MoToSoftLed::on(){
             startLedPulseAS( _ledData.pwmNbr, _ledData.invFlg, MIN_PULSE );
         }
     }
+    CLR_TP3;
     //DB_PRINT( "Led %d On, state=%d", ledIx, _ledData.state);
 }
 
 void MoToSoftLed::off(){
     LedStats_t oldState, stateT;
     if ( _ledData.state ==  NOTATTACHED ) return; // this is not a valid instance
+    SET_TP4;
     // Dont do anything if its already OFF 
     if ( _setpoint != OFF ) {
         //SET_TP3;
@@ -254,6 +262,7 @@ void MoToSoftLed::off(){
         }
         //CLR_TP3;
     }
+    CLR_TP4;
     //DB_PRINT( "Led %d Off, state=%d", ledIx, _ledData.state);
 }
 

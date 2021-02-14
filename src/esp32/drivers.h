@@ -68,7 +68,7 @@ void seizeTimer1();
     #define noInterrupts()  portENTER_CRITICAL(&softledMux);
 #endif
 #ifdef COMPILING_MOTOSTEPPER_CPP
-    #warning compiling steppr.cpp for ESP32
+    #warning compiling stepper.cpp for ESP32
     #undef interrupts
     #undef noInterrupts
     #define interrupts()    portEXIT_CRITICAL(&stepperMux);
@@ -101,10 +101,10 @@ int8_t freePwmNbr( uint8_t pwmNbr );
 
 #define SERVO_FREQ  50          // 20000 
 #define SOFTLED_FREQ    100
-#define LEDC_BITS  16          // bitresolution for duty cycle of servos and softleds
+#define LEDC_BITS  18          // bitresolution for duty cycle of servos and softleds
 #define SERVO_CYCLE ( 1000000L / SERVO_FREQ ) // Servo cycle in uS
 #define SOFTLED_CYCLE ( 1000000L / SOFTLED_FREQ ) // softled cycle in uS
-#define DUTY100     (( 1<<LEDC_BITS )-1)
+#define DUTY100     ( 1<<(LEDC_BITS) )
 // compute pulsewidth ( in usec ) to duty ) for Servos
 #define time2tic(pulse) ( ( (pulse) *  DUTY100) / SERVO_CYCLE )  
 // compute duty to pulsewidth ( in uS )

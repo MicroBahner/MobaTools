@@ -12,6 +12,13 @@ bool gpioUsed( unsigned int gpio );
 void setGpio( unsigned int gpio ) ;
 void clrGpio( unsigned int gpio ) ;
 
+// on ESP8266 tics are 1µs, so time and tics are the same
+#define time2tic(pulse) (pulse) 
+#define tic2time(duty)  (duty)
+
+#define slPwm2tic(pulse) (pulse)
+#define tic2slPwm(duty)  (duty)
+
 // struct for gpio ISR Routines ( needs one struct elemet per GPIO
 typedef struct {
     void (*gpioISR)();

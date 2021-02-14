@@ -1,3 +1,6 @@
+#ifndef STM32F1_DRIVER_H
+#define STM32F1_DRIVER_H
+//////////////////////////////////////// processor dependent defines and declarations //////////////////////////////////////////
     //--------------------------------------------------------------------------------------------------------------
 //vvvvvvvvvvvvvvvvvvvvvvvvvv STM32F1 processors vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
 #define IS_32BIT
@@ -19,3 +22,5 @@ void seizeTimer1();
 //#define USE_SPI2          // Use SPI1 if not defined
 //^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ STM32F1 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+#define ARCHITECT_INCLUDE <stm32f1/MoToSTM32F1.h>
+#endif

@@ -6,12 +6,12 @@
 #if defined COMPILING_MOTOSERVO_CPP
 
 static inline __attribute__((__always_inline__)) void startServoPulse(servoData_t *servoDataP, uint32_t pulseWidth ) {
-    startWaveformMoTo(servoDataP->pin, pulseWidth/TICS_PER_MICROSECOND/SPEED_RES, TIMERPERIODE-(pulseWidth/TICS_PER_MICROSECOND/SPEED_RES),0);
+    startWaveformMoTo(servoDataP->pin, pulseWidth/TICS_PER_MICROSECOND, TIMERPERIODE-(pulseWidth/TICS_PER_MICROSECOND),0);
 }
 
 static inline __attribute__((__always_inline__)) void servoWrite( servoData_t *servoDataP, uint32_t pulseWidth ) {
     // the same funktion exists for ESP32 ( with another internal call )
-    startWaveformMoTo(servoDataP->pin, pulseWidth/TICS_PER_MICROSECOND/SPEED_RES, TIMERPERIODE-(pulseWidth/TICS_PER_MICROSECOND/SPEED_RES),0);
+    startWaveformMoTo(servoDataP->pin, pulseWidth/TICS_PER_MICROSECOND, TIMERPERIODE-(pulseWidth/TICS_PER_MICROSECOND),0);
 }
 
 static inline __attribute__((__always_inline__)) void servoPulseOff( servoData_t *servoDataP ) {
@@ -31,6 +31,7 @@ static inline __attribute__((__always_inline__)) uint8_t attachSoftledAS( ledDat
 static inline __attribute__((__always_inline__)) void startLedPulseAS( uint8_t pin, uint8_t invFlg, uint32_t pulseLen ){
     // start or change the pwmpulses on the led pin.
     // with invFlg set pulseLen is lowtime, else hightime
+    if ( pulseLen < 50 ) pulseLen =50;
     if ( invFlg ) {
         startWaveformMoTo(pin, PWMCYC-pulseLen, pulseLen,0);
     } else {
