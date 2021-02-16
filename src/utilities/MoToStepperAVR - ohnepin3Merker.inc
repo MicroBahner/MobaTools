@@ -98,7 +98,7 @@ void IRAM_ATTR stepperISR(int32_t cyclesLastIRQ) {
 #else
 void stepperISR(uint8_t cyclesLastIRQ) {
 #endif
-    //SET_TP4;
+    SET_TP4;
     stepperData_t *stepperDataP;         // actual stepper data in IRQ
     uint8_t spiChanged, changedPins, bitNr;
     //SET_TP1;SET_TP4; // Oszimessung Dauer der ISR-Routine
@@ -110,14 +110,7 @@ void stepperISR(uint8_t cyclesLastIRQ) {
     // ---------------Stepper motors ---------------------------------------------
     while ( stepperDataP != NULL ) {
         //CLR_TP1;    // spike for recognizing start of each stepper
-        #ifdef IS_32BIT
-        bool resetPulse = false; // for 32Bit reset pulse und setting new pulse is never done in same IRQ
-        //if ( stepperDataP->output == A4988_PINS && stepperDataP->pins[3] ) {
-        if ( stepperDataP->output == A4988_PINS && digitalRead(stepperDataP->pins[0]) ) {
-        #else
-        if ( stepperDataP->output == A4988_PINS  ) {
-        #endif
-            SET_TP2;
+        if ( stepperDataP->output == A4988_PINS ) {
             // reset step pulse - pulse is max one cycle lenght
             #ifdef FAST_PORTWRT
             noInterrupts();
@@ -125,27 +118,17 @@ void stepperISR(uint8_t cyclesLastIRQ) {
             interrupts();
             #else
             digitalWrite( stepperDataP->pins[0], LOW );
-            //stepperDataP->pins[3] = 0;
-            resetPulse = true;
-            CLR_TP2;
             #endif
         }
         if ( stepperDataP->rampState >= rampStat::CRUISING ) {
             // only active motors
-            if ( stepperDataP->aCycSteps ) stepperDataP->cycCnt+=cyclesLastIRQ;
-            #ifdef IS_32BIT
-            if ( stepperDataP->cycCnt >= ( stepperDataP->aCycSteps ) && !resetPulse ) {
-                //SET_TP2;
-                stepperDataP->cycCnt = stepperDataP->cycCnt - stepperDataP->aCycSteps ;
-                // 'Aufholen' zu langsamer Interrupts begrenzen
-                if ( stepperDataP->cycCnt > 25 ) stepperDataP->cycCnt = 25;
-            #else
+            SET_TP3;
+            stepperDataP->cycCnt+=cyclesLastIRQ;
+			//Serial.println( stepperDataP->cycCnt ); // Nur für TEST
             if ( stepperDataP->cycCnt >= ( stepperDataP->aCycSteps ) ) {
-                //SET_TP2;
-                stepperDataP->cycCnt = 0 ;
-            #endif
-                SET_TP2;
                 // Do one step
+                SET_TP2;
+                stepperDataP->cycCnt = stepperDataP->cycCnt - stepperDataP->aCycSteps ;
                 // update position for absolute positioning
                 stepperDataP->stepsFromZero += stepperDataP->patternIxInc;
                 
@@ -155,7 +138,7 @@ void stepperISR(uint8_t cyclesLastIRQ) {
                 if ( _patIx > 7 ) _patIx = 0;
                 if ( _patIx < 0 ) _patIx += 8;
                 stepperDataP->patternIx = _patIx;
-                //CLR_TP2;SET_TP2;
+                CLR_TP2;SET_TP2;
                 // store pattern data
                 #ifdef __AVR_MEGA__
                 noInterrupts(); // because of read modify write actions in setting outputs
@@ -230,12 +213,13 @@ void stepperISR(uint8_t cyclesLastIRQ) {
                     }    
                     // Set step pulse 
                     nextCycle = MIN_STEP_CYCLE/2; // will be resettet in half of min steptime
+                    #ifndef IS_32BIT // on 32 bit processors step is set at end of ste computing because auf
+                                     // min lowtime between 2 pulses
                     #ifdef FAST_PORTWRT
                     *stepperDataP->portPins[0].Adr |= stepperDataP->portPins[0].Mask;
                     #else
                     digitalWrite( stepperDataP->pins[0], HIGH );
-                    //stepperDataP->pins[3] = 1; // on Step/dir Steppers, pins[3] indicates an aktive Pulse
-                    //SET_TP4;
+                    #endif
                     #endif
                     break;
                   default:
@@ -245,7 +229,7 @@ void stepperISR(uint8_t cyclesLastIRQ) {
                 #ifdef __AVR_MEGA__
                 interrupts();
                 #endif
-                //CLR_TP2;
+                CLR_TP2;
                 // ------------------ check if last step -----------------------------------
                 if ( --stepperDataP->stepCnt == 0 ) {
                     // this was the last step.
@@ -269,7 +253,7 @@ void stepperISR(uint8_t cyclesLastIRQ) {
                     }
                 }
                 // --------------- compute nexte steplength ------------------------------------
-                //SET_TP2;
+                SET_TP2;
                 // ramp state machine
                 switch ( stepperDataP->rampState ) {
                   case  rampStat::RAMPACCEL:
@@ -338,14 +322,14 @@ void stepperISR(uint8_t cyclesLastIRQ) {
                             #endif
                         } else {
                             // new targetspeed reached
-                            //SET_TP2;
+                            //SET_TP3;
                             stepperDataP->rampState = rampStat::CRUISING;
                             stepperDataP->stepsInRamp =  stepperDataP->stepRampLen;
                             stepperDataP->aCycSteps = stepperDataP->tCycSteps;
                             #ifndef IS_32BIT
                             stepperDataP->aCycRemain = 0;
                             #endif
-                            //CLR_TP2;
+                            //CLR_TP3;
                         }
                         //ToDo - do we have to stop the motor
                     }
@@ -375,9 +359,12 @@ void stepperISR(uint8_t cyclesLastIRQ) {
                     //CLR_TP2;
                     break;
                 } // End of ramp-statemachine
-                //CLR_TP2;
+                #ifdef IS_32BIT // set step output
+                if ( stepperDataP->output == A4988_PINS ) digitalWrite( stepperDataP->pins[0], HIGH );
+                #endif
+                CLR_TP2;
             } // End of do one step
-			CLR_TP2;
+			CLR_TP3;
             nextCycle = min ( nextCycle, nextCycle_t(stepperDataP->aCycSteps-stepperDataP->cycCnt) );
             //SET_TP1;
         } // end of 'if stepper active AND moving'
@@ -398,7 +385,7 @@ void stepperISR(uint8_t cyclesLastIRQ) {
 
         //CLR_TP1;
         stepperDataP = stepperDataP->nextStepperDataP;
-        //SET_TP1; //CLR_TP2;
+        //SET_TP1; //CLR_TP3;
     } // end of stepper-loop
     
     // shift out spiData, if SPI is active
@@ -422,7 +409,7 @@ void stepperISR(uint8_t cyclesLastIRQ) {
             spiWriteShortNL(spiHs, (spiData[1]<<8) + spiData[0] );
         #endif
     }
-    //CLR_TP4;
+    CLR_TP4;
 } // ==================== End of stepper ISR ======================================
 #pragma GCC optimize "Os"
 // ---------- SPI interupt used for output stepper motor data -------------
@@ -509,7 +496,7 @@ uint16_t MoToStepper::setSpeedSteps( uintxx_t speed10, int16_t rampLen ) {
     // This needs to be done only, if a ramp is defined, the stepper is moving
     // and the speed an ramp values changed
     // In all other cases the new speed/ramp values will get active immediately
-    _noStepIRQ(); //SET_TP2;
+    _noStepIRQ(); SET_TP2;
     if ( (_stepperData.stepRampLen + newRampLen ) != 0
         && _chkRunning() 
         &&  newCyctXramplen != _stepperData.cyctXramplen ) {
@@ -526,7 +513,7 @@ uint16_t MoToStepper::setSpeedSteps( uintxx_t speed10, int16_t rampLen ) {
             __stepCnt       =  _stepperData.stepCnt; 
             __newStepCnt    = 0;    // if stepcnt is to be changed
             __newStepCnt2   = 0;
-            _stepIRQ(); //CLR_TP2;
+            _stepIRQ(); CLR_TP2;
             //with ramp and ramp or speed changed 
             // compute new 'steps in Ramp' according to new speed and ramp values. This maybe greater
             // than ramplen, if speed changed to slower
@@ -567,7 +554,7 @@ uint16_t MoToStepper::setSpeedSteps( uintxx_t speed10, int16_t rampLen ) {
                 __newStepCnt = newStepsInRamp;
                 newRampState = rampStat::RAMPDECEL;
             }
-            _noStepIRQ(); //SET_TP2;
+            _noStepIRQ(); SET_TP2;
             //Serial.print(" ) ");Serial.print(_stepperData.rampState);
         } while ( __stepCnt != _stepperData.stepCnt ); // if there was a step during computing, do it again
         _stepperData.rampState = newRampState;
@@ -585,7 +572,7 @@ uint16_t MoToStepper::setSpeedSteps( uintxx_t speed10, int16_t rampLen ) {
 	#endif
     _stepperData.cyctXramplen = newCyctXramplen;
     _stepperData.stepRampLen = newRampLen;
-    _stepIRQ(); //CLR_TP2;
+    _stepIRQ(); CLR_TP2;
     _stepSpeed10 = newSpeed10;
     
     prDynData();
@@ -622,14 +609,14 @@ void MoToStepper::prDynData() {             // print actual Stepperdata
     uint32_t time = micros();
     uint16_t usec = time%1000; time /=1000;
     uint16_t msec = time%1000; time /= 1000;
-    //DB_PRINT("Time:%5lu:%03u,%03u\t stepCnt=%5lu\t stepCnt2=%5lu\t sFZ=%5ld", time, msec,usec,printData.stepCnt, printData.stepCnt2, printData.stepsFromZero );
+    DB_PRINT("Time:%5lu:%03u,%03u\t stepCnt=%5lu\t stepCnt2=%5lu\t sFZ=%5ld", time, msec,usec,printData.stepCnt, printData.stepCnt2, printData.stepsFromZero );
 	#ifdef IS_32BIT
-    DB_PRINT("tCySteps=%5u\t # aCySteps=%5u\t ", (unsigned int)printData.tCycSteps,(unsigned int)printData.aCycSteps);
+    DB_PRINT("tCySteps=%5u\t # aCySteps=%5u\t ", printData.tCycSteps,printData.aCycSteps);
 	#else
     DB_PRINT("tCySteps=%5u\t tCyRemain=%5u\t aCySteps=%5u\t aCyRemain=%5u", printData.tCycSteps,printData.tCycRemain,printData.aCycSteps,printData.aCycRemain);
 	#endif
-    //DB_PRINT(" XrampL=%5u\t rampLen=%4u\t stepsInRamp=%4u\t, rampState=%s(%u)",printData.cyctXramplen,printData.stepRampLen,printData.stepsInRamp,rsC[(int)printData.rampState],(int)printData.rampState);
-    //DB_PRINT("dltaStp=%4d,\t cycnt=%4ld, nextCyc=%4d", printData.deltaSteps, printData.cycCnt, prNextCycle );
+    DB_PRINT(" XrampL=%5u\t rampLen=%4u\t stepsInRamp=%4u\t, rampState=%s(%u)",printData.cyctXramplen,printData.stepRampLen,printData.stepsInRamp,rsC[(int)printData.rampState],(int)printData.rampState);
+    DB_PRINT("dltaStp=%4d,\t cycnt=%4ld, nextCyc=%4d", printData.deltaSteps, printData.cycCnt, prNextCycle );
 
     Serial.println("^^^^^^^^^^^^^^ISR-Data^^^^^^^^^^^^^^^^");
     #endif

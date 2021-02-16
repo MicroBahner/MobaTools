@@ -537,7 +537,7 @@ void MoToStepper::_doSteps( long stepValue, bool absPos ) {
                 _stepperData.stepsInRamp    = 0;
                 _stepperData.stepCnt        = stepCnt;
                 _stepIRQ();
-                DB_PRINT("New Move: Steps:%ld, Enable=%d - State=%s(%d)", stepValue, digitalRead(_stepperData.enablePin) , rsC[(int)_stepperData.rampState],_stepperData.rampState );
+                DB_PRINT("New Move: Steps:%ld, Enable=%d - State=%s(%d)", (long)stepValue, digitalRead(_stepperData.enablePin) , rsC[(int)_stepperData.rampState],(int)_stepperData.rampState );
             }
         }
     } else {
@@ -639,7 +639,7 @@ void MoToStepper::setZero(long zeroPoint, long steps360) {
 
 void MoToStepper::write(long angleArg ) {
     // set next position as angle, measured from last setZero() - point
-    DB_PRINT("write: %d", angleArg);
+    DB_PRINT("write: %d", (int)angleArg);
     MoToStepper::write( angleArg, 1 );
 }
 
@@ -650,7 +650,7 @@ void MoToStepper::write( long angleArg, byte fact ) {
     bool negative;
     long angle2steps;
     negative =  ( angleArg < 0 ) ;
-    DB_PRINT( "angleArg: %d",angleArg ); //DB_PRINT( " getSFZ: ", getSFZ() );
+    DB_PRINT( "angleArg: %d",(int)angleArg ); //DB_PRINT( " getSFZ: ", getSFZ() );
     //Serial.print( "Write: " ); Serial.println( angleArg );
     // full revolutions:
     angle2steps = abs(angleArg) / (360L * fact ) * (long)stepsRev;

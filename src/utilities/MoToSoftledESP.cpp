@@ -16,7 +16,6 @@
 // Global Data for all instances and classes  --------------------------------
 void ICACHE_RAM_ATTR ISR_Softled( void *arg ) {
     ledData_t *_ledData = static_cast<ledData_t *>(arg);    // ---------------------- softleds -----------------------------------------------
-    SET_TP1;
     int changePulse = BULB; // change LINEAR or BULB ( -1: don't change )
     uint32_t pwm ;   // new value
     
@@ -82,7 +81,6 @@ void ICACHE_RAM_ATTR ISR_Softled( void *arg ) {
         startLedPulseAS(_ledData->pwmNbr,_ledData->invFlg, pwm );
     }  
 
-    CLR_TP1;
 } //=============================== End of softledISR ========================================
 /////////////////////////////////////////////////////////////////////////////
 //Class MoToSoftLed - for Led with soft on / soft off ---------------------------

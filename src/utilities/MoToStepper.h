@@ -53,7 +53,7 @@
 
 /////////////////////////////////////////////////////////////////////////////////
 // global stepper data ( used in ISR )
-enum class rampStat:byte { INACTIVE, STOPPED, STOPPING, STARTING, CRUISING, RAMPACCEL, RAMPDECEL, SPEEDDECEL  };
+enum class rampStat:byte { INACTIVE, STOPPED, STOPPING, STARTING, CRUISING, LASTSTEP, RAMPACCEL, RAMPDECEL, SPEEDDECEL  };
 // states from CRUISING and above mean that the motor is moving
 typedef struct stepperData_t {
   struct stepperData_t *nextStepperDataP;    // chain pointer

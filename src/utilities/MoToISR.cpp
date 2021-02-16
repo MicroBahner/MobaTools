@@ -94,13 +94,14 @@ void ISR_Stepper(void) {
 }
 ////////////////////////////////////////////////////////////////////////////////////////////
 #endif
-#if defined ESP32  // +++++++++++++++++++++++ Variante für STM32F1 +++++++++++++++++
+#if 0 // defined ESP32  // +++++++++++++++++++++++ Variante für ESP32 +++++++++++++++++
 void IRAM_ATTR stepperISR(int32_t cyclesLastIRQ)  __attribute__ ((weak));
 //void IRAM_ATTR softledISR(uint32_t cyclesLastIRQ)  __attribute__ ((weak));
 void IRAM_ATTR ISR_Stepper(void) {
-    // Timer4 autoreload, used for stepper motor, starts every CYCLETIME us
+    // Timer autoreload, used for stepper motor
     SET_TP1;
     nextCycle = ISR_IDLETIME  / CYCLETIME ;// min ist one cycle per IDLETIME
+    portENTER_CRITICAL_ISR(&stepperMux);
     if ( stepperISR ) stepperISR(cyclesLastIRQ);
     //============  End of steppermotor ======================================
     //if ( softledISR ) softledISR(cyclesLastIRQ);
@@ -108,16 +109,49 @@ void IRAM_ATTR ISR_Stepper(void) {
     // set compareregister to next interrupt time;
 	//SET_TP2;
 	// next ISR must be at least MIN_STEP_CYCLE beyond actual counter value ( time between to ISR's )
-	uint64_t minCycle = timerRead(stepTimer)/TICS_PER_MICROSECOND ;
-    minCycle = minCycle+( MIN_STEP_CYCLE  ); // minimumtime until next Interrupt
-	if ( nextCycle < minCycle ) {
+    // >>> this is not possible, because reading the timer does not work here ( wy??)
+	/*int32_t minCycle = (int32_t)timerRead(stepTimer)/TICS_PER_MICROSECOND ;
+    minCycle = minCycle+( MIN_STEP_CYCLE  ); // minimumtime until next Interrupt*/
+    nextCycle_t minCycle = MIN_STEP_CYCLE; // min time from irq to next irq
+	if ( nextCycle < (nextCycle_t)minCycle ) {
 		// time till next ISR ist too short, set to mintime and adjust nextCycle
+        CLR_TP1;
 		nextCycle =  minCycle;
 	}
     timerAlarmWrite(stepTimer, nextCycle*TICS_PER_MICROSECOND , true);
     timerAlarmEnable(stepTimer);
+    SET_TP1;
 	//CLR_TP2;
     cyclesLastIRQ = nextCycle;
+    portEXIT_CRITICAL_ISR(&stepperMux);
+    CLR_TP1; // Oszimessung Dauer der ISR-Routine
+}
+////////////////////////////////////////////////////////////////////////////////////////////
+#endif
+#if defined ESP32  // +++++++++++++++++++++++ Variante für ESP32 mit durchlaufendem Timer +++++++++++++++++
+void IRAM_ATTR stepperISR(int32_t cyclesLastIRQ)  __attribute__ ((weak));
+//void IRAM_ATTR softledISR(uint32_t cyclesLastIRQ)  __attribute__ ((weak));
+void IRAM_ATTR ISR_Stepper(void) {
+    static uint64_t lastAlarm, aktAlarm;
+    // Timer running up, used for stepper motor. No reload of timer
+    SET_TP1;
+    nextCycle = ISR_IDLETIME  / CYCLETIME ;// min ist one cycle per IDLETIME
+    portENTER_CRITICAL_ISR(&stepperMux);
+    cyclesLastIRQ = (aktAlarm - lastAlarm) / TICS_PER_MICROSECOND;
+    if ( stepperISR ) stepperISR(cyclesLastIRQ);
+	// next alarm ISR must be at least MIN_STEP_CYCLE beyond last alarm value ( time between to ISR's )
+    lastAlarm = aktAlarm;
+    aktAlarm = lastAlarm+(nextCycle*TICS_PER_MICROSECOND); // minimumtime until next Interrupt
+    uint64_t minNextAlarm = lastAlarm + 20;
+	if ( aktAlarm < minNextAlarm ) {
+		// time till next ISR ist too short, set to mintime and adjust nextCycle
+        CLR_TP1;
+		aktAlarm =  minNextAlarm;
+	}
+    timerAlarmWrite(stepTimer, aktAlarm , false); // no autorelaod
+    timerAlarmEnable(stepTimer);
+    SET_TP1;
+    portEXIT_CRITICAL_ISR(&stepperMux);
     CLR_TP1; // Oszimessung Dauer der ISR-Routine
 }
 ////////////////////////////////////////////////////////////////////////////////////////////

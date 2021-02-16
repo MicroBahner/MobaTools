@@ -135,9 +135,9 @@ hw_timer_t * stepTimer = NULL;
 
 void seizeTimer1() {
     // Initiieren des Stepper Timers ------------------------
-    stepTimer = timerBegin(STEPPER_TIMER, DIVIDER, true);
-    timerAttachInterrupt(stepTimer, &ISR_Stepper, true);
-    timerAlarmWrite(stepTimer, ISR_IDLETIME*TICS_PER_MICROSECOND , true);
+    stepTimer = timerBegin(STEPPER_TIMER, DIVIDER, true); // true= countup
+    timerAttachInterrupt(stepTimer, &ISR_Stepper, true);  // true= edge Interrupt
+    timerAlarmWrite(stepTimer, ISR_IDLETIME*TICS_PER_MICROSECOND , false); // false = no autoreload );
     timerAlarmEnable(stepTimer);
     timerInitialized = true;  
     MODE_TP1;   // set debug-pins to Output

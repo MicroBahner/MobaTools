@@ -4,6 +4,9 @@
 #include <arduino.h>
 #include "drivers.h"
 
+
+
+// ------------------ SOFTLED ------------------------------------------------------
 // different versions of ledc programmimng: ( if both are defined, a mixed version is selected - not yet implemented )
 #define SDK_ACCESS
 //#define REGISTER_ACCESS
