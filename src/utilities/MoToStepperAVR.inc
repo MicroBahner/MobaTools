@@ -113,7 +113,7 @@ void stepperISR(uint8_t cyclesLastIRQ) {
         #ifdef IS_32BIT
         bool resetPulse = false; // for 32Bit reset pulse und setting new pulse is never done in same IRQ
         //if ( stepperDataP->output == A4988_PINS && stepperDataP->pins[3] ) {
-        if ( stepperDataP->output == A4988_PINS && digitalRead(stepperDataP->pins[0]) ) {
+        if ( stepperDataP->output == A4988_PINS && !digitalRead(stepperDataP->pins[0]) ) {
         #else
         if ( stepperDataP->output == A4988_PINS  ) {
         #endif
@@ -124,7 +124,7 @@ void stepperISR(uint8_t cyclesLastIRQ) {
             *stepperDataP->portPins[0].Adr &= ~stepperDataP->portPins[0].Mask;
             interrupts();
             #else
-            digitalWrite( stepperDataP->pins[0], LOW );
+            digitalWrite( stepperDataP->pins[0], HIGH );
             //stepperDataP->pins[3] = 0;
             resetPulse = true;
             CLR_TP2;
@@ -233,8 +233,7 @@ void stepperISR(uint8_t cyclesLastIRQ) {
                     #ifdef FAST_PORTWRT
                     *stepperDataP->portPins[0].Adr |= stepperDataP->portPins[0].Mask;
                     #else
-                    digitalWrite( stepperDataP->pins[0], HIGH );
-                    //stepperDataP->pins[3] = 1; // on Step/dir Steppers, pins[3] indicates an aktive Pulse
+                    digitalWrite( stepperDataP->pins[0], LOW );
                     //SET_TP4;
                     #endif
                     break;

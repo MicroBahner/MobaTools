@@ -518,7 +518,7 @@ void MoToStepper::_doSteps( long stepValue, bool absPos ) {
                     startMove = 1;
                 #else
                     _stepperData.cycCnt         = 0;            // start with the next IRQ
-                    _stepperData.aCycSteps      = 0;
+                    _stepperData.aCycSteps      = MIN_START_CYCLES;
 					#ifndef IS_32BIT
                     _stepperData.aCycRemain     = 0;  
 					#endif
@@ -564,7 +564,7 @@ void MoToStepper::_doSteps( long stepValue, bool absPos ) {
 				startMove = 1;
             #else
 				_stepperData.cycCnt         = 0;            // start with the next IRQ
-				_stepperData.aCycSteps      = 0;
+				_stepperData.aCycSteps      = MIN_START_CYCLES;
 				#ifndef IS_32BIT
 				_stepperData.aCycRemain     = 0; 
 				#endif

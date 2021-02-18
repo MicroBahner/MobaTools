@@ -37,6 +37,7 @@
 
 
 #define CYCLETICS       (CYCLETIME*TICS_PER_MICROSECOND)
+#define MIN_START_CYCLES 4000/CYCLETIME  // 5ms min until first step if stepper is in stop
 #define MIN_STEPTIME    (CYCLETIME * MIN_STEP_CYCLE) 
 #define MAXRAMPLEN      16000       // Do not change!
 
