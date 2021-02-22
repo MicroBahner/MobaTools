@@ -4,11 +4,15 @@
     //--------------------------------------------------------------------------------------------------------------
 //vvvvvvvvvvvvvvvvvvvvvvvvvv STM32F1 processors vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
 #define IS_32BIT
+
 #include <libmaple/timer.h>
 #include <libmaple/spi.h>
 #include <libmaple/nvic.h>
 
+#define CYCLETIME       1     // Cycle count in µs on 32Bit processors
+
 #define TICS_PER_MICROSECOND (CYCLES_PER_MICROSECOND / 36 ) // prescaler is 36 = 0.5us
+//#define TICS_PER_MICROSECOND 2 // prescaler is 36 = 0.5us
 
 #define MT_TIMER TIMER4     // Timer used by MobaTools
 #define STEP_CHN    1       // OCR channel for Stepper and Leds

@@ -5,12 +5,15 @@
 
   Functions for the stepper part of MobaTools
 */
+
+#if defined ARDUINO_ARCH_STM32F1 // version for 32bit controllers ( except ESP8266/32 )
+#define COMPILING_MOTOSOFTLED32_CPP
+
 #include <MobaTools.h>
 //#define debugPrint
 //#define debugTP
 #include <utilities/MoToDbg.h>
 
-#if defined ( IS_32BIT ) && !defined ( IS_ESP ) // version for 32bit controllers ( except ESP8266/32 )
 // Global Data for all instances and classes  --------------------------------
 
 // variables for softLeds
@@ -224,8 +227,8 @@ uint8_t MoToSoftLed::attach(uint8_t pinArg, uint8_t invArg ){
     _ledData.pin=pinArg ;      // Pin-Nbr 
     _computeBulbValues();
     
-    if ( !timerInitialized ) seizeTimer1();
-    timer_cc_enable(MT_TIMER, STEP_CHN);
+    seizeTimerAS();
+    enableSoftLedIsrAS();
      //DB_PRINT("IX_MAX=%d, CYCLE_MAX=%d, PWMTIME=%d", LED_IX_MAX, LED_CYCLE_MAX, LED_PWMTIME );
     return true;
 }

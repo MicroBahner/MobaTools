@@ -86,9 +86,10 @@
 // stepper related defines
 #define MAX_STEPPER     6       // 
 #define DEF_SPEEDSTEPS  3000    // default speed after attach
-#define DEF_RAMP        0       // default ramp after attach     
+#define DEF_RAMP        0       // default ramp after attach 
+    
 // default CYCLETIME is processordependent, change only if you know what you are doing ).
-#ifdef  ESP8266
+#ifdef  ARDUINO_ARCH_ESP8266
 #define CYCLETIME       60      // Min. irq-periode in us ( ESP-default is 60 )
 #define MIN_STEP_CYCLE  2       // Minimum number of cycles per step. 
 #define MAX_GPIO        10      // max number of usable gpios
@@ -96,18 +97,19 @@
 // gpio 6-10 is internally used for flash
 // gpio16 has no interrupt capability ( but can be used as dir-pin for a stepper)
 
-#elif defined ( __STM32F1__ )
-#define CYCLETIME       1     // Cycle count in µs on 32Bit processors
+#elif defined ARDUINO_ARCH_STM32F1
 #define MIN_STEP_CYCLE  10   // Minimum number of µsec  between to step IRQ's ( end of ISR to start of next )
 
-#elif defined ( ESP32 )
-#define CYCLETIME       1     // Cycle count in µs on 32Bit processors
+#elif defined ARDUINO_ARCH_ESP32
 #define MIN_STEP_CYCLE 10     // Minimum number of µsec  between to step IRQ's
 
-#else
+#elif defined ARDUINO_ARCH_AVR
 #define CYCLETIME       200     // Min. irq-periode in us ( default is 200 ), 
 #define MIN_STEP_CYCLE  2       // Minimum number of cycles per step. 
+#else
+    #error Processor not supported
 #endif
+
 #define RAMPOFFSET      16      // startvalue of rampcounter
 
 // servo related defines
@@ -122,6 +124,8 @@
 // softled related defines
 #define LED_DEFAULT_RISETIME   50
 
+//  !!!!!!!!!!!!  Don't change anything after tis line !!!!!!!!!!!!!!!!!!!!
+ 
 
 #include <utilities/MoToBase.h>
 #include <utilities/MoToStepper.h>

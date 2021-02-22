@@ -41,6 +41,7 @@ struct timerConfig_t {
   };
 } ;
 extern bool timerInitialized;
+#define CYCLETIME       1                   // Cycle count in µs on 32Bit processors
 // Prescaler for 64-Bit Timer ( input is 
 #define DIVIDER     APB_CLK_FREQ/2/1000000  // 0,5µs Timertic ( 80MHz input freq )
 #define TICS_PER_MICROSECOND 2              // bei 0,5 µs Timertic

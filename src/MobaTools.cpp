@@ -24,7 +24,7 @@
 #define debugPrint
 #include <utilities/MoToDbg.h>
 
-#ifdef __AVR_MEGA__ ///////////////////////////////////////// AVR-Mega /////////////////////////////////////////////////////
+#if 0 //def __AVR_MEGA__ ///////////////////////////////////////// AVR-Mega /////////////////////////////////////////////////////
 bool timerInitialized = false;
 void ISR_Stepper(void);     // defined in MoToISR.cpp
 void seizeTimer1() {
@@ -49,7 +49,7 @@ void seizeTimer1() {
 }
 #endif //^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ AVR Mega ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-#ifdef __STM32F1__ //////////////////////////////////7777777/ STM32F1 //////////////////////////////////////////////////
+#if 0//def __STM32F1__ //////////////////////////////////7777777/ STM32F1 //////////////////////////////////////////////////
 bool timerInitialized = false;
 void ISR_Stepper(void);     // defined in MoToISR.cpp
 void seizeTimer1() {
@@ -80,7 +80,7 @@ void seizeTimer1() {
 }
 #endif//^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ STM32F1 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-#ifdef ESP8266 /////////////////////////////////////////////  ESP8266 /////////////////////////////////////////////////////
+#if 0 //def ESP8266 /////////////////////////////////////////////  ESP8266 /////////////////////////////////////////////////////
 // definition of gpio ISR's ( there is one ISR entrypoint per gpio )
 // at max 10 gpio's can be used at an ESP12: gpio 0,1,2,3,4,5,12,13,14,15
 // gpio 6-11 is used for flash
@@ -123,7 +123,7 @@ void clrGpio( unsigned int gpio ) {
 }
 #endif //^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ End of ESP8266 specific section ^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-#ifdef ESP32 /////////////////////////////////////////////// ESP 32 /////////////////////////////////////////////////////
+#if 0 //def ESP32 /////////////////////////////////////////////// ESP 32 /////////////////////////////////////////////////////
 bool timerInitialized = false;
 bool spiInitialized = false;
 void ISR_Stepper(void);     // defined in MoToISR.cpp

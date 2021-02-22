@@ -15,51 +15,12 @@
 // Global Data for all instances and classes  --------------------------------
 // Variables for servos
 static byte servoCount = 0;
-#ifndef IS_ESP // following variables used only in 'classic' ISR
-    static servoData_t* lastServoDataP = NULL; //start of ServoData-chain
-    static servoData_t* pulseP = NULL;         // pulse Ptr in IRQ
-    static servoData_t* activePulseP = NULL;   // Ptr to pulse to stop
-    static servoData_t* stopPulseP = NULL;     // Ptr to Pulse whose stop time is already in OCR1
-    static servoData_t* nextPulseP = NULL;
-    static enum { PON, POFF } IrqType = PON; // Cycle starts with 'pulse on'
-    static uint16_t activePulseOff = 0;     // OCR-value of pulse end 
-    static uint16_t nextPulseLength = 0;
-    static bool speedV08 = true;    // Compatibility-Flag for speed method
-/*#else
-    static bool speedV08 = false;    // ESP8266 uses alwas high res speed*/
-#endif // no ESP8266
 
-inline void _noStepIRQ() {
-        #if defined(__AVR_ATmega8__)|| defined(__AVR_ATmega128__)
-            TIMSK &= ~( _BV(OCIExB) );    // enable compare interrupts
-        #elif defined __AVR_MEGA__
-            TIMSKx &= ~_BV(OCIExB) ; 
-        #elif defined __STM32F1__
-            timer_disable_irq(MT_TIMER, TIMER_STEPCH_IRQ);
-            // *bb_perip(&(MT_TIMER->regs).adv->DIER, TIMER_STEPCH_IRQ) = 0;
-		#else
-			noInterrupts();
-        #endif
-}
-inline void  _stepIRQ() {
-        #if defined(__AVR_ATmega8__)|| defined(__AVR_ATmega128__)
-            TIMSK |= ( _BV(OCIExB) );    // enable compare interrupts
-        #elif defined __AVR_MEGA__
-            TIMSKx |= _BV(OCIExB) ; 
-        #elif defined __STM32F1__
-            //timer_enable_irq(MT_TIMER, TIMER_STEPCH_IRQ) cannot be used, because this also clears pending irq's
-            *bb_perip(&(MT_TIMER->regs).adv->DIER, TIMER_STEPCH_IRQ) = 1;
-            interrupts();
-		#else
-			interrupts();
-        #endif
-}
 
-#ifdef IS_ESP
+#ifdef IS_ESP //------------------- Servo Interrupt für ESP8266 und ESP32 ----------------------
 /////////////////////////////  Pulse-interrupt for ESP8266 and ESP 32  /////////////////////////////////////////
 // This ISR is fired at the falling edge of the servo pulse. It is specific to every servo Objekt and
 // computes the length of the next pulse. The pulse itself is created by the core_esp8266_waveform routines or by ledPWM HW ( ESP32 )
-//void ICACHE_RAM_ATTR ISR_Servo( servoData_t *_servoData ) {
 void ICACHE_RAM_ATTR ISR_Servo( void *arg ) {
     servoData_t *_servoData = static_cast<servoData_t *>(arg);
     portENTER_CRITICAL_ISR(&servoMux);
@@ -89,8 +50,18 @@ void ICACHE_RAM_ATTR ISR_Servo( void *arg ) {
     portEXIT_CRITICAL_ISR(&servoMux);
     CLR_TP2;
 }
+#endif //IS_ESP
 
-#else //---------------------- Timer-interrupt for non ESP -----------------------------
+#ifndef IS_ESP //---------------------- Timer-interrupt for non ESP -----------------------------
+static servoData_t* lastServoDataP = NULL; //start of ServoData-chain
+static servoData_t* pulseP = NULL;         // pulse Ptr in IRQ
+static servoData_t* activePulseP = NULL;   // Ptr to pulse to stop
+static servoData_t* stopPulseP = NULL;     // Ptr to Pulse whose stop time is already in OCR1
+static servoData_t* nextPulseP = NULL;
+static enum { PON, POFF } IrqType = PON; // Cycle starts with 'pulse on'
+static uint16_t activePulseOff = 0;     // OCR-value of pulse end 
+static uint16_t nextPulseLength = 0;
+static bool speedV08 = true;    // Compatibility-Flag for speed method
 // create overlapping servo pulses
 // Positions of servopulses within 20ms cycle are variable, max 2 pulses at the same time
 // 27.9.15 with variable overlap, depending on length of next pulse: 16 Servos
@@ -130,7 +101,7 @@ static bool searchNextPulse() {
 } //end of 'searchNextPulse'
 
 // ---------- OCRxA Compare Interrupt used for servo motor (overlapping pulses) ----------------
-#ifdef __AVR_MEGA__
+#ifdef ARDUINO_ARCH_AVR
 ISR ( TIMERx_COMPA_vect) {
     uint8_t saveTIMSK;
     saveTIMSK = TIMSKx; // restore IE for stepper later ( maybe it is not enabled)
@@ -158,10 +129,7 @@ void ISR_Servo( void) {
             // lay after endtime of runningpuls + safetymargin (it may be necessary to start
             // another pulse between these 2 ends)
             long tmpTCNT1 = GET_COUNT + MARGINTICS/2;
-            #ifdef __AVR_MEGA__
-            _noStepIRQ();   // Stepper IRQ may be too long and must not interrupt the servo IRQ
-            interrupts();
-            #endif
+            _noStepIRQ();   // Stepper IRQ may be too long and must not interrupt the servo IRQ 
             //CLR_TP3 ;
             OCRxA = max ( (long)((long)activePulseOff + (long) MARGINTICS - (long) nextPulseLength), tmpTCNT1 );
         } else {
@@ -198,10 +166,7 @@ void ISR_Servo( void) {
                 digitalWrite( nextPulseP->pin, HIGH );
                 #endif
             }
-            #ifdef __AVR_MEGA__
             _noStepIRQ(); // Stepper ISR may be too long  and must not interrupt the servo IRQ
-            interrupts(); // the following isn't time critical, so allow nested interrupts
-            #endif
             //SET_TP3;
             // the 'nextPulse' we have started now, is from now on the 'activePulse', the running activPulse is now the
             // pulse to stop next.
@@ -229,10 +194,7 @@ void ISR_Servo( void) {
                     #endif
                 }
                 int32_t tmpTCNT1 = GET_COUNT+ MARGINTICS/2;
-                #ifdef __AVR_MEGA__
                 _noStepIRQ(); // Stepper ISR may be too long  and must not interrupt the servo IRQ
-                interrupts(); // the following isn't time critical, so allow nested interrupts
-                #endif
                 //SET_TP3;
                 // look for second pulse
                 //SET_TP4;
@@ -283,7 +245,7 @@ void ISR_Servo( void) {
     timer_set_compare(MT_TIMER,  SERVO_CHN, OCRxA);
     #endif 
     //CLR_TP1; CLR_TP3; // Oszimessung Dauer der ISR-Routine
-    #ifdef __AVR_MEGA__
+    #ifdef ARDUINO_ARCH_AVR
     TIMSKx = saveTIMSK;      // retore Interrupt enable reg
     #endif
     CLR_TP2;
@@ -296,7 +258,7 @@ void ISR_Servo( void) {
 // Class-specific Variables
 
 const byte NO_ANGLE = 0xff;
- const byte NO_PIN = 0xff;
+const byte NO_PIN = 0xff;
 const byte NOT_ATTACHED = -1;
 
 MoToServo::MoToServo() //: _servoData.pin(NO_PIN),_angle(NO_ANGLE),_min16(1000/16),_max16(2000/16)
@@ -378,25 +340,12 @@ uint8_t MoToServo::attach( int pinArg, uint16_t pmin, uint16_t pmax, bool autoOf
         DB_PRINT("pwmNbr=%d, Pin=%d", _servoData.pwmNbr, _servoData.pin );
         
     #else
-        if ( !timerInitialized) seizeTimer1();
+        seizeTimerAS();
         // initialize servochain pointer and ISR if not done already
         noInterrupts();
         if ( pulseP == NULL ) {
             pulseP = lastServoDataP;
-            #ifdef __STM32F1__
-            timer_attach_interrupt(MT_TIMER, TIMER_SERVOCH_IRQ, ISR_Servo );
-            #endif
-        
-            // enable compare-A interrupt
-            #if defined(__AVR_ATmega8__)|| defined(__AVR_ATmega128__)
-            TIMSK |=  _BV(OCIExA);   
-            #elif defined __AVR_MEGA__
-            //DB_PRINT( "IniOCR: %d", OCRxA );
-            TIMSKx |=  _BV(OCIExA) ; 
-            //DB_PRINT( "AttOCR: %d", OCRxA );
-            #elif defined __STM32F1__
-                timer_cc_enable(MT_TIMER, SERVO_CHN);
-            #endif
+            enableServoIsrAS();
         }
          interrupts();
     #endif // no ESP8266
@@ -437,12 +386,12 @@ void MoToServo::write(uint16_t angleArg)
     static int newpos;
     bool startPulse = false;    // only for esp8266
     //SET_TP1;
-    #ifdef __AVR_MEGA__
+    #ifdef ARDUINO_ARCH_AVR
         //DB_PRINT( "Write: angleArg=%d, Soll=%d, OCR=%u", angleArg, _servoData.soll, OCRxA );
     #endif
     if ( _servoData.pwmNbr != NOT_ATTACHED ) { // only if servo is attached
         //Serial.print( "Pin:" );Serial.print (_servoData.pin);Serial.print("Wert:");Serial.println(angleArg);
-        #ifdef __AVR_MEGA__
+        #ifdef ARDUINO_ARCH_AVR
 		//DB_PRINT( "Stack=0x%04x, &sIx=0x%04x", ((SPH&0x7)<<8)|SPL, &_servoData.servoIx );
         #endif
         if ( angleArg <= 255) {
@@ -486,7 +435,7 @@ void MoToServo::write(uint16_t angleArg)
     }
     //DB_PRINT( "Soll=%d, Ist=%d, Ix=%d, inc=%d, SR=%d, Duty100=%d, LEDC_BITS=%d", _servoData.soll,_servoData.ist, _servoData.servoIx, _servoData.inc, SPEED_RES, DUTY100, LEDC_BITS );
     DB_PRINT( "Soll=%d, Ist=%d, Ix=%d, inc=%d, SR=%d", _servoData.soll,_servoData.ist, _servoData.servoIx, _servoData.inc, SPEED_RES );
-    delay(2);
+    //delay(2);
     //CLR_TP1;
 }
 #pragma GCC diagnostic pop

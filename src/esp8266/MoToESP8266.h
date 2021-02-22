@@ -2,8 +2,17 @@
 #define MOTOESP8266_H
 // ESP8266 specific declarations for Cpp files
 #warning ESP8266 specific cpp includes
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+#if defined COMPILING_MOTOSERVO_CPP //  inline functions and macros für MoToServo.cpp ---------------------------
+void ISR_Servo( void *arg );
 
-#if defined COMPILING_MOTOSERVO_CPP
+static inline __attribute__((__always_inline__)) void _noStepIRQ() {
+			noInterrupts();
+}
+
+static inline __attribute__((__always_inline__)) void  _stepIRQ() {
+			interrupts();
+}
 
 static inline __attribute__((__always_inline__)) void startServoPulse(servoData_t *servoDataP, uint32_t pulseWidth ) {
     startWaveformMoTo(servoDataP->pin, pulseWidth/TICS_PER_MICROSECOND, TIMERPERIODE-(pulseWidth/TICS_PER_MICROSECOND),0);
@@ -18,8 +27,8 @@ static inline __attribute__((__always_inline__)) void servoPulseOff( servoData_t
     stopWaveformMoTo( servoDataP->pin );
 }
 #endif // compiling servo
-
-#ifdef COMPILING_MOTOSOFTLED_CPP
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+#ifdef COMPILING_MOTOSOFTLEDESP_CPP  //  inline functions and macros für MoToSoftledESP.cpp ---------------------------
 
 static inline __attribute__((__always_inline__)) uint8_t attachSoftledAS( ledData_t *ledDataP ) {
     gpioTab[gpio2ISRx(ledDataP->pin)].MoToISR = (void (*)(void*))ISR_Softled;
@@ -60,5 +69,31 @@ static inline __attribute__((__always_inline__)) void attachInterruptAS(  ledDat
     attachInterrupt( ledDataP->pin, gpioTab[gpio2ISRx(ledDataP->pin)].gpioISR, ledDataP->invFlg?RISING:FALLING );
 }
 #endif // compiling softLed
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+#if defined COMPILING_MOTOSTEPPER_CPP //  inline functions and macros für MoToStepper.cpp ---------------------------
+static inline __attribute__((__always_inline__)) void seizeTimerAS() {
+    // tis is a dummy function for ESP8266
+}
+/*
+static inline __attribute__((__always_inline__)) void enableStepperIsrAS() {
+    // initialize ISR-Table and attach interrupt to step-Pin
+    // assign an ISR to the pin
+    gpioTab[gpio2ISRx(_stepperData.pins[0])].MoToISR = (void (*)(void*))ISR_Stepper;
+    gpioTab[gpio2ISRx(_stepperData.pins[0])].IsrData = &_stepperData;
+    attachInterrupt( _stepperData.pins[0], gpioTab[gpio2ISRx(_stepperData.pins[0])].gpioISR, RISING );
+    setGpio(pins[0]);    // mark pin as used
+    setGpio(pins[1]);    // mark pin as used
+}*/
+
+#define enableStepperIsrAS()  /* must be defined as macro because local variables of MoToStepper.cpp are used */   \
+    /* initialize ISR-Table and attach interrupt to step-Pin                            \
+      assign an ISR to the pin   */                                                       \
+    gpioTab[gpio2ISRx(_stepperData.pins[0])].MoToISR = (void (*)(void*))ISR_Stepper;    \
+    gpioTab[gpio2ISRx(_stepperData.pins[0])].IsrData = &_stepperData;                   \
+    attachInterrupt( _stepperData.pins[0], gpioTab[gpio2ISRx(_stepperData.pins[0])].gpioISR, RISING ); \
+    setGpio(pins[0]);    /* mark pin as used  */                                         \
+    setGpio(pins[1]);    /* mark pin as used  */                                        \
+
+#endif //COMPILING_MOTOSTEPPER_CPP 
 
 #endif

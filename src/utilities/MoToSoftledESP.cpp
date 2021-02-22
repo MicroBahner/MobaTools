@@ -5,14 +5,15 @@
 
   Functions for the softled part of MobaTools
 */
-#define COMPILING_MOTOSOFTLED_CPP
+
+#if defined ARDUINO_ARCH_ESP32 || defined ARDUINO_ARCH_ESP8266
+#define COMPILING_MOTOSOFTLEDESP_CPP
 
 #define debugTP
 //#define debugPrint
 #include <utilities/MoToDbg.h>
 #include <MobaTools.h>
 
-#ifdef IS_ESP// IS_ESP // version for ESP8266/32
 // Global Data for all instances and classes  --------------------------------
 void ICACHE_RAM_ATTR ISR_Softled( void *arg ) {
     ledData_t *_ledData = static_cast<ledData_t *>(arg);    // ---------------------- softleds -----------------------------------------------

@@ -95,10 +95,8 @@ class MoToSoftLed
     void riseTime( uint16_t );       // in millisec - falltime is the same
     void on();                   // 
     void off();                  // 
-    #ifdef IS_32BIT
     void on(uint8_t);           // pwm value for ON ( in % )
     void off(uint8_t);           //  pwmValue for OFF ( in % )
-    #endif
 	void write( uint8_t );			// is ON or OFF
     void write( uint8_t time, uint8_t type  ); //whether it is a linear or bulb type
     void toggle( void ); 

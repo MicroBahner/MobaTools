@@ -34,6 +34,8 @@
     #define  IRAM_ATTR  // Attribut IRAM_ATTR entfernen wenn nicht definiert
 #endif
 ////////////////////////////////////////////////// general defines for all plattforms  //////////////////////////////////////////
+// Calling compatible architecture specific functions.
+// These Funktons are defined in architecture specific files, but can be called independend from actual architecture
 
 // type definitions ( if they are different for 8bit and 32bit platforms)
 #ifdef IS_32BIT

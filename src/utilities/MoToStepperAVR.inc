@@ -36,7 +36,10 @@ static void initSPI() {
     SREG = oldSREG;  // undo cli() 
     spiInitialized = true;  
 }
-    
+#elif defined ARDUINO_AVR_ATTINYX4
+static void initSPI() {
+    // not yet implemented
+}   
 #elif defined __STM32F1__
 static int rxData;      // dummy for STM32
 static void initSPI() {
@@ -307,7 +310,7 @@ void stepperISR(uint8_t cyclesLastIRQ) {
                   case rampStat::SPEEDDECEL:
                     if ( stepperDataP->stepsInRamp <= stepperDataP->stepRampLen ) {
                         // we are stopping the motor
-                        if ( stepperDataP->stepCnt > (long)( stepperDataP->stepsInRamp ) ) {
+                        if ( stepperDataP->stepCnt > (uint32_t)( stepperDataP->stepsInRamp ) ) {
                             //CLR_TP2; // ToDo: check whether this in necessary ( schould be done in method that changes steps to  move)
                             //steps to move has changed, accelerate again with next step
                             stepperDataP->rampState = rampStat::RAMPACCEL;

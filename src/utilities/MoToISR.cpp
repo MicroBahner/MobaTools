@@ -14,7 +14,7 @@ nextCycle_t nextCycle;
 static nextCycle_t cyclesLastIRQ = 1;  // cycles since last IRQ
 // ISR on ESP is completely different - on ESP this File is empty
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-#ifdef __AVR_MEGA__ // +++++++++++++++++++++++Variante f ür 8-Bit AVR Prozessoren +++++++++++++++++
+#if 0 // defined ARDUINO_ARCH_AVR // +++++++++++++++++++++++Variante für 8-Bit AVR Prozessoren +++++++++++++++++
 // ---------- OCRxB Compare Interrupt used for stepper motor and Softleds ----------------
 void stepperISR(uint8_t cyclesLastIRQ) __attribute__ ((weak));
 void softledISR(uint8_t cyclesLastIRQ) __attribute__ ((weak));
@@ -64,7 +64,7 @@ ISR ( TIMERx_COMPB_vect) {
 #if defined __STM32F1__  // +++++++++++++++++++++++ Variante für STM32F1 +++++++++++++++++
 void stepperISR(int32_t cyclesLastIRQ)  __attribute__ ((weak));
 void softledISR(uint32_t cyclesLastIRQ)  __attribute__ ((weak));
-void ISR_Stepper(void) {
+void ISR_Stepper() {
     // Timer4 Channel 1, used for stepper motor, starts every CYCLETIME us
     // 26-09-15 An Interrupt is only created at timeslices, where data is to output
     SET_TP1;

@@ -6,8 +6,8 @@
 //#define debugPrint
 
 // über diese undefs kann das Debugging global abgeschaltet werden
-//#undef debugTP
-//#undef debugPrint
+#undef debugTP
+#undef debugPrint
 
 #ifdef debugTP 
     #if defined(__AVR_ATmega1280__) || defined(__AVR_ATmega2560__)
@@ -128,13 +128,14 @@
         #define MODE_TP4  pinMode(33,OUTPUT )  
         #define SET_TP4   digitalWrite( 33, HIGH )
         #define CLR_TP4  digitalWrite( 33, LOW ) 
-    #else
-        #define MODE_TP1 DDRC |= (1<<3) //A3
-        #define SET_TP1 PORTC |= (1<<3)
-        #define CLR_TP1 PORTC &= ~(1<<3)
-        #define MODE_TP2 DDRC |= (1<<2) // A2
-        #define SET_TP2 PORTC |= (1<<2)
-        #define CLR_TP2 PORTC &= ~(1<<2)
+        
+    #else // processor not known
+        #define MODE_TP1
+        #define SET_TP1
+        #define CLR_TP1
+        #define MODE_TP2
+        #define SET_TP2
+        #define CLR_TP2
         #define MODE_TP3 
         #define SET_TP3 
         #define CLR_TP3 

@@ -6,7 +6,12 @@
 #define FAST_PORTWRT        // if this is defined, ports are written directly in IRQ-Routines,
                             // not with 'digitalWrite' functions
 #define TICS_PER_MICROSECOND (clockCyclesPerMicrosecond() / 8 ) // prescaler is 8 = 0.5us
-    
+
+// check supported AVR Processors
+#if !defined __AVR_MEGA__ && !defined ARDUINO_AVR_ATTINYX4 && !defined ARDUINO_AVR_ATTINYX8
+#error "This AVR Processor is not supported"
+#endif
+
 // define timer to use
 #ifdef TCNT3
     // Timer 3 is available, use it
@@ -42,10 +47,6 @@
     #define OCIExB     OCIE1B
     #define TIMSKx     TIMSK1
 #endif    
-extern bool timerInitialized;
-
-void seizeTimer1();
-
 
 #define ARCHITECT_INCLUDE <avr/MoToAVR.h>
 #endif

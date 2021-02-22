@@ -3,6 +3,9 @@
 // ESP32 specific defines for Cpp files
 
 //#warning ESP32 specific cpp includes
+void seizeTimerAS();
+void ISR_Servo( void *arg );
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 #if defined COMPILING_MOTOSERVO_CPP
 
 //returns the channelnumber ( 0...15 ) of the leds channel to be used, or -1 if no channel is availabele
@@ -37,8 +40,8 @@ static inline __attribute__((__always_inline__)) void servoDetach( servoData_t *
     freePwmNbr( servoDataP->pwmNbr );
 }
 #endif
-
-#ifdef COMPILING_MOTOSOFTLED_CPP
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+#ifdef COMPILING_MOTOSOFTLEDESP_CPP
 //returns the channelnumber ( 0...15 ) of the leds channel to be used, or -1 if no channel is availabele
 static inline __attribute__((__always_inline__)) int8_t softLedPwmSetupAS( servoData_t *softledDataP )  {
     int8_t pwmNbr = initPwmChannel( softledDataP->pin, LED_TIMER );
@@ -86,5 +89,14 @@ static inline __attribute__((__always_inline__)) void attachInterruptAS(  ledDat
     attachInterruptArg( ledDataP->pin, ISR_Softled, (void*)ledDataP, FALLING );
 }
 
-#endif    
+#endif  
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+#if defined COMPILING_MOTOSTEPPER_CPP
+static inline __attribute__((__always_inline__)) void enableStepperIsrAS() {
+    // dummy
+}
+
+
+#endif
+  
 #endif

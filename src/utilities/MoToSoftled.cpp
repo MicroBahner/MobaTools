@@ -5,12 +5,16 @@
 
   Functions for the stepper part of MobaTools
 */
+
+#ifdef ARDUINO_ARCH_AVR  //this is only for 8Bit AVR controllers
+#define COMPILING_MOTOSOFTLED_CPP
+
+
 #include <MobaTools.h>
 //#define debugPrint
 //#define debugTP
 #include <utilities/MoToDbg.h>
 
-#ifdef __AVR_MEGA__  //this is only for 8Bit AVR controllers
 // Global Data for all instances and classes  --------------------------------
 
 // variables for softLeds
@@ -241,7 +245,7 @@ uint8_t MoToSoftLed::attach(uint8_t pinArg, uint8_t invArg ){
     _ledData.pin=pinArg ;      // Pin-Nbr 
     #endif
     
-    if ( !timerInitialized ) seizeTimer1();
+    seizeTimerAS();
     // enable compareB- interrupt
     #if defined(__AVR_ATmega8__)|| defined(__AVR_ATmega128__)
         TIMSK |= ( _BV(OCIExB) );    // enable compare interrupts
@@ -250,6 +254,10 @@ uint8_t MoToSoftLed::attach(uint8_t pinArg, uint8_t invArg ){
     #endif
     DB_PRINT("IX_MAX=%d, CYCLE_MAX=%d, PWMTIME=%d", LED_IX_MAX, LED_CYCLE_MAX, LED_PWMTIME );
     return true;
+}
+
+void MoToSoftLed::on(uint8_t value){
+    on();
 }
 
 void MoToSoftLed::on(){
@@ -276,6 +284,10 @@ void MoToSoftLed::on(){
         mount(stateT);
     }
     DB_PRINT( "Led %04X On, state=%d, ledRoot=%04X", (uint32_t)this, _ledData.state, (uintxx_t)ledRootP);
+}
+
+void MoToSoftLed::off(uint8_t value){
+    off();
 }
 
 void MoToSoftLed::off(){

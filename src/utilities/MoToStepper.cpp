@@ -258,25 +258,8 @@ uint8_t MoToStepper::attach( byte outArg, byte pins[] ) {
         _stepperData.output = outArg;
         _stepperData.rampState = rampStat::STOPPED;
         setSpeedSteps( DEF_SPEEDSTEPS, DEF_RAMP );
-		#ifdef ESP8266
-			// initialize ISR-Table and attach interrupt to step-Pin
-			// assign an ISR to the pin
-            gpioTab[gpio2ISRx(_stepperData.pins[0])].MoToISR = (void (*)(void*))ISR_Stepper;
-            gpioTab[gpio2ISRx(_stepperData.pins[0])].IsrData = &_stepperData;
-            attachInterrupt( _stepperData.pins[0], gpioTab[gpio2ISRx(_stepperData.pins[0])].gpioISR, RISING );
-			setGpio(pins[0]);    // mark pin as used
-			setGpio(pins[1]);    // mark pin as used
-		#else
-			if ( !timerInitialized) seizeTimer1();
-			// enable compareB- interrupt
-			#if defined(__AVR_ATmega8__)|| defined(__AVR_ATmega128__)
-				TIMSK |= ( _BV(OCIExB) );    // enable compare interrupts
-			#elif defined __AVR_MEGA__
-				TIMSKx |= _BV(OCIExB) ; 
-			#elif defined __STM32F1__
-				timer_cc_enable(MT_TIMER, STEP_CHN);
-			#endif
-		#endif // ESP8266 <-> other
+        seizeTimerAS();
+        enableStepperIsrAS();
     }
     DB_PRINT( "attach: output=%d, attachOK=%d", _stepperData.output, attachOK );
     //Serial.print( "Attach Stepper, Ix= "); Serial.println( _stepperIx );

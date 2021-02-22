@@ -28,7 +28,7 @@
                             // the real 'timer tics'
 
 ////////////////////////////////////////////////////////////////////////////////////
-void ISR_Servo( void *arg );
+//void ISR_Servo( void *arg );
 
 // global servo data ( used in ISR )
 struct servoData_t {
