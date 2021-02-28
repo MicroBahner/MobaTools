@@ -113,9 +113,9 @@
 #define RAMPOFFSET      16      // startvalue of rampcounter
 
 // servo related defines
-#ifdef  ESP8266
-#define MINPULSEWIDTH   550     // there is no general limit on ESP8266
-#define MAXPULSEWIDTH   2600    // there is no general limit on ESP8266
+#ifdef  IS_ESP
+#define MINPULSEWIDTH   550     // there is no general limit on ESP
+#define MAXPULSEWIDTH   2600    // there is no general limit on ESP
 #else // AVR and STM32
 #define MINPULSEWIDTH   700     // don't make it shorter than 700
 #define MAXPULSEWIDTH   2300    // don't make it longer than 2300

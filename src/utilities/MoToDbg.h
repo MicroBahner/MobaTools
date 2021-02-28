@@ -6,8 +6,8 @@
 //#define debugPrint
 
 // über diese undefs kann das Debugging global abgeschaltet werden
-#undef debugTP
-#undef debugPrint
+//#undef debugTP
+//#undef debugPrint
 
 #ifdef debugTP 
     #if defined(__AVR_ATmega1280__) || defined(__AVR_ATmega2560__)
@@ -177,7 +177,14 @@
 
 #ifdef debugPrint
     #warning "Debug-printing is active"
-    #define DB_PRINT( x, ... ) {char dbgBuf[80]; sprintf_P( dbgBuf, PSTR( x ), ##__VA_ARGS__ ) ; Serial.println( dbgBuf ); }
+    #ifdef ARDUINO_ARCH_STM32F1
+        #define DB_PRINT( x, ... ) {char dbgBuf[80]; sprintf( dbgBuf,  x , ##__VA_ARGS__ ) ; Serial.println( dbgBuf ); }
+    #elif defined ARDUINO_ARCH_ESP32
+        #define DB_PRINT( x, ... ) Serial.printf(  x , ##__VA_ARGS__ ) 
+    #else
+        //#define DB_PRINT( x, ... ) {char dbgBuf[80]; sprintf_P( dbgBuf, PSTR( x ), ##__VA_ARGS__ ) ; Serial.println( dbgBuf ); }
+        #define DB_PRINT( x, ... ) {char dbgBuf[80]; snprintf_P( dbgBuf, 80, PSTR( x ), ##__VA_ARGS__ ) ; Serial.println( dbgBuf ); }
+    #endif
     extern const char *rsC[] ;    
 #else
     #define DB_PRINT( x, ... ) ;

@@ -24,7 +24,7 @@ static int32_t ledCycleCnt = 0;    // count IRQ cycles within PWM cycle
 
 static ledData_t*  ledDataP;              // pointer to active Led in ISR
 
-void IRAM_ATTR softledISR(uint32_t cyclesLastIRQ) { // uint32 for 32-Bit processors
+void softledISR(uint32_t cyclesLastIRQ) { // uint32 for 32-Bit processors
     // ---------------------- softleds -----------------------------------------------
     SET_TP2;
     ledCycleCnt += cyclesLastIRQ;

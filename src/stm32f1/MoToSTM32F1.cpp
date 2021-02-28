@@ -8,7 +8,39 @@
 
 #warning "HW specfic - STM32F1 ---"
 
-void ISR_Stepper();     // defined in MoToISR.cpp
+void stepperISR(int32_t cyclesLastIRQ)  __attribute__ ((weak));
+void softledISR(uint32_t cyclesLastIRQ)  __attribute__ ((weak));
+nextCycle_t nextCycle;
+static nextCycle_t cyclesLastIRQ = 1;  // cycles since last IRQ
+void ISR_Stepper() {
+    // Timer4 Channel 1, used for stepper motor, starts every CYCLETIME us
+    // 26-09-15 An Interrupt is only created at timeslices, where data is to output
+    SET_TP1;
+    nextCycle = ISR_IDLETIME  / CYCLETIME ;// min ist one cycle per IDLETIME
+    if ( stepperISR ) stepperISR(cyclesLastIRQ);
+    //============  End of steppermotor ======================================
+    if ( softledISR ) softledISR(cyclesLastIRQ);
+    // ======================= end of softleds =====================================
+    // set compareregister to next interrupt time;
+	//SET_TP2;
+	// next ISR must be at least MIN_STEP_CYCLE beyond actual counter value ( time between to ISR's )
+	int minOCR = timer_get_count(MT_TIMER);
+	int nextOCR = timer_get_compare(MT_TIMER, STEP_CHN);
+	if ( minOCR < nextOCR ) minOCR += TIMER_OVL_TICS; // timer had overflow already
+    minOCR = minOCR + ( MIN_STEP_CYCLE * TICS_PER_MICROSECOND ); // minimumvalue for next OCR
+	nextOCR = nextOCR + ( nextCycle * TICS_PER_MICROSECOND );
+	if ( nextOCR < minOCR ) {
+		// time till next ISR ist too short, set to mintime and adjust nextCycle
+		nextOCR = minOCR;
+		nextCycle = ( nextOCR - timer_get_compare(MT_TIMER, STEP_CHN)  ) / TICS_PER_MICROSECOND;
+	}
+    if ( nextOCR > TIMER_OVL_TICS ) nextOCR -= TIMER_OVL_TICS;
+    timer_set_compare( MT_TIMER, STEP_CHN, nextOCR ) ;
+	//CLR_TP2;
+    cyclesLastIRQ = nextCycle;
+    CLR_TP1; // Oszimessung Dauer der ISR-Routine
+}
+////////////////////////////////////////////////////////////////////////////////////////////
 void seizeTimerAS() {
     static bool timerInitialized = false;
     if ( !timerInitialized ) {

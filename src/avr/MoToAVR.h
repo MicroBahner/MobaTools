@@ -5,8 +5,7 @@
 //#warning AVR specific cpp includes
 void seizeTimerAS();
 
-/////////////////////////////////////////////////////////////////////////////////////////////////
-#if defined COMPILING_MOTOSERVO_CPP
+// _noStepIRQ und _stepIRQ werden in servo.cpp und stepper.cpp genutzt
 static inline __attribute__((__always_inline__)) void _noStepIRQ() {
     #if defined(__AVR_ATmega8__)|| defined(__AVR_ATmega128__)
         TIMSK &= ~( _BV(OCIExB) );    // enable compare interrupts
@@ -24,6 +23,8 @@ static inline __attribute__((__always_inline__)) void  _stepIRQ() {
     #endif
 }
 
+/////////////////////////////////////////////////////////////////////////////////////////////////
+#if defined COMPILING_MOTOSERVO_CPP
 static inline __attribute__((__always_inline__)) void enableServoIsrAS() {
     // enable compare-A interrupt
     #if defined(__AVR_ATmega8__)|| defined(__AVR_ATmega128__)

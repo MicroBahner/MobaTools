@@ -5,6 +5,13 @@
 //#warning ESP32 specific cpp includes
 void seizeTimerAS();
 void ISR_Servo( void *arg );
+inline __attribute__((__always_inline__)) void _noStepIRQ() {
+            portENTER_CRITICAL(&stepperMux);
+}
+inline __attribute__((__always_inline__)) void  _stepIRQ() {
+            portEXIT_CRITICAL(&stepperMux);
+}
+
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 #if defined COMPILING_MOTOSERVO_CPP
 

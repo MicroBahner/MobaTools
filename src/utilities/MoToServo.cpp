@@ -248,6 +248,7 @@ void ISR_Servo( void) {
     #ifdef ARDUINO_ARCH_AVR
     TIMSKx = saveTIMSK;      // retore Interrupt enable reg
     #endif
+    _stepIRQ();
     CLR_TP2;
 }
 

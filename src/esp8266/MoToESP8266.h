@@ -2,9 +2,6 @@
 #define MOTOESP8266_H
 // ESP8266 specific declarations for Cpp files
 #warning ESP8266 specific cpp includes
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-#if defined COMPILING_MOTOSERVO_CPP //  inline functions and macros für MoToServo.cpp ---------------------------
-void ISR_Servo( void *arg );
 
 static inline __attribute__((__always_inline__)) void _noStepIRQ() {
 			noInterrupts();
@@ -13,6 +10,10 @@ static inline __attribute__((__always_inline__)) void _noStepIRQ() {
 static inline __attribute__((__always_inline__)) void  _stepIRQ() {
 			interrupts();
 }
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+#if defined COMPILING_MOTOSERVO_CPP //  inline functions and macros für MoToServo.cpp ---------------------------
+void ISR_Servo( void *arg );
 
 static inline __attribute__((__always_inline__)) void startServoPulse(servoData_t *servoDataP, uint32_t pulseWidth ) {
     startWaveformMoTo(servoDataP->pin, pulseWidth/TICS_PER_MICROSECOND, TIMERPERIODE-(pulseWidth/TICS_PER_MICROSECOND),0);

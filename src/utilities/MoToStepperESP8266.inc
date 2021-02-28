@@ -277,7 +277,7 @@ uint16_t MoToStepper::setSpeedSteps( uint32_t speed10, int16_t rampLen ) {
 }
  
 void MoToStepper::prDynData() {             // print actual Stepperdata
- #ifdef debugPrint
+ #if 0//def debugPrint
     stepperData_t printData;  // vor Ausdruck eine lokale Kopie erstellen
     noInterrupts();
     printData.stepCnt   = _stepperData.stepCnt;             // nmbr of steps to take

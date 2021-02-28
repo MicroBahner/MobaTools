@@ -5,19 +5,20 @@
 //#warning STM32F1 specific cpp includes
 
 void seizeTimerAS();
-/////////////////////////////////////////////////////////////////////////////////////////////////
-#if defined COMPILING_MOTOSERVO_CPP
-void ISR_Servo( void );
-
 static inline __attribute__((__always_inline__)) void _noStepIRQ() {
             timer_disable_irq(MT_TIMER, TIMER_STEPCH_IRQ);
+            // *bb_perip(&(MT_TIMER->regs).adv->DIER, TIMER_STEPCH_IRQ) = 0;
 }
-
 static inline __attribute__((__always_inline__)) void  _stepIRQ() {
     //timer_enable_irq(MT_TIMER, TIMER_STEPCH_IRQ) cannot be used, because this also clears pending irq's
     *bb_perip(&(MT_TIMER->regs).adv->DIER, TIMER_STEPCH_IRQ) = 1;
     interrupts();
 }
+
+/////////////////////////////////////////////////////////////////////////////////////////////////
+#if defined COMPILING_MOTOSERVO_CPP
+void ISR_Servo( void );
+
 
 static inline __attribute__((__always_inline__)) void enableServoIsrAS() {
     timer_attach_interrupt(MT_TIMER, TIMER_SERVOCH_IRQ, ISR_Servo );

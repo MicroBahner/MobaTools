@@ -8,8 +8,8 @@
 #define COMPILING_MOTOSTEPPER_CPP
 
 #include <MobaTools.h>
-//#define debugTP
-//#define debugPrint
+#define debugTP
+#define debugPrint
 #include <utilities/MoToDbg.h>
 #define TODO	// ignore 
 // Global Data for all instances and classes  --------------------------------
@@ -19,36 +19,6 @@
 
 
 //==========================================================================
-inline void _noStepIRQ() {
-        #if defined(__AVR_ATmega8__)|| defined(__AVR_ATmega128__)
-            TIMSK &= ~( _BV(OCIExB) );    // enable compare interrupts
-        #elif defined __AVR_MEGA__
-            TIMSKx &= ~_BV(OCIExB) ; 
-        #elif defined __STM32F1__
-            timer_disable_irq(MT_TIMER, TIMER_STEPCH_IRQ);
-            // *bb_perip(&(MT_TIMER->regs).adv->DIER, TIMER_STEPCH_IRQ) = 0;
-        #elif defined ESP32
-            portENTER_CRITICAL(&stepperMux);
-		#else
-			noInterrupts();
-        #endif
-}
-inline void  _stepIRQ() {
-        #if defined(__AVR_ATmega8__)|| defined(__AVR_ATmega128__)
-            TIMSK |= ( _BV(OCIExB) );    // enable compare interrupts
-        #elif defined __AVR_MEGA__
-            TIMSKx |= _BV(OCIExB) ; 
-        #elif defined __STM32F1__
-            //timer_enable_irq(MT_TIMER, TIMER_STEPCH_IRQ) cannot be used, because this also clears pending irq's
-            *bb_perip(&(MT_TIMER->regs).adv->DIER, TIMER_STEPCH_IRQ) = 1;
-            interrupts();
-        #elif defined ESP32
-            portEXIT_CRITICAL(&stepperMux);
-		#else
-			interrupts();
-        #endif
-}
-
 // --------- Class Stepper ---------------------------------
 // Class-specific Variables
 outUsed_t MoToStepper::outputsUsed;
@@ -60,10 +30,10 @@ byte MoToStepper::_stepperCount = 0;
 // This applies to all ISR and to the setSpeedSteps method
 #ifdef ESP8266
 // ISR and methods specific for ESP8266 ( edge triggerd from Step pulse )
-#include "utilities/MoToStepperESP.inc"
+#include "utilities/MoToStepperESP8266.inc"
 #else
-// ISR and methods for AVR and arm based controllers
-#include "utilities/MoToStepperAVR.inc"
+// ISR and methods for all other controllers
+#include "utilities/MoToStepperNo8266.inc"
 #endif // esp8266 <-> other
 
 // constructor -------------------------
@@ -337,6 +307,7 @@ void MoToStepper::attachEnable( uint8_t enablePin, uint16_t delay, bool active )
     _stepperData.enable = active;       // defines whether activ is HIGH or LOW
     pinMode( enablePin, OUTPUT );
     digitalWrite( enablePin, !active );
+    DB_PRINT("Enable, pin=%d, state=%d", enablePin, !active );
     #ifdef ESP8266
     // initialize ISR-Table and attach interrupt to dir-Pin
     // assign an ISR to the pin
@@ -361,7 +332,7 @@ uint16_t MoToStepper::setSpeedSteps( uintxx_t speed10 ) {
     // Speed in steps per sec * 10
     // without a new ramplen, the ramplen is adjusted according to the speedchange
     long rtmp = (long)speed10*_lastRampLen/_lastRampSpeed;
-    DB_PRINT(">>>>>>>>>>>sSS:(%d) nRl=%ld", speed10, rtmp );
+    DB_PRINT(">>>>>>>>>>>sSS:(%u) nRl=%ld", (unsigned int)speed10, rtmp );
     return setSpeedSteps( speed10,  -rtmp-1 );
 }
 
@@ -520,7 +491,7 @@ void MoToStepper::_doSteps( long stepValue, bool absPos ) {
                 _stepperData.stepsInRamp    = 0;
                 _stepperData.stepCnt        = stepCnt;
                 _stepIRQ();
-                DB_PRINT("New Move: Steps:%ld, Enable=%d - State=%s(%d)", (long)stepValue, digitalRead(_stepperData.enablePin) , rsC[(int)_stepperData.rampState],(int)_stepperData.rampState );
+                DB_PRINT("New Move: Steps:%ld, Enable=%d - State=%s(%d)", (long)stepValue, (int)digitalRead(_stepperData.enablePin) , rsC[(int)_stepperData.rampState],(int)_stepperData.rampState );
             }
         }
     } else {
