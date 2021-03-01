@@ -4,6 +4,7 @@
     //--------------------------------------------------------------------------------------------------------------
 //vvvvvvvvvvvvvvvvvvvvvvvvvv STM32F1 processors vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
 #define IS_32BIT
+#define IRAM_ATTR       // no meaning for STM processors
 
 #include <libmaple/timer.h>
 #include <libmaple/spi.h>

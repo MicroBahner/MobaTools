@@ -186,7 +186,7 @@ uint8_t MoToStepper::attach( byte outArg, byte pins[] ) {
             // incompatible!
             attachOK = false;
         } else {
-            if ( !spiInitialized ) initSPI();
+            initSpiAS();
             MoToStepper::outputsUsed.outputs |= (1<<(outArg-1));
         }
         break;

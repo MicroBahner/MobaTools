@@ -103,6 +103,22 @@ static inline __attribute__((__always_inline__)) void enableStepperIsrAS() {
     // dummy
 }
 
+spi_t *spiHs = NULL;
+static uint8_t spiInitialized = false;
+static inline __attribute__((__always_inline__)) void initSpiAS() {
+    if ( spiInitialized ) return;
+    // initialize SPI hardware.
+    // MSB first, default Clk Level is 0, shift on leading edge
+    spiHs = spiStartBus(SPI_USED, SPI_CLOCK_DIV4, SPI_MODE0, SPI_MSBFIRST);
+    //if ( spiHs == NULL ) Serial.println( "Init SPI failed");
+    spiAttachSCK(spiHs, SCK);
+    // MISO is not used, only serial output
+    spiAttachMOSI(spiHs, MOSI);
+    spiAttachSS(spiHs, 0, SS);
+    spiSSEnable(spiHs);
+
+    spiInitialized = true;  
+}
 
 #endif
   
