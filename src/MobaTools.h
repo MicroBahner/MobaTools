@@ -8,6 +8,11 @@
   MobaTools V2.3.1
    
   History:
+  V2.4.0 03-2021
+     - ESP32 prozessors are supported
+     - ATTInyx8 are supported
+     - Step-tuning for 32Bit prozessors ( exept ESP8266 ) for higher steprates
+     - 
   V2.3.1 11-2020
      - Fix error with doSteps(0) and no ramp. Motor did not stop
   V2.3 07-2020
@@ -101,6 +106,7 @@
 #define MIN_STEP_CYCLE  10   // Minimum number of µsec  between to step IRQ's ( end of ISR to start of next )
 
 #elif defined ARDUINO_ARCH_ESP32
+#define USE_VSPI                // default is HSPI ( for SPI-Stepper )
 #define MIN_STEP_CYCLE 10     // Minimum number of µsec  between to step IRQ's
 
 #elif defined ARDUINO_ARCH_AVR

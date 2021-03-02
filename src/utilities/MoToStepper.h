@@ -39,7 +39,11 @@
 #define CYCLETICS       (CYCLETIME*TICS_PER_MICROSECOND)
 #define MIN_START_CYCLES 4000/CYCLETIME  // 5ms min until first step if stepper is in stop
 #define MIN_STEPTIME    (CYCLETIME * MIN_STEP_CYCLE) 
+#ifdef IS_32BIT
+#define MAXRAMPLEN      160000 
+#else
 #define MAXRAMPLEN      16000       // Do not change!
+#endif
 
 #ifdef __STM32F1__
     void ISR_Stepper(void);
@@ -168,9 +172,9 @@ class MoToStepper
     void setZero( long zeroPoint);  // new zeropoint ist zeroPoint steps apart from actual position
     void setZero( long zeroPoint, long stepsPerRotation);  // beside zero point change steps per Rotation too
     int setSpeed(int rpm10 );       // Set movement speed, rpm*10
-    uint16_t setSpeedSteps( uintxx_t speed10 ); // set speed withput changing ramp, returns ramp length
-    uint16_t setSpeedSteps( uintxx_t speed10, int16_t rampLen ); // set speed and ramp, returns ramp length
-    uint16_t setRampLen( uint16_t rampLen ); // set new ramplen in steps without changing speed
+    uintxx_t setSpeedSteps( uintxx_t speed10 ); // set speed withput changing ramp, returns ramp length
+    uintxx_t setSpeedSteps( uintxx_t speed10, int rampLen ); // set speed and ramp, returns ramp length
+    uintxx_t setRampLen( uintxx_t rampLen ); // set new ramplen in steps without changing speed
     uintxx_t getSpeedSteps();		// returns actual speed in steps/10sec ( even in ramp )
     void doSteps(long count);       // rotate count steps. May be positive or negative
                                     // angle is updated internally, so the next call to 'write'

@@ -18,6 +18,10 @@ A documentation file in [german](MobaTools-23-de.pdf) and [english](MobaTools-23
 
 | Version |  Release Date  | Description
 | ------- |  ------------  | -----------
+| 2.4.0 | 2021-0?-??| ESP32 processor is now supported
+| | | ATTinyx4 processors are now supported
+| | | some optimizing for 32-Bit processors, which leads to significant faster steprates for ESP32 and STM32F1
+| | | ESP32 creates servopulses by hardware ( they are much more stable )
 | 2.3.1 | 2020-11-07| fix error in doSteps: motor did not stop with doSteps(0) and no ramp
 | 2.3.0 | 2020-07-31| MoToButtons: The longpress event is already triggered when the time for longpress expires, not when the button is released
 | | | New class MoToTimebase to create a trigger in regular intervals

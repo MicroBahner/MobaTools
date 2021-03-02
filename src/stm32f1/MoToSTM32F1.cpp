@@ -6,7 +6,7 @@
 #define debugPrint
 #include <utilities/MoToDbg.h>
 
-#warning "HW specfic - STM32F1 ---"
+//#warning "HW specfic - STM32F1 ---"
 
 void stepperISR(int32_t cyclesLastIRQ)  __attribute__ ((weak));
 void softledISR(uint32_t cyclesLastIRQ)  __attribute__ ((weak));

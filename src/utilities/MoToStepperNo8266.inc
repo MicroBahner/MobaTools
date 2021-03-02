@@ -321,6 +321,7 @@ void IRAM_ATTR stepperISR(nextCycle_t cyclesLastIRQ) {
     // shift out spiData, if SPI is active
     //SET_TP2;
     if ( spiInitialized && spiChanged ) {
+        SET_TP3;
         digitalWrite( SS, LOW );
         #ifdef __AVR_MEGA__
             spiByteCount = 0;
@@ -338,6 +339,7 @@ void IRAM_ATTR stepperISR(nextCycle_t cyclesLastIRQ) {
         #if defined ESP32
             spiWriteShortNL(spiHs, (spiData[1]<<8) + spiData[0] );
         #endif
+        CLR_TP3;
     }
     //CLR_TP4;
 } // ==================== End of stepper ISR ======================================
@@ -372,7 +374,7 @@ void __irq_spi1(void) {// STM32
 #endif
 } // end of extern "C"
 
-uint16_t MoToStepper::setSpeedSteps( uintxx_t speed10, int16_t rampLen ) {
+uintxx_t MoToStepper::setSpeedSteps( uintxx_t speed10, int rampLen ) {
     // Set speed and length of ramp to reach speed ( from stop )
     // neagtive ramplen means it was set automatically
     rampStat newRampState;      // State of acceleration/deceleration
@@ -399,22 +401,22 @@ uint16_t MoToStepper::setSpeedSteps( uintxx_t speed10, int16_t rampLen ) {
     
     // compute target steplength and check whether speed and ramp fit together: 
 	#ifdef IS_32BIT
-    tCycSteps = ( 1000000L * 10  / newSpeed10 );
-    newCyctXramplen = tCycSteps * ( newRampLen + RAMPOFFSET );
+        tCycSteps = ( 1000000L * 10  / newSpeed10 );
+        newCyctXramplen = tCycSteps * ( newRampLen + RAMPOFFSET );
 	#else
-    tMicroSteps = ( 1000000L * 10  / newSpeed10 );
-    tCycSteps = tMicroSteps / CYCLETIME; 
-    tCycRemain = tMicroSteps % CYCLETIME; 
-    // tcyc * (rapmlen+RAMPOFFSET) must be less then 65000, otherwise ramplen is adjusted accordingly
-    long tmp =  tMicroSteps * ( newRampLen + RAMPOFFSET ) / CYCLETIME ;
-    if ( tmp > 65000L ) {
-        // adjust ramplen
-        newRampLen = 65000L * CYCLETIME / tMicroSteps;
-        if( newRampLen > RAMPOFFSET ) newRampLen -= RAMPOFFSET; else newRampLen = 0;
-        newCyctXramplen = tMicroSteps * ( newRampLen + RAMPOFFSET ) / CYCLETIME;
-    } else {
-        newCyctXramplen = tmp;
-    }
+        tMicroSteps = ( 1000000L * 10  / newSpeed10 );
+        tCycSteps = tMicroSteps / CYCLETIME; 
+        tCycRemain = tMicroSteps % CYCLETIME; 
+        // tcyc * (rapmlen+RAMPOFFSET) must be less then 65000, otherwise ramplen is adjusted accordingly
+        long tmp =  tMicroSteps * ( newRampLen + RAMPOFFSET ) / CYCLETIME ;
+        if ( tmp > 65000L ) {
+            // adjust ramplen
+            newRampLen = 65000L * CYCLETIME / tMicroSteps;
+            if( newRampLen > RAMPOFFSET ) newRampLen -= RAMPOFFSET; else newRampLen = 0;
+            newCyctXramplen = tMicroSteps * ( newRampLen + RAMPOFFSET ) / CYCLETIME;
+        } else {
+            newCyctXramplen = tmp;
+        }
 	#endif
     if (rampLen >= 0) {
         // ramplength was set by user, update reference-values
@@ -536,11 +538,12 @@ void MoToStepper::prDynData() {             // print actual Stepperdata
     printData.deltaSteps = _stepperData.deltaSteps;         // number of computed steps per real step in SPEEDDECEL
     prNextCycle = nextCycle;
     _stepIRQ();
-    uint32_t time = micros();
+    /*uint32_t time = micros();
     uint16_t usec = time%1000; time /=1000;
     uint16_t msec = time%1000; time /= 1000;
-    //DB_PRINT("Time:%5lu:%03u,%03u\t stepCnt=%5lu\t stepCnt2=%5lu\t sFZ=%5ld", time, msec,usec,printData.stepCnt, printData.stepCnt2, printData.stepsFromZero );
-	#ifdef IS_32BIT
+    DB_PRINT("Time:%5lu:%03u,%03u\t stepCnt=%5lu\t stepCnt2=%5lu\t sFZ=%5ld", time, msec,usec,printData.stepCnt, printData.stepCnt2, printData.stepsFromZero );
+	*/
+    #ifdef IS_32BIT
     DB_PRINT("tCySteps=%5u\t # aCySteps=%5u\t ", (unsigned int)printData.tCycSteps,(unsigned int)printData.aCycSteps);
 	#else
     DB_PRINT("tCySteps=%5u\t tCyRemain=%5u\t aCySteps=%5u\t aCyRemain=%5u", printData.tCycSteps,printData.tCycRemain,printData.aCycSteps,printData.aCycRemain);

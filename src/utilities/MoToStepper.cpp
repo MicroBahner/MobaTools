@@ -328,7 +328,7 @@ int MoToStepper::setSpeed( int rpm10 ) {
     return setSpeedSteps( min( 1000000L / MIN_STEPTIME * 10, (long)rpm10 * stepsRev / 60 ) ) ;
 }
 
-uint16_t MoToStepper::setSpeedSteps( uintxx_t speed10 ) {
+uintxx_t MoToStepper::setSpeedSteps( uintxx_t speed10 ) {
     // Speed in steps per sec * 10
     // without a new ramplen, the ramplen is adjusted according to the speedchange
     long rtmp = (long)speed10*_lastRampLen/_lastRampSpeed;
@@ -336,7 +336,7 @@ uint16_t MoToStepper::setSpeedSteps( uintxx_t speed10 ) {
     return setSpeedSteps( speed10,  -rtmp-1 );
 }
 
-uint16_t MoToStepper::setRampLen( uint16_t rampSteps ) {
+uintxx_t MoToStepper::setRampLen( uintxx_t rampSteps ) {
     // set length of ramp ( from stop to actual target speed ) in steps
     return setSpeedSteps( _stepSpeed10, rampSteps );
 }
@@ -444,7 +444,7 @@ void MoToStepper::_doSteps( long stepValue, bool absPos ) {
                 //Schritte bis zum anhalten
                 // When moving to abs position, adjust stepCnt if there have been new steps
                 if ( absPos ) stepCnt += abs( _stepperData.stepsFromZero-lastSFZ );
-                uint16_t stepsToStop = _stepperData.stepsInRamp+1;
+                uintxx_t stepsToStop = _stepperData.stepsInRamp+1;
                 if ( _stepperData.rampState == rampStat::SPEEDDECEL ) {
                     // we are already reducing speed, recompute nbr of steps to stop
                     stepsToStop = _stepperData.stepRampLen + (_stepperData.stepsInRamp-_stepperData.stepRampLen)/_stepperData.deltaSteps;

@@ -6,8 +6,8 @@
 //#define debugPrint
 
 // über diese undefs kann das Debugging global abgeschaltet werden
-//#undef debugTP
-//#undef debugPrint
+#undef debugTP
+#undef debugPrint
 
 #ifdef debugTP 
     #if defined(__AVR_ATmega1280__) || defined(__AVR_ATmega2560__)
@@ -116,18 +116,22 @@
         #define CLR_TP4 
          
     #elif defined ESP32
-        #define MODE_TP1 pinMode( 27,OUTPUT )  // GPIO 13
-        #define SET_TP1  digitalWrite( 27, HIGH )
-        #define CLR_TP1  digitalWrite( 27, LOW )
-        #define MODE_TP2 pinMode(26,OUTPUT )  
-        #define SET_TP2  digitalWrite( 26, HIGH )
-        #define CLR_TP2  digitalWrite( 26, LOW )
-        #define MODE_TP3  pinMode(25,OUTPUT )  
-        #define SET_TP3   digitalWrite( 25, HIGH )
-        #define CLR_TP3  digitalWrite( 25, LOW )
-        #define MODE_TP4  pinMode(33,OUTPUT )  
-        #define SET_TP4   digitalWrite( 33, HIGH )
-        #define CLR_TP4  digitalWrite( 33, LOW ) 
+        #define TP1 14
+        #define TP2 12
+        #define TP3 13
+        #define TP4 15
+        #define MODE_TP1 pinMode( TP1,OUTPUT )  // GPIO 13
+        #define SET_TP1  digitalWrite( TP1, HIGH )
+        #define CLR_TP1  digitalWrite( TP1, LOW )
+        #define MODE_TP2 pinMode(TP2,OUTPUT )  
+        #define SET_TP2  digitalWrite( TP2, HIGH )
+        #define CLR_TP2  digitalWrite( TP2, LOW )
+        #define MODE_TP3  pinMode(TP3,OUTPUT )  
+        #define SET_TP3   digitalWrite( TP3, HIGH )
+        #define CLR_TP3  digitalWrite( TP3, LOW )
+        #define MODE_TP4  pinMode(TP4,OUTPUT )  
+        #define SET_TP4   digitalWrite( TP4, HIGH )
+        #define CLR_TP4  digitalWrite( TP4, LOW ) 
         
     #else // processor not known
         #define MODE_TP1

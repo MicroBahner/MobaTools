@@ -5,7 +5,7 @@
 //#define debugPrint
 #include <utilities/MoToDbg.h>
 
-#warning "HW specfic - ESP8266 ---"
+//#warning "HW specfic - ESP8266 ---"
 
 // definition of gpio ISR's ( there is one ISR entrypoint per gpio )
 // at max 10 gpio's can be used at an ESP12: gpio 0,1,2,3,4,5,12,13,14,15

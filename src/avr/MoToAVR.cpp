@@ -5,7 +5,7 @@
 //#define debugPrint
 #include <utilities/MoToDbg.h>
 
-#warning "HW specfic - avr ---"
+//#warning "HW specfic - avr ---"
 
 
 //void ISR_Stepper(void);     // defined in MoToISR.cpp
