@@ -85,7 +85,7 @@ void setPwmPin( uint8_t pwmNbr ) {
 void IRAM_ATTR setPwmDuty(int8_t pwmNbr, uint32_t duty ){
       ledc_set_duty_with_hpoint(pwmUse[pwmNbr].group, pwmUse[pwmNbr].channel, duty, 0) ;
       ledc_update_duty(pwmUse[pwmNbr].group, pwmUse[pwmNbr].channel) ;
-      //ledc_set_duty_and_update(pwmUse[pwmNbr].group, pwmUse[pwmNbr].channel, duty, 0);}
+      //ledc_set_duty_and_update(pwmUse[pwmNbr].group, pwmUse[pwmNbr].channel, duty, 0);
 }
 
 #endif // end of sdk-version ===========================================================

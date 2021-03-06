@@ -46,12 +46,13 @@ MoToStepper::MoToStepper(long steps ) {
 	#endif
 }
 
-#ifndef ESP8266
 MoToStepper::MoToStepper(long steps, uint8_t mode ) {
+    #ifdef ESP8266
+    mode = STEPDIR; // THis is the only allowed mode
+    #endif
     // constuctor for stepper Class, initialize data
     MoToStepper::initialize ( steps, mode );
 }
-#endif
 
 // private functions ---------------
 void MoToStepper::initialize ( long steps360, uint8_t mode ) {

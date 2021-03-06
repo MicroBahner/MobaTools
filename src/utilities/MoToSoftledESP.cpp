@@ -9,7 +9,7 @@
 #if defined ARDUINO_ARCH_ESP32 || defined ARDUINO_ARCH_ESP8266
 #define COMPILING_MOTOSOFTLEDESP_CPP
 
-#define debugTP
+//#define debugTP
 //#define debugPrint
 #include <utilities/MoToDbg.h>
 #include <MobaTools.h>

@@ -69,6 +69,7 @@ static inline __attribute__((__always_inline__)) void startLedPulseAS( uint8_t p
     // start or change the pwmpulses on the led pin.
     // with invFlg set pulseLen is lowtime, else hightime
     // compute pulselen from µs to tics
+    setPwmPin(  pwmNbr );
     pulseLen = slPwm2tic(pulseLen);
     if ( invFlg ) {
         setPwmDuty(pwmNbr, DUTY100-pulseLen);

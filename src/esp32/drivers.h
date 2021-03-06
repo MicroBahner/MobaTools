@@ -3,6 +3,7 @@
 #ifndef ESP32_DRIVER_H
 #define ESP32_DRIVER_H
 
+#include "esp32-timer.h"
 #ifdef __cplusplus
 extern "C" {
 #endif
