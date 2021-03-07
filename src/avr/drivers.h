@@ -4,6 +4,7 @@
 //vvvvvvvvvvvvvvvvvvvvvvvvvvvvv  AVR ATMega vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
 #include <avr/interrupt.h>
 #define IRAM_ATTR       // delete in .cpp files, because it has no meaning for AVR processors
+#define DRAM_ATTR
 
 
 #define FAST_PORTWRT        // if this is defined, ports are written directly in IRQ-Routines,

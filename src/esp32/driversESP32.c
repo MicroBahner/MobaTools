@@ -6,10 +6,13 @@
 
 
 
-// ------------------ SOFTLED ------------------------------------------------------
+// ------------------ SOFTLED & Servos ------------------------------------------------------
 // different versions of ledc programmimng: ( if both are defined, a mixed version is selected - not yet implemented )
-#define SDK_ACCESS
-//#define REGISTER_ACCESS
+#ifdef LEDC_USE_SDK
+    #define SDK_ACCESS
+#else
+    #define REGISTER_ACCES
+#endif
 
 //===================================================================================
 #if defined SDK_ACCESS && !defined REGISTER_ACCESS  // sdk version
