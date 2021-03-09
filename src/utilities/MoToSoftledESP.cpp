@@ -9,7 +9,7 @@
 #if defined ARDUINO_ARCH_ESP32 || defined ARDUINO_ARCH_ESP8266
 #define COMPILING_MOTOSOFTLEDESP_CPP
 
-//#define debugTP
+#define debugTP
 //#define debugPrint
 #include <utilities/MoToDbg.h>
 #include <MobaTools.h>
@@ -19,7 +19,7 @@ void ICACHE_RAM_ATTR ISR_Softled( void *arg ) {
     ledData_t *_ledData = static_cast<ledData_t *>(arg);    // ---------------------- softleds -----------------------------------------------
     int changePulse = BULB; // change LINEAR or BULB ( -1: don't change )
     uint32_t pwm ;   // new value
-    
+    SET_TP4;
     switch ( _ledData->state ) {
       case STATE_ON: // last ISR ( at leading edge )
         changePulse = -1; // nothing to change
@@ -81,7 +81,7 @@ void ICACHE_RAM_ATTR ISR_Softled( void *arg ) {
         }
         startLedPulseAS(_ledData->pwmNbr,_ledData->invFlg, pwm );
     }  
-
+    CLR_TP4;
 } //=============================== End of softledISR ========================================
 /////////////////////////////////////////////////////////////////////////////
 //Class MoToSoftLed - for Led with soft on / soft off ---------------------------

@@ -774,7 +774,7 @@ void IRAM_ATTR spiWriteByteNL(spi_t * spi, uint8_t data)
     spi->dev->miso_dlen.usr_miso_dbitlen = 0;
     spi->dev->data_buf[0] = data;
     spi->dev->cmd.usr = 1;
-    //while(spi->dev->cmd.usr);
+    while(spi->dev->cmd.usr);
 }
 
 uint8_t spiTransferByteNL(spi_t * spi, uint8_t data)
@@ -803,7 +803,7 @@ void IRAM_ATTR spiWriteShortNL(spi_t * spi, uint16_t data)
     spi->dev->miso_dlen.usr_miso_dbitlen = 0;
     spi->dev->data_buf[0] = data;
     spi->dev->cmd.usr = 1;
-    while(spi->dev->cmd.usr);
+    //while(spi->dev->cmd.usr); //MobaTools; kein Warten auf Übertragungsende
 }
 
 uint16_t spiTransferShortNL(spi_t * spi, uint16_t data)

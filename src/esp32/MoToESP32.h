@@ -59,8 +59,11 @@ static inline __attribute__((__always_inline__)) int8_t softLedPwmSetupAS( servo
 
 static inline __attribute__((__always_inline__)) uint8_t attachSoftledAS( ledData_t *ledDataP ) {
     int8_t pwmNbr = initPwmChannel( ledDataP->pin, LED_TIMER );
-    pinMode( ledDataP->pin, OUTPUT );
-    attachInterruptArg( ledDataP->pin, ISR_Softled, (void*)ledDataP, FALLING );
+    if ( pwmNbr >= 0 ) {
+        // freien LEDC-Slot gefunden, Pin und Interrupt einrichten
+        setPwmPin(  pwmNbr );
+        attachInterruptArg( ledDataP->pin, ISR_Softled, (void*)ledDataP, FALLING );
+    }
     return pwmNbr;
 
 }
@@ -69,7 +72,6 @@ static inline __attribute__((__always_inline__)) void startLedPulseAS( uint8_t p
     // start or change the pwmpulses on the led pin.
     // with invFlg set pulseLen is lowtime, else hightime
     // compute pulselen from µs to tics
-    setPwmPin(  pwmNbr );
     pulseLen = slPwm2tic(pulseLen);
     if ( invFlg ) {
         setPwmDuty(pwmNbr, DUTY100-pulseLen);

@@ -1,7 +1,7 @@
 // ESP32 HW-spcific Functions
 #ifdef ARDUINO_ARCH_ESP32
 #include <MobaTools.h>
-#define debugTP
+//#define debugTP
 //#define debugPrint
 #include <utilities/MoToDbg.h>
 

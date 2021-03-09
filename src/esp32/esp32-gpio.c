@@ -206,7 +206,7 @@ static void IRAM_ATTR __onPinInterrupt()
 {
     uint32_t gpio_intr_status_l=0;
     uint32_t gpio_intr_status_h=0;
-
+    //digitalWrite( 15, HIGH );
     gpio_intr_status_l = GPIO.status;
     gpio_intr_status_h = GPIO.status1.val;
     GPIO.status_w1tc = gpio_intr_status_l;//Clear intr for gpio0-gpio31
@@ -240,6 +240,7 @@ static void IRAM_ATTR __onPinInterrupt()
             }
         } while(++pin<GPIO_PIN_COUNT);
     }
+    //digitalWrite( 15, LOW );
 }
 
 extern void cleanupFunctional(void* arg);
@@ -250,9 +251,9 @@ extern void __attachInterruptFunctionalArg(uint8_t pin, voidFuncPtrArg userFunc,
 
     if(!interrupt_initialized) {
         interrupt_initialized = true;
-        #ifdef LEDC_USE_SDK // with SDK calls ISR cannot use IRAM
+        #ifdef LEDC_USE_SDK // MobaTools: with SDK calls ISR cannot use IRAM
             esp_intr_alloc(ETS_GPIO_INTR_SOURCE, (int)0, __onPinInterrupt, NULL, &gpio_intr_handle);
-        #else // with own calls, Servo and Leds can use IRAM
+        #else // with own/hal calls, Servo and Leds can use IRAM
             esp_intr_alloc(ETS_GPIO_INTR_SOURCE, (int)ESP_INTR_FLAG_IRAM, __onPinInterrupt, NULL, &gpio_intr_handle);
         #endif
     }

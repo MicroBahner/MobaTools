@@ -11,11 +11,11 @@
 #ifdef LEDC_USE_SDK
     #define SDK_ACCESS
 #else
-    #define REGISTER_ACCES
+    #define REGISTER_ACCESS
 #endif
 
 //===================================================================================
-#if defined SDK_ACCESS && !defined REGISTER_ACCESS  // sdk version
+#if defined SDK_ACCESS //&& !defined REGISTER_ACCESS  // sdk version
 // programming ledc hardware by means of sdk functions
 // version with sdk calls
 #include <driver/ledc.h>
@@ -112,6 +112,7 @@ void IRAM_ATTR setPwmDuty(int8_t pwmNbr, uint32_t duty ){
 // variant with direct acces to ledc PWM register
 // APB_CLK must be 80MHz
 
+#define CONFIG_DISABLE_HAL_LOCKS
 #ifdef CONFIG_DISABLE_HAL_LOCKS
 #define LEDC_MUTEX_LOCK()
 #define LEDC_MUTEX_UNLOCK()
@@ -168,7 +169,7 @@ static void _initLedcHw(int8_t pwmNbr) {
         DPORT_SET_PERI_REG_MASK(DPORT_PERIP_CLK_EN_REG, DPORT_LEDC_CLK_EN);
         DPORT_CLEAR_PERI_REG_MASK(DPORT_PERIP_RST_EN_REG, DPORT_LEDC_RST);
         LEDC.conf.apb_clk_sel = 1;//LS use apb clock ( 80MHz )
-        #if !CONFIG_DISABLE_HAL_LOCKS
+        #ifndef CONFIG_DISABLE_HAL_LOCKS
             _ledc_sys_lock = xSemaphoreCreateMutex();
         #endif
     }

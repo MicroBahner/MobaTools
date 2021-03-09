@@ -10,7 +10,7 @@
 #define COMPILING_MOTOSOFTLED32_CPP
 
 #include <MobaTools.h>
-//#define debugPrint
+#define debugPrint
 //#define debugTP
 #include <utilities/MoToDbg.h>
 
@@ -26,7 +26,7 @@ static ledData_t*  ledDataP;              // pointer to active Led in ISR
 
 void softledISR(uint32_t cyclesLastIRQ) { // uint32 for 32-Bit processors
     // ---------------------- softleds -----------------------------------------------
-    SET_TP2;
+    SET_TP4;
     ledCycleCnt += cyclesLastIRQ;
     if ( ledCycleCnt >= ledNextCyc ) {
         // this IRQ is relevant for softleds
@@ -136,7 +136,7 @@ void softledISR(uint32_t cyclesLastIRQ) { // uint32 for 32-Bit processors
     //CLR_TP3;
     nextCycle = min( nextCycle, ( ledNextCyc-ledCycleCnt ) );
     //SET_TP3;
-    CLR_TP2;
+    CLR_TP4;
 } //=============================== End of softledISR ========================================
 /////////////////////////////////////////////////////////////////////////////
 //Class MoToSoftLed - for Led with soft on / soft off ---------------------------
