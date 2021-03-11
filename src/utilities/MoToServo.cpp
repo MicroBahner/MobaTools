@@ -21,7 +21,7 @@ static byte servoCount = 0;
 /////////////////////////////  Pulse-interrupt for ESP8266 and ESP 32  /////////////////////////////////////////
 // This ISR is fired at the falling edge of the servo pulse. It is specific to every servo Objekt and
 // computes the length of the next pulse. The pulse itself is created by the core_esp8266_waveform routines or by ledPWM HW ( ESP32 )
-void ICACHE_RAM_ATTR ISR_Servo( void *arg ) {
+void IRAM_ATTR ISR_Servo( void *arg ) {
     servoData_t *_servoData = static_cast<servoData_t *>(arg);
     portENTER_CRITICAL_ISR(&servoMux);
     SET_TP2;

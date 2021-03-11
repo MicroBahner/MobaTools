@@ -55,8 +55,8 @@ void seizeTimer1();
 //void initSPI();             // initSPI is defined in MoToStepperAVR.inc ( it is only used with MoToStepper
 
 // ----------------   defines for servo and softled ( ledc pwm hardware on ESP32 is used ) -----------------------
+//if  the following line is commented out, direct register access is used ( interrupts are not disabled during flash access )
 //#define LEDC_USE_SDK          // use SDK calls für Servo & Led Pulses ( interrupts are disbled during flash access )
-    //if  this is commented out, direct register access is used ( interrupts are not disabled during flash access )
 
 #ifdef COMPILING_MOTOSERVO_CPP
     #warning compiling servo.cpp for ESP32

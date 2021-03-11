@@ -15,7 +15,8 @@
 #include <MobaTools.h>
 
 // Global Data for all instances and classes  --------------------------------
-void ICACHE_RAM_ATTR ISR_Softled( void *arg ) {
+//void ICACHE_RAM_ATTR ISR_Softled( void *arg ) {
+void IRAM_ATTR ISR_Softled( void *arg ) {
     ledData_t *_ledData = static_cast<ledData_t *>(arg);    // ---------------------- softleds -----------------------------------------------
     int changePulse = BULB; // change LINEAR or BULB ( -1: don't change )
     uint32_t pwm ;   // new value
@@ -46,6 +47,10 @@ void ICACHE_RAM_ATTR ISR_Softled( void *arg ) {
         }
         CLR_TP1;
         break;
+      default:
+        ;
+    } // nicht mehr als 4 case im switch bei ESP32 !!
+    switch ( _ledData->state ) {
       case DECLIN:
         changePulse = LINEAR;
       case DECBULB:

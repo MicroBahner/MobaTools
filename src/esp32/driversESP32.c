@@ -81,6 +81,7 @@ int8_t initPwmChannel( uint8_t pin, uint8_t timer ) {
 }
 
 void setPwmPin( uint8_t pwmNbr ) {
+    // wird im SDK-Aufruf 'ledc_channel_config' gemacht
     //pinMode(pwmUse[pwmNbr].pin, OUTPUT);
     //pinMatrixOutAttach(pwmUse[pwmNbr].pin, ((pwmUse[pwmNbr].group)?LEDC_LS_SIG_OUT0_IDX:LEDC_HS_SIG_OUT0_IDX) + pwmUse[pwmNbr].channel, false, false);
 }

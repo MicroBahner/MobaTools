@@ -11,6 +11,7 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
+#ifdef ARDUINO_ARCH_ESP32
 
 #include "esp32-hal-spi.h"
 #include "esp32-hal.h"
@@ -1096,3 +1097,4 @@ uint32_t spiFrequencyToClockDiv(uint32_t freq)
     return bestReg.value;
 }
 
+#endif

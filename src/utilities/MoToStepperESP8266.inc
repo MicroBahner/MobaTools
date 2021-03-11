@@ -159,7 +159,7 @@ void ICACHE_RAM_ATTR ISR_Stepper(stepperData_t *stepperDataP) {
 
 }    
 
-uint16_t MoToStepper::setSpeedSteps( uint32_t speed10, int16_t rampLen ) {
+uintxx_t MoToStepper::setSpeedSteps( uint32_t speed10, int rampLen ) {
     // Set speed and length of ramp to reach speed ( from stop )
     // neagtive ramplen means it was set automatically
     rampStat newRampState;      // State of acceleration/deceleration
