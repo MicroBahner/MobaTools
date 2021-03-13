@@ -1,7 +1,7 @@
 // AVR HW-spcific Functions
 #ifdef ARDUINO_ARCH_AVR
 #include <MobaTools.h>
-//#define debugTP
+#define debugTP
 //#define debugPrint
 #include <utilities/MoToDbg.h>
 
@@ -37,7 +37,7 @@ ISR ( TIMERx_COMPB_vect) {
         if ( tmp > 1000 ) tmp += TIMER_OVL_TICS; // there was a timer overflow
         if ( tmp > (CYCLETICS-10) ) {
             // runtime was too long, next IRQ mus be started immediatly
-            SET_TP3;
+            //SET_TP3;
             tmp = GET_COUNT+10; 
         } else {
             tmp = OCRxB + CYCLETICS;
@@ -79,6 +79,24 @@ void seizeTimerAS() {
         MODE_TP4;
         DB_PRINT("Testpins initialisiert");
     }
+}
+
+extern uint8_t spiStepperData[2]; // step pattern to be output on SPI
+extern uint8_t spiByteCount;
+
+ISR ( SPI_STC_vect ) { 
+    SET_TP4;
+    // output step-pattern on SPI, set SS when ready
+    if ( spiByteCount++ == 0 ) {
+        // end of shifting out high Byte, shift out low Byte
+        SPDR = spiStepperData[0];
+    } else {
+        // end of data shifting
+        digitalWrite( SS, HIGH );
+        spiByteCount = 0;
+    }
+    CLR_TP4;
+    
 }
 
 

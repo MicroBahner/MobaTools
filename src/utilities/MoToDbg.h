@@ -24,10 +24,10 @@
         #define SET_TP4 PORTF |= (1<<5) 
         #define CLR_TP4 PORTF &= ~(1<<5) 
     #elif defined(__AVR_ATmega32U4__)
-        #define MODE_TP1 DDRF |= (1<<4) //A3
+        /*#define MODE_TP1 DDRF |= (1<<4) //A3
         #define SET_TP1 PORTF |= (1<<4)
         #define CLR_TP1 PORTF &= ~(1<<4)
-        /*#define MODE_TP2 DDRF |= (1<<5) //A2
+        #define MODE_TP2 DDRF |= (1<<5) //A2
         #define SET_TP2 PORTF |= (1<<5)
         #define CLR_TP2 PORTF &= ~(1<<5)
         #define MODE_TP3 DDRD |= (1<<3) //D1
@@ -35,7 +35,7 @@
         #define CLR_TP3 PORTD &= ~(1<<3)
         #define MODE_TP4 DDRD |= (1<<2) //D0
         #define SET_TP4 PORTD |= (1<<2)
-        #define CLR_TP4 PORTD &= ~(1<<2)*/
+        #define CLR_TP4 PORTD &= ~(1<<2)
         #define MODE_TP2 
         #define SET_TP2 
         #define CLR_TP2 
@@ -44,7 +44,19 @@
         #define CLR_TP3 
         #define MODE_TP4 
         #define SET_TP4 
-        #define CLR_TP4 
+        #define CLR_TP4 */
+        #define MODE_TP1 DDRF |= (1<<0) //A5
+        #define SET_TP1 PORTF |= (1<<0)
+        #define CLR_TP1 PORTF &= ~(1<<0)
+        #define MODE_TP2 DDRF |= (1<<1) //A4
+        #define SET_TP2 PORTF |= (1<<1)
+        #define CLR_TP2 PORTF &= ~(1<<1)
+        #define MODE_TP3 DDRC |= (1<<7) //13
+        #define SET_TP3 PORTC |= (1<<7)
+        #define CLR_TP3 PORTC &= ~(1<<7)
+        #define MODE_TP4 DDRB |= (1<<7) //11
+        #define SET_TP4 PORTB |= (1<<7)
+        #define CLR_TP4 PORTB &= ~(1<<7)
     #elif defined(__AVR_ATmega328P__) 
         #warning "Debug-Ports active"
         #define MODE_TP1 DDRC |= (1<<1) //A1

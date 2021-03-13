@@ -37,6 +37,8 @@ static inline __attribute__((__always_inline__)) void enableSoftLedIsrAS() {
 
 //////////////////////////////////////////////////////////////////////////////////////////////////
 #if defined COMPILING_MOTOSTEPPER_CPP
+static int rxData;      // dummy for STM32
+
 static inline __attribute__((__always_inline__)) void enableStepperIsrAS() {
     timer_cc_enable(MT_TIMER, STEP_CHN);
 }
@@ -77,6 +79,17 @@ static inline __attribute__((__always_inline__)) void initSpiAS() {
     #endif
     spiInitialized = true;  
 }
+
+    static inline __attribute__((__always_inline__)) void startSpiWriteAS( uint8_t spiData[] ) {
+        #ifdef USE_SPI2
+        digitalWrite(BOARD_SPI2_NSS_PIN,LOW);
+        spi_tx_reg(SPI2, (spiData[1]<<8) + spiData[0] );
+        #else
+        digitalWrite(BOARD_SPI1_NSS_PIN,LOW);
+        spi_tx_reg(SPI1, (spiData[1]<<8) + spiData[0] );
+        #endif
+    }    
+    
 
 #endif // COMPILING_MOTOSTEPPER_CPP
 

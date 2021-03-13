@@ -4,5 +4,4 @@
 #include "drivers.h"
 
 #warning "HW specfic - avr ---"
-
 #endif

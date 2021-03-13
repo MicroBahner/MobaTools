@@ -6,10 +6,10 @@ extern bool timerInitialized;
 
 // constants
 static stepperData_t *stepperRootP = NULL;    // start of stepper data chain ( NULL if no stepper object )
-static uint8_t spiData[2]; // step pattern to be output on SPI
-                            // low nibble of spiData[0] is SPI_1
-                            // high nibble of spiData[1] is SPI_4
-                            // spiData[1] is shifted out first
+uint8_t spiStepperData[2]; // step pattern to be output on SPI
+                            // low nibble of spiStepperData[0] is SPI_1
+                            // high nibble of spiStepperData[1] is SPI_4
+                            // spiStepperData[1] is shifted out first
 
 
 
@@ -89,21 +89,21 @@ void IRAM_ATTR stepperISR(nextCycle_t cyclesLastIRQ) {
                   #endif
                   case SPI_1:
                     //SET_TP2;
-                    spiData[0] = (spiData[0] & 0xf0) | ( stepPattern[ _patIx ] );
+                    spiStepperData[0] = (spiStepperData[0] & 0xf0) | ( stepPattern[ _patIx ] );
                     spiChanged = true; 
                     //CLR_TP2;
                     break;
                   case SPI_2:
-                    spiData[0] = (spiData[0] & 0x0f) | ( stepPattern[ _patIx ] <<4 );
+                    spiStepperData[0] = (spiStepperData[0] & 0x0f) | ( stepPattern[ _patIx ] <<4 );
                     spiChanged = true;
                     //CLR_TP2;
                     break;
                   case SPI_3:
-                    spiData[1] = (spiData[1] & 0xf0) | ( stepPattern[ _patIx ] );   
+                    spiStepperData[1] = (spiStepperData[1] & 0xf0) | ( stepPattern[ _patIx ] );   
                     spiChanged = true;
                     break;
                   case SPI_4:
-                    spiData[1] = (spiData[1] & 0x0f) | ( stepPattern[ _patIx ] <<4 );
+                    spiStepperData[1] = (spiStepperData[1] & 0x0f) | ( stepPattern[ _patIx ] <<4 );
                     spiChanged = true;
                     break;
                 #ifdef ESP32 // !!! Auf ESP32 darf ein switch in ISR max 4 case-Blöcke enthalten !!!!
@@ -323,61 +323,16 @@ void IRAM_ATTR stepperISR(nextCycle_t cyclesLastIRQ) {
         //SET_TP1; //CLR_TP2;
     } // end of stepper-loop
     
-    // shift out spiData, if SPI is active
+    // shift out spiStepperData, if SPI is active
     //SET_TP2;
     if ( spiInitialized && spiChanged ) {
         SET_TP3;
-        digitalWrite( SS, LOW );
-        #ifdef __AVR_MEGA__
-            spiByteCount = 0;
-            SPDR = spiData[1];
-        #endif
-        #if defined __STM32F1__
-            #ifdef USE_SPI2
-            digitalWrite(BOARD_SPI2_NSS_PIN,LOW);
-            spi_tx_reg(SPI2, (spiData[1]<<8) + spiData[0] );
-            #else
-            digitalWrite(BOARD_SPI1_NSS_PIN,LOW);
-            spi_tx_reg(SPI1, (spiData[1]<<8) + spiData[0] );
-            #endif
-        #endif
-        #if defined ESP32
-            spiWriteShortNL(spiHs, (spiData[1]<<8) + spiData[0] );
-        #endif
+        //startSpiWriteAS( spiStepperData );
         CLR_TP3;
     }
     //CLR_TP4;
 } // ==================== End of stepper ISR ======================================
 #pragma GCC optimize "Os"
-// ---------- SPI interupt used for output stepper motor data -------------
-extern "C" {
-#ifdef __AVR_MEGA__
-ISR ( SPI_STC_vect ) { 
-    // output step-pattern on SPI, set SS when ready
-    if ( spiByteCount++ == 0 ) {
-        // end of shifting out high Byte, shift out low Byte
-        SPDR = spiData[0];
-    } else {
-        // end of data shifting
-        digitalWrite( SS, HIGH );
-        spiByteCount = 0;
-    }
-}
-#elif defined __STM32F1__
-    #ifdef USE_SPI2
-void __irq_spi2(void) {// STM32
-    static int rxData;
-    rxData = spi_rx_reg(SPI2);            // Get dummy data (Clear RXNE-Flag)
-    digitalWrite(BOARD_SPI2_NSS_PIN,HIGH);
-}
-    #else
-void __irq_spi1(void) {// STM32
-    rxData = spi_rx_reg(SPI1);            // Get dummy data (Clear RXNE-Flag)
-    digitalWrite(BOARD_SPI1_NSS_PIN,HIGH);
-}
-    #endif
-#endif
-} // end of extern "C"
 
 uintxx_t MoToStepper::setSpeedSteps( uintxx_t speed10, int rampLen ) {
     // Set speed and length of ramp to reach speed ( from stop )

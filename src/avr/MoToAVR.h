@@ -45,8 +45,9 @@ static inline __attribute__((__always_inline__)) void enableServoIsrAS() {
 //////////////////////////////////////////////////////////////////////////////////////////////////
 #if defined COMPILING_MOTOSTEPPER_CPP
 static uint8_t spiInitialized = false;
+
 #ifdef __AVR_MEGA__
-    static uint8_t spiByteCount = 0;
+    uint8_t spiByteCount = 0;
     static inline __attribute__((__always_inline__)) void initSpiAS() {
         if ( spiInitialized ) return;
         // initialize SPI hardware.
@@ -67,12 +68,27 @@ static uint8_t spiInitialized = false;
         SREG = oldSREG;  // undo cli() 
         spiInitialized = true;  
     }
+
+    static inline __attribute__((__always_inline__)) void startSpiWriteAS( uint8_t spiData[] ) {
+        digitalWrite( SS, LOW );
+        spiByteCount = 0;
+        SPDR = spiData[1];
+    }    
+    
+    
 #elif defined ARDUINO_AVR_ATTINYX4
-        static inline __attribute__((__always_inline__)) void initSpiAS() {
+    static inline __attribute__((__always_inline__)) void initSpiAS() {
         if ( spiInitialized ) return;
-        // not yet implemented
-} 
-#endif  // Ende unterschiedliche AVR Prozessoren für SPI
+        // set OutputPins MISO ( =DO )
+        USI_SCK_PORT |= _BV(USCK_DD_PIN);   //set the USCK pin as output
+        USI_DDR_PORT |= _BV(DO_DD_PIN);     //set the DO pin as output
+        USI_DDR_PORT &= ~_BV(DI_DD_PIN);    //set the DI pin as input
+        // set Controlregister USICR 
+        USICR = 0;  //reset
+        // set to 3-wire ( =SPI ) mode0,  Clock by USITC-bit, positive edge
+        USICR = _BV(USIWM0) | _BV(USICS1) | _BV(USICLK);
+    } 
+#endif  // Ende unterschiedliche AVR Prozessoren für initSPI
  
 static inline __attribute__((__always_inline__)) void enableStepperIsrAS() {
     #if defined(__AVR_ATmega8__)|| defined(__AVR_ATmega128__)

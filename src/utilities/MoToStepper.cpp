@@ -8,7 +8,7 @@
 #define COMPILING_MOTOSTEPPER_CPP
 
 #include <MobaTools.h>
-//#define debugTP
+#define debugTP
 #define debugPrint
 #include <utilities/MoToDbg.h>
 #define TODO	// ignore 
