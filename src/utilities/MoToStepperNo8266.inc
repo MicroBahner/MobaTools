@@ -45,10 +45,11 @@ void IRAM_ATTR stepperISR(nextCycle_t cyclesLastIRQ) {
             digitalWrite( stepperDataP->pins[0], HIGH );
             //stepperDataP->pins[3] = 0;
             resetPulse = true;
-            CLR_TP2;
             #endif
+            CLR_TP2;
         }
         if ( stepperDataP->rampState >= rampStat::CRUISING ) {
+            SET_TP3;
             // only active motors
             if ( stepperDataP->aCycSteps ) stepperDataP->cycCnt+=cyclesLastIRQ;
             #ifdef IS_32BIT
@@ -300,15 +301,15 @@ void IRAM_ATTR stepperISR(nextCycle_t cyclesLastIRQ) {
                 //CLR_TP2;
             } // End of do one step
 			CLR_TP2;
-            nextCycle = min ( nextCycle, nextCycle_t(stepperDataP->aCycSteps-stepperDataP->cycCnt) );
-            //SET_TP1;
+            nextCycle = (nextCycle_t)min ( (uintxx_t)nextCycle, (uintxx_t)stepperDataP->aCycSteps-stepperDataP->cycCnt );
+            CLR_TP3;
         } // end of 'if stepper active AND moving'
         else if ( stepperDataP->rampState == rampStat::STARTING ) {
             // we start with enablepin active ( cycCnt is already set to 0 )
             stepperDataP->aCycSteps = stepperDataP->cycDelay;
             if ( stepperDataP->stepRampLen > 0 ) stepperDataP->rampState = rampStat::RAMPACCEL;
             else                                stepperDataP->rampState = rampStat::CRUISING;
-            nextCycle = min ( nextCycle, nextCycle_t(stepperDataP->aCycSteps) );
+            nextCycle = (nextCycle_t)min ( (uintxx_t)nextCycle, (uintxx_t)stepperDataP->aCycSteps );
         } else if ( stepperDataP->rampState == rampStat::STOPPING  ) {
             stepperDataP->cycCnt+=cyclesLastIRQ;
             if ( stepperDataP->cycCnt >= stepperDataP->aCycSteps ) {
@@ -326,9 +327,9 @@ void IRAM_ATTR stepperISR(nextCycle_t cyclesLastIRQ) {
     // shift out spiStepperData, if SPI is active
     //SET_TP2;
     if ( spiInitialized && spiChanged ) {
-        SET_TP3;
+        SET_TP4;
         startSpiWriteAS( spiStepperData );
-        CLR_TP3;
+        CLR_TP4;
     }
     //CLR_TP4;
 } // ==================== End of stepper ISR ======================================
