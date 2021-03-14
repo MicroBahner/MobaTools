@@ -327,7 +327,7 @@ void IRAM_ATTR stepperISR(nextCycle_t cyclesLastIRQ) {
     //SET_TP2;
     if ( spiInitialized && spiChanged ) {
         SET_TP3;
-        //startSpiWriteAS( spiStepperData );
+        startSpiWriteAS( spiStepperData );
         CLR_TP3;
     }
     //CLR_TP4;

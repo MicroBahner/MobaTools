@@ -37,13 +37,11 @@ static inline __attribute__((__always_inline__)) void enableSoftLedIsrAS() {
 
 //////////////////////////////////////////////////////////////////////////////////////////////////
 #if defined COMPILING_MOTOSTEPPER_CPP
-static int rxData;      // dummy for STM32
 
 static inline __attribute__((__always_inline__)) void enableStepperIsrAS() {
     timer_cc_enable(MT_TIMER, STEP_CHN);
 }
 
-static int rxData;      // dummy for STM32
 static uint8_t spiInitialized = false;
 static inline __attribute__((__always_inline__)) void initSpiAS() {
     if ( spiInitialized ) return;

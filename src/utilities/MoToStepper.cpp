@@ -7,10 +7,10 @@
 */
 #define COMPILING_MOTOSTEPPER_CPP
 
-#include <MobaTools.h>
 #define debugTP
 #define debugPrint
 #include <utilities/MoToDbg.h>
+#include <MobaTools.h>
 #define TODO	// ignore 
 // Global Data for all instances and classes  --------------------------------
 #ifdef debugPrint
