@@ -260,7 +260,7 @@ void ISR_Servo( void) {
 
 const byte NO_ANGLE = 0xff;
 const byte NO_PIN = 0xff;
-const byte NOT_ATTACHED = -1;
+const int8_t NOT_ATTACHED = -1;
 
 MoToServo::MoToServo() //: _servoData.pin(NO_PIN),_angle(NO_ANGLE),_min16(1000/16),_max16(2000/16)
 {   _servoData.servoIx = servoCount++;

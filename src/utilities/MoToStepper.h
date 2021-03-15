@@ -21,7 +21,7 @@
 // Output modes ( outarg in attach method )
 #define NO_OUTPUT   0
 
-#ifdef __AVR_MEGA__
+#if defined PORTD && defined PORTB
 #define PIN8_11     1
 #define PIN4_7      2
 #endif

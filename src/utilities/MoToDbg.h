@@ -71,6 +71,20 @@
         #define MODE_TP4 DDRC |= (1<<4) //A4 
         #define SET_TP4 PORTC |= (1<<4) 
         #define CLR_TP4 PORTC &= ~(1<<4) 
+    #elif defined(ARDUINO_AVR_ATTINYX4) 
+        #warning "Debug-Ports active"
+        #define MODE_TP1 DDRA |= (1<<1) //1
+        #define SET_TP1 PORTA |= (1<<1)
+        #define CLR_TP1 PORTA &= ~(1<<1)
+        #define MODE_TP2 DDRA |= (1<<2) // 2
+        #define SET_TP2 PORTA |= (1<<2)
+        #define CLR_TP2 PORTA &= ~(1<<2)
+        #define MODE_TP3 DDRA |= (1<<3) //3
+        #define SET_TP3 PORTA |= (1<<3) 
+        #define CLR_TP3 PORTA &= ~(1<<3) 
+        #define MODE_TP4 DDRB |= (1<<0) //11 
+        #define SET_TP4 PORTB |= (1<<0) 
+        #define CLR_TP4 PORTB &= ~(1<<0) 
     #elif defined(__AVR_ATmega128__) ||defined(__AVR_ATmega1281__)||defined(__AVR_ATmega2561__)
     #elif defined (__SAM3X8E__)
         // Arduino Due

@@ -80,7 +80,7 @@ void IRAM_ATTR stepperISR(nextCycle_t cyclesLastIRQ) {
                 noInterrupts(); // because of read modify write actions in setting outputs
                 #endif
                 switch ( stepperDataP->output ) {
-                  #ifdef __AVR_MEGA__
+                  #if defined PORTD && defined PORTB
                   case PIN4_7:
                     PORTD = (PORTD & 0x0f) | ( stepPattern[ _patIx ] <<4 );   
                     break;

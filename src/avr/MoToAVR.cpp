@@ -84,6 +84,8 @@ void seizeTimerAS() {
 extern uint8_t spiStepperData[2]; // step pattern to be output on SPI
 extern uint8_t spiByteCount;
 
+#ifdef SPCR
+// use an ISR only if we have a 'real' SPI Hardware
 ISR ( SPI_STC_vect ) { 
     SET_TP4;
     // output step-pattern on SPI, set SS when ready
@@ -98,7 +100,7 @@ ISR ( SPI_STC_vect ) {
     CLR_TP4;
     
 }
-
+#endif
 
 void enableSoftLedIsrAS() {
 }

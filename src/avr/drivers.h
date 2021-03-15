@@ -12,14 +12,16 @@
 #define TICS_PER_MICROSECOND (clockCyclesPerMicrosecond() / 8 ) // prescaler is 8 = 0.5us
 
 // check supported AVR Processors
-#if !defined __AVR_MEGA__ && !defined ARDUINO_AVR_ATTINYX4 && !defined ARDUINO_AVR_ATTINYX8
+//#if !defined __AVR_MEGA__ && !defined ARDUINO_AVR_ATTINYX4 && !defined ARDUINO_AVR_ATTINYX8
+// we need a 16-Bit timer (TCNT1 or TCNT3) and an SPI or USI HW
+#if !( ( defined TCNT1H || defined TCNT3H ) && ( defined SPCR || defined USICR ) )
 #error "This AVR Processor is not supported"
 #endif
 
 // define timer to use
 #ifdef TCNT3
     // Timer 3 is available, use it
-    // #warning "Timer 3 used"
+    #warning "Timer 3 used"
     #define TCNTx       TCNT3
     #define GET_COUNT   TCNT3
     #define TIMERx_COMPB_vect TIMER3_COMPB_vect
@@ -49,7 +51,11 @@
     #define ICRx       ICR1
     #define OCIExA     OCIE1A
     #define OCIExB     OCIE1B
-    #define TIMSKx     TIMSK1
+    #ifdef TIMSK
+        #define TIMSKx     TIMSK
+    #else
+        #define TIMSKx     TIMSK1
+    #endif
 #endif    
 
 #define ARCHITECT_INCLUDE <avr/MoToAVR.h>

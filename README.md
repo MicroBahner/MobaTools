@@ -6,7 +6,7 @@ This library contains functionality
 - to control up to 6 stepper motors with accelerating and decelerating
 - to softly turn leds on and off ( bulb simulation )
 - to implement time functions without delay.
-- to debounce and evaluate up to 32 buttons/switches
+- to debounce and evaluate up to 32 buttons/switches (per instance)
 
 ### Installation
 

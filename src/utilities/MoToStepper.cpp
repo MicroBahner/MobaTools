@@ -154,7 +154,7 @@ uint8_t MoToStepper::attach( byte outArg, byte pins[] ) {
 	#endif
     uint8_t attachOK = true;
     switch ( outArg ) {
-      #ifdef __AVR_MEGA__
+      #if defined PORTD && defined PORTB
       case PIN4_7:
         if ( MoToStepper::outputsUsed.pin4_7 ) {
             // output already in use
@@ -245,7 +245,7 @@ void MoToStepper::detach() {   // no more moving, detach from output
     byte nPins=2;
     #endif
     switch ( _stepperData.output ) {
-      #ifdef __AVR_MEGA__
+      #if defined PORTD && defined PORTB
       case PIN4_7:
         DDRD &= 0x0f;   // Port D Pin4-7 as Input
         PORTD &= 0x0f;  // Pullups off
