@@ -31,8 +31,31 @@ static inline __attribute__((__always_inline__)) void enableServoIsrAS() {
 #endif // COMPILING_MOTOSOFTLED_CPP
 
 //////////////////////////////////////////////////////////////////////////////////////////////////
+// Wird auch in MoToAVR.cpp gebraucht ( SPI-Interrupt )
+extern volatile uint8_t *portSS;
+extern uint8_t bitSS;;
+#define SET_SS *portSS |= bitSS 
+#define CLR_SS *portSS &= ~bitSS 
 #if defined COMPILING_MOTOSTEPPER_CPP
-static uint8_t spiInitialized = false;
+    static uint8_t spiInitialized = false;
+    // Macros für fast setting of SS Port
+    #if !defined SPCR && defined USI_SS
+        // we don't have a HW SPI, and SS has been defined in MobaTools.h
+        #undef SS
+        #define SS USI_SS
+    #endif
+    #define STRING2(x) #x
+    #define STRING(x) "\n\r>>>>>>SS-Pin: "  STRING2(x)
+    #ifdef PIN_SPI_SS
+        #pragma message (STRING(PIN_SPI_SS))
+    #elif defined SS
+        #pragma message (STRING(SS))
+    #else
+        #pragma message "SS-Pin not defined"
+    #endif
+    
+    volatile uint8_t *portSS;
+    uint8_t bitSS;;
 
 #ifdef SPCR
     // we hae ar real SPI hardware
@@ -46,6 +69,8 @@ static uint8_t spiInitialized = false;
         cli();
         pinMode( MOSI, OUTPUT );
         pinMode( SCK, OUTPUT );
+        portSS = portOutputRegister(digitalPinToPort(SS));
+        bitSS = digitalPinToBitMask(SS);
         pinMode( SS, OUTPUT );
         SPCR = (1<<SPIE)    // Interrupt enable
              | (1<<SPE )    // SPI enable
@@ -54,13 +79,15 @@ static uint8_t spiInitialized = false;
              | (0<<CPOL)    // Clock is low when idle
              | (0<<CPHA)    // Data is sampled on leading edge
              | (0<<SPR1) | (1<<SPR0);    // fosc/16
-        digitalWrite( SS, HIGH );
+        //digitalWrite( SS, HIGH );
+        SET_SS;
         SREG = oldSREG;  // undo cli() 
         spiInitialized = true;  
     }
 
     static inline __attribute__((__always_inline__)) void startSpiWriteAS( uint8_t spiData[] ) {
-        digitalWrite( SS, LOW );
+        //digitalWrite( SS, LOW );
+        CLR_SS;
         spiByteCount = 0;
         SPDR = spiData[1];
     }    
@@ -68,9 +95,7 @@ static uint8_t spiInitialized = false;
     
 #elif defined USICR
     // only an USI HW is available
-    const byte tinySS = 7;
-        #define SET_SS PORTA |= (1<<7) 
-        #define CLR_SS PORTA &= ~(1<<7) 
+    
     #warning "USI in 3wire-Mode ist used"
     static inline __attribute__((__always_inline__)) void initSpiAS() {
         if ( spiInitialized ) return;
@@ -82,8 +107,10 @@ static uint8_t spiInitialized = false;
         USICR = 0;  //reset
         // set to 3-wire ( =SPI ) mode0,  Clock by USITC-bit, positive edge
         USICR = _BV(USIWM0) | _BV(USICS1) | _BV(USICLK);
-        pinMode( tinySS, OUTPUT );
-        digitalWrite( tinySS, HIGH );
+        portSS = portOutputRegister(digitalPinToPort(SS));
+        bitSS = digitalPinToBitMask(SS);
+        pinMode( SS, OUTPUT );
+        SET_SS; //digitalWrite( SS, HIGH );
         spiInitialized = true;  
     }
 
@@ -92,7 +119,43 @@ static uint8_t spiInitialized = false;
         SET_TP4;
         CLR_SS;
         USIDR = spiData[1];
-        USICR |= _BV(USITC);        
+        #ifdef FASTSPI  // SPI mit syclk/2
+        uint8_t usicrTemp = USICR | _BV(USITC);
+        USICR = usicrTemp;  // Anweisung benötigt einen systic      
+        USICR = usicrTemp;        
+        USICR = usicrTemp;        
+        USICR = usicrTemp;        
+        USICR = usicrTemp;        
+        USICR = usicrTemp;        
+        USICR = usicrTemp;        
+        USICR = usicrTemp;        
+        USICR = usicrTemp;        
+        USICR = usicrTemp;        
+        USICR = usicrTemp;        
+        USICR = usicrTemp;        
+        USICR = usicrTemp;        
+        USICR = usicrTemp;        
+        USICR = usicrTemp;        
+        USICR = usicrTemp;        
+        USIDR = spiData[0];
+        USICR = usicrTemp;        
+        USICR = usicrTemp;        
+        USICR = usicrTemp;        
+        USICR = usicrTemp;        
+        USICR = usicrTemp;        
+        USICR = usicrTemp;        
+        USICR = usicrTemp;        
+        USICR = usicrTemp;        
+        USICR = usicrTemp;        
+        USICR = usicrTemp;        
+        USICR = usicrTemp;        
+        USICR = usicrTemp;        
+        USICR = usicrTemp;        
+        USICR = usicrTemp;        
+        USICR = usicrTemp;        
+        USICR = usicrTemp;   
+        #else  // SPI mit syclk/4
+        USICR |= _BV(USITC);      // Anweisung benötigt zwei systic          
         USICR |= _BV(USITC);        
         USICR |= _BV(USITC);        
         USICR |= _BV(USITC);        
@@ -124,7 +187,8 @@ static uint8_t spiInitialized = false;
         USICR |= _BV(USITC);        
         USICR |= _BV(USITC);        
         USICR |= _BV(USITC);        
-        USICR |= _BV(USITC);        
+        USICR |= _BV(USITC);   
+        #endif
         SET_SS;
         CLR_TP4;
     }    

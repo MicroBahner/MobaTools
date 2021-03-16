@@ -10,7 +10,7 @@
   History:
   V2.4.0 03-2021
      - ESP32 prozessors are supported
-     - ATTInyx8 are supported
+     - ATtinyx4 are supported
      - Step-tuning for 32Bit prozessors ( exept ESP8266 ) for higher steprates
      - 
   V2.3.1 11-2020
@@ -94,7 +94,7 @@
 #define DEF_RAMP        0       // default ramp after attach 
     
 // default CYCLETIME is processordependent, change only if you know what you are doing ).
-#ifdef  ARDUINO_ARCH_ESP8266
+#ifdef  ARDUINO_ARCH_ESP8266 ///////////////////////////////////////////////////////////
 #define CYCLETIME       60      // Min. irq-periode in us ( ESP-default is 60 )
 #define MIN_STEP_CYCLE  2       // Minimum number of cycles per step. 
 #define MAX_GPIO        10      // max number of usable gpios
@@ -102,19 +102,24 @@
 // gpio 6-10 is internally used for flash
 // gpio16 has no interrupt capability ( but can be used as dir-pin for a stepper)
 
-#elif defined ARDUINO_ARCH_STM32F1
+#elif defined ARDUINO_ARCH_STM32F1 /////////////////////////////////////////////////////
 #define MIN_STEP_CYCLE  5   // Minimum number of µsec  between to step IRQ's ( end of ISR to start of next )
 
-#elif defined ARDUINO_ARCH_ESP32
+#elif defined ARDUINO_ARCH_ESP32 ///////////////////////////////////////////////////////
 #define USE_VSPI                // default is HSPI ( for SPI-Stepper )
 #define MIN_STEP_CYCLE 10     // Minimum number of µsec  between to step IRQ's
 
-#elif defined ARDUINO_ARCH_AVR
+#elif defined ARDUINO_ARCH_AVR ////////////////////////////////////////////////////////
 #define CYCLETIME       200     // Min. irq-periode in us ( default is 200 ), 
 #define MIN_STEP_CYCLE  2       // Minimum number of cycles per step. 
-#else
+#define FASTSPI                 // only for devices with USI Interface ( instead of SPI HW )
+                                // if defined SPI clock ist CPU clock / 2
+                                // if not defined, SPI clock ist CPU clock / 4
+//#define USI_SS  7               // defines the SS - Pin with USI-SPI-Stepper
+                                // if not defined the core-default (SS) is used
+#else ///////////////////////////////////////////////////////////////////////////////////
     #error Processor not supported
-#endif
+#endif //////////////////////////////////////////////////////////////////////////////////
 
 #define RAMPOFFSET      16      // startvalue of rampcounter
 

@@ -94,7 +94,8 @@ ISR ( SPI_STC_vect ) {
         SPDR = spiStepperData[0];
     } else {
         // end of data shifting
-        digitalWrite( SS, HIGH );
+        //digitalWrite( SS, HIGH );
+        SET_SS;
         spiByteCount = 0;
     }
     CLR_TP4;
