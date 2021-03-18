@@ -12,6 +12,13 @@ This library contains functionality
 
 Released versions can be installed by means of the library manager in arduino IDE
 
+#### supported processors
+- AVR ATmega
+- AVR ATtiny, if it has the 16-bit timer 1 and a SPI or USI hardware
+- STM32F103x processors ( the core of Roger Clark must be used )
+- ESP32
+- ESP8266 ( with some restrictions, Stepper via SPI does not work )
+
 A documentation file in [german](MobaTools-23-de.pdf) and [english](MobaTools-23-en.pdf) is provided.
 
 **Latest changes:**
@@ -19,7 +26,7 @@ A documentation file in [german](MobaTools-23-de.pdf) and [english](MobaTools-23
 | Version |  Release Date  | Description
 | ------- |  ------------  | -----------
 | 2.4.0 | 2021-0?-??| ESP32 processor is now supported
-| | | ATTinyx4 processors are now supported
+| | | ATTiny processors that have timer 1 (16-bit) and SPI or USI hadware are supported
 | | | some optimizing for 32-Bit processors, which leads to significant faster steprates for ESP32 and STM32F1
 | | | ESP32 creates servopulses by hardware ( they are much more stable )
 | 2.3.1 | 2020-11-07| fix error in doSteps: motor did not stop with doSteps(0) and no ramp
@@ -36,17 +43,6 @@ A documentation file in [german](MobaTools-23-de.pdf) and [english](MobaTools-23
 | | | new method 'getSpeedSteps' returns actual speed
 | | | ESP8266 is now supported ( with limitations regarding stepper mode: only step/dir is possible )
 | | | classnames have changed ( the old names can still be used for compatibility, but should not be used in new sketches)
-| 1.1.5 | 2019-12-29 | Servo8: fix timing error if first and second write after attach are too close together
-| 1.1.4 | 2019-09-25 | check for setting speed to 0 ( this is not allowed, will be changed to '1' internally )
-| | | fix error when setting targetposition repetitive very fast
-| | | allow higher steprates (up to 2500 steps/sec)at the expense of higher relative jitter at these rates
-| | | ( absolute jitter is 200µs )
-| 1.1.3 | 2019-08-22 | fix errors when converting angle to microseconds and vice versa in servo class
-| | | fix errors when converting angle to steps and vice versa in stepper class
-| | | no more warnings
-| 1.1.2 | 2019-08-03 | fix error, when only servo objects are defined (sketch crashed), 2 more Stepper examples
-| 1.1.1 | 2019-07-29 | acceleration/deceleration for steppermotors is now possible
-| | | optimized flash usage when only part of the functionality is used
 
 ### Classes
 

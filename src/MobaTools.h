@@ -3,9 +3,20 @@
 /*
   MobaTools.h - a library for model railroaders
   Author: fpm, fpm-gh@mnet-mail.de
-  Copyright (c) 2020 All right reserved.
+  Copyright (c) 2021 All rights reserved.
 
-  MobaTools V2.3.1
+ * 	This library is free software; you can redistribute it and/or
+ * 	modify it under the terms of the GNU Lesser General Public
+ * 	License as published by the Free Software Foundation; either
+ * 	version 2.1 of the License, or (at your option) any later version.
+ * 
+ * 	This library is distributed in the hope that it will be useful,
+ * 	but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * 	Lesser General Public License for more details.
+ * 
+
+  MobaTools V2.4.0
    
   History:
   V2.4.0 03-2021
