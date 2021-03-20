@@ -19,7 +19,7 @@ Released versions can be installed by means of the library manager in arduino ID
 - ESP32
 - ESP8266 ( with some restrictions, Stepper via SPI does not work )
 
-A documentation file in [german](MobaTools-23-de.pdf) and [english](MobaTools-23-en.pdf) is provided.
+A documentation file in [german](MobaTools-24-de.pdf) and [english](MobaTools-24-en.pdf) is provided.
 
 **Latest changes:**
 

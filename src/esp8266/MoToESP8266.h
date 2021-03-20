@@ -1,7 +1,7 @@
 #ifndef MOTOESP8266_H
 #define MOTOESP8266_H
 // ESP8266 specific declarations for Cpp files
-#warning ESP8266 specific cpp includes
+//#warning ESP8266 specific cpp includes
 
 static inline __attribute__((__always_inline__)) void _noStepIRQ() {
 			noInterrupts();

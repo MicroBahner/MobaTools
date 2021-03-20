@@ -3,5 +3,5 @@
 #include <arduino.h>
 #include "drivers.h"
 
-#warning "HW specfic - avr ---"
+//#warning "HW specfic - avr ---"
 #endif

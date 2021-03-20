@@ -59,7 +59,7 @@ extern uint8_t bitSS;;
 
 #ifdef SPCR
     // we hae ar real SPI hardware
-    #warning "SPI Hardware is used"
+    //#warning "SPI Hardware is used"
     uint8_t spiByteCount = 0;
     static inline __attribute__((__always_inline__)) void initSpiAS() {
         if ( spiInitialized ) return;
@@ -96,7 +96,7 @@ extern uint8_t bitSS;;
 #elif defined USICR
     // only an USI HW is available
     
-    #warning "USI in 3wire-Mode ist used"
+    //#warning "USI in 3wire-Mode ist used"
     static inline __attribute__((__always_inline__)) void initSpiAS() {
         if ( spiInitialized ) return;
         // set OutputPins MISO ( =DO )

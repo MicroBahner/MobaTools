@@ -39,5 +39,5 @@ extern gpioISR_t gpioTab[MAX_GPIO];
 // the following is included at the end of MoToBase.h
 #define ARCHITECT_INCLUDE <esp8266/MoToESP8266.h>
 
-//^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ end of ESP8266 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+//^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ end of ESP8266 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 #endif

@@ -59,21 +59,21 @@ void seizeTimer1();
 //#define LEDC_USE_SDK          // use SDK calls für Servo & Led Pulses ( interrupts are disbled during flash access )
 
 #ifdef COMPILING_MOTOSERVO_CPP
-    #warning compiling servo.cpp for ESP32
+    //#warning compiling servo.cpp for ESP32
     #undef interrupts
     #undef noInterrupts
     #define interrupts()    portEXIT_CRITICAL(&servoMux);
     #define noInterrupts()  portENTER_CRITICAL(&servoMux);
 #endif
 #ifdef COMPILING_MOTOSOFTLED_CPP
-    #warning compiling softled.cpp for ESP32
+    //#warning compiling softled.cpp for ESP32
     #undef interrupts
     #undef noInterrupts
     #define interrupts()    portEXIT_CRITICAL(&softledMux);
     #define noInterrupts()  portENTER_CRITICAL(&softledMux);
 #endif
 #ifdef COMPILING_MOTOSTEPPER_CPP
-    #warning compiling stepper.cpp for ESP32
+    //#warning compiling stepper.cpp for ESP32
     #undef interrupts
     #undef noInterrupts
     #define interrupts()    portEXIT_CRITICAL(&stepperMux);

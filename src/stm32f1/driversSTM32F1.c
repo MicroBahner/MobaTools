@@ -3,7 +3,7 @@
 #define bool int
 #include <stm32f1/drivers.h>
 
-#warning "HW specfic - STM32F1 ---"
+//#warning "HW specfic - STM32F1 ---"
 
 
 #endif

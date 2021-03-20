@@ -26,7 +26,7 @@
 #define HWTIMER_LOCK()      portENTER_CRITICAL(timer->lock)
 #define HWTIMER_UNLOCK()    portEXIT_CRITICAL(timer->lock)
 
-#warning "compiling local esp-timer.c"
+//#warning "compiling local esp-timer.c"
 
 typedef struct {
     union {

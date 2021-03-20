@@ -21,7 +21,7 @@
 // define timer to use
 #ifdef TCNT3
     // Timer 3 is available, use it
-    #warning "Timer 3 used"
+    //#warning "Timer 3 used"
     #define TCNTx       TCNT3
     #define GET_COUNT   TCNT3
     #define TIMERx_COMPB_vect TIMER3_COMPB_vect

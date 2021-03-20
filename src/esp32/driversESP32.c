@@ -20,7 +20,7 @@
 // version with sdk calls
 #include <driver/ledc.h>
 
-#warning "HW specfic drivers.c (using sdk) - ESP32  --"
+//#warning "HW specfic drivers.c (using sdk) - ESP32  --"
 
 // variant with using the sdk to configure ledc hardware
 #define groupUsed(pwmNr)    ((pwmNr)/8)
