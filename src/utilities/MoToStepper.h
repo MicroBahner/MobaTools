@@ -129,7 +129,7 @@ class MoToStepper
     uint8_t _stepperIx;              // Objectnumber ( 0 ... MAX_STEPPER )
     long stepsRev;                   // steps per full rotation
     uintxx_t _stepSpeed10;      	// speed in steps/10sec
-    uint16_t _lastRampLen ;         // last manually set ramplen
+    uintxx_t _lastRampLen ;         // last manually set ramplen
     uintxx_t _lastRampSpeed;        // speed when ramp was set manually
     long stepsToMove;               // from last point
     uint8_t stepMode;               // FULLSTEP or HALFSTEP

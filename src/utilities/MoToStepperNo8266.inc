@@ -30,12 +30,12 @@ void IRAM_ATTR stepperISR(nextCycle_t cyclesLastIRQ) {
         //CLR_TP1;    // spike for recognizing start of each stepper
         #ifdef IS_32BIT
         bool resetPulse = false; // for 32Bit reset pulse und setting new pulse is never done in same IRQ
-        //if ( stepperDataP->output == A4988_PINS && stepperDataP->pins[3] ) {
+        // an active pulse is LOW on 32bit processoers !
         if ( stepperDataP->output == A4988_PINS && !digitalRead(stepperDataP->pins[0]) ) {
         #else
         if ( stepperDataP->output == A4988_PINS  ) {
         #endif
-            SET_TP2;
+            //SET_TP2;
             // reset step pulse - pulse is max one cycle lenght
             #ifdef FAST_PORTWRT
             noInterrupts();
@@ -43,13 +43,12 @@ void IRAM_ATTR stepperISR(nextCycle_t cyclesLastIRQ) {
             interrupts();
             #else
             digitalWrite( stepperDataP->pins[0], HIGH );
-            //stepperDataP->pins[3] = 0;
             resetPulse = true;
             #endif
-            CLR_TP2;
+            //CLR_TP2;
         }
         if ( stepperDataP->rampState >= rampStat::CRUISING ) {
-            SET_TP3;
+            //SET_TP3;
             // only active motors
             if ( stepperDataP->aCycSteps ) stepperDataP->cycCnt+=cyclesLastIRQ;
             #ifdef IS_32BIT
@@ -57,7 +56,12 @@ void IRAM_ATTR stepperISR(nextCycle_t cyclesLastIRQ) {
                 //SET_TP2;
                 stepperDataP->cycCnt = stepperDataP->cycCnt - stepperDataP->aCycSteps ;
                 // 'Aufholen' zu langsamer Interrupts begrenzen
-                if ( stepperDataP->cycCnt > 25 ) stepperDataP->cycCnt = 25;
+                // cycCnt darf nie größer als aCycSteps werden ( maximale Steprate )!
+                if ( stepperDataP->cycCnt >= stepperDataP->aCycSteps ) { 
+                    //SET_TP4; 
+                    stepperDataP->cycCnt = stepperDataP->aCycSteps; 
+                }
+                //CLR_TP4;
             #else
             if ( stepperDataP->cycCnt >= ( stepperDataP->aCycSteps ) ) {
                 //SET_TP2;
@@ -301,8 +305,15 @@ void IRAM_ATTR stepperISR(nextCycle_t cyclesLastIRQ) {
                 //CLR_TP2;
             } // End of do one step
 			CLR_TP2;
+            #ifdef IS_32BIT
+            // check if max possible speed - is made at the beginning of the ISR
+            if ( stepperDataP->aCycSteps < stepperDataP->cycCnt ) {
+                stepperDataP->cycCnt = stepperDataP->aCycSteps ;
+                //SET_TP2; 
+            }
+            #endif
             nextCycle = (nextCycle_t)min ( (uintxx_t)nextCycle, (uintxx_t)stepperDataP->aCycSteps-stepperDataP->cycCnt );
-            CLR_TP3;
+            //CLR_TP3;
         } // end of 'if stepper active AND moving'
         else if ( stepperDataP->rampState == rampStat::STARTING ) {
             // we start with enablepin active ( cycCnt is already set to 0 )
@@ -327,9 +338,9 @@ void IRAM_ATTR stepperISR(nextCycle_t cyclesLastIRQ) {
     // shift out spiStepperData, if SPI is active
     //SET_TP2;
     if ( spiInitialized && spiChanged ) {
-        SET_TP4;
+        //SET_TP4;
         startSpiWriteAS( spiStepperData );
-        CLR_TP4;
+        //CLR_TP4;
     }
     //CLR_TP4;
 } // ==================== End of stepper ISR ======================================
@@ -338,6 +349,7 @@ void IRAM_ATTR stepperISR(nextCycle_t cyclesLastIRQ) {
 uintxx_t MoToStepper::setSpeedSteps( uintxx_t speed10, int rampLen ) {
     // Set speed and length of ramp to reach speed ( from stop )
     // neagtive ramplen means it was set automatically
+     SET_TP4;
     rampStat newRampState;      // State of acceleration/deceleration
     uintxx_t tCycSteps;         // nbr of IRQ cycles per step ( new target value of motorspeed  )
 	#ifndef IS_32BIT
@@ -387,26 +399,27 @@ uintxx_t MoToStepper::setSpeedSteps( uintxx_t speed10, int rampLen ) {
     
     // recompute all relevant rampvalues according to actual speed and ramplength
     // This needs to be done only, if a ramp is defined, the stepper is moving
-    // and the speed an ramp values changed
+    // and the speed and ramp values changed
     // In all other cases the new speed/ramp values will get active immediately
-    _noStepIRQ(); //SET_TP2;
+    _noStepIRQ();
     if ( (_stepperData.stepRampLen + newRampLen ) != 0
         && _chkRunning() 
         &&  newCyctXramplen != _stepperData.cyctXramplen ) {
         // local variables to hold data that might change in IRQ:
         // If there was a step during recomputing the rampvalues, we must recompute again
         // recomputing the rampvalues lasts too long to stop the IRQ during the whole time
+        CLR_TP4;
         uint32_t        __stepCnt;
         uint32_t        __newStepCnt;
         uint32_t        __newStepCnt2;
-        
-         do {
+        uint8_t loopCnt = 5;
+        do { CLR_TP4;
             // read actual ISR values
             newRampState = _stepperData.rampState;
             __stepCnt       =  _stepperData.stepCnt; 
             __newStepCnt    = 0;    // if stepcnt is to be changed
             __newStepCnt2   = 0;
-            _stepIRQ(); //CLR_TP2;
+            if ( --loopCnt ) _stepIRQ(true); //CLR_TP2;
             //with ramp and ramp or speed changed 
             // compute new 'steps in Ramp' according to new speed and ramp values. This maybe greater
             // than ramplen, if speed changed to slower
@@ -447,9 +460,10 @@ uintxx_t MoToStepper::setSpeedSteps( uintxx_t speed10, int rampLen ) {
                 __newStepCnt = newStepsInRamp;
                 newRampState = rampStat::RAMPDECEL;
             }
-            _noStepIRQ(); //SET_TP2;
+            if (loopCnt ) _noStepIRQ(); //SET_TP2;
+            SET_TP4;
             //Serial.print(" ) ");Serial.print(_stepperData.rampState);
-        } while ( __stepCnt != _stepperData.stepCnt ); // if there was a step during computing, do it again
+        } while ( __stepCnt != _stepperData.stepCnt && loopCnt ); // if there was a step during computing, do it again
         _stepperData.rampState = newRampState;
         _stepperData.stepsInRamp = newStepsInRamp;
         _stepperData.deltaSteps = newDeltaSteps;
@@ -465,9 +479,9 @@ uintxx_t MoToStepper::setSpeedSteps( uintxx_t speed10, int rampLen ) {
 	#endif
     _stepperData.cyctXramplen = newCyctXramplen;
     _stepperData.stepRampLen = newRampLen;
-    _stepIRQ(); //CLR_TP2;
+    _stepIRQ(true); CLR_TP4;
     _stepSpeed10 = newSpeed10;
-    
+    CLR_TP4;
     prDynData();
     return _stepperData.stepRampLen;
 }

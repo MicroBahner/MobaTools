@@ -5,25 +5,28 @@
   Author: fpm, fpm-gh@mnet-mail.de
   Copyright (c) 2021 All rights reserved.
 
- * 	This library is free software; you can redistribute it and/or
- * 	modify it under the terms of the GNU Lesser General Public
- * 	License as published by the Free Software Foundation; either
- * 	version 2.1 of the License, or (at your option) any later version.
- * 
- * 	This library is distributed in the hope that it will be useful,
- * 	but WITHOUT ANY WARRANTY; without even the implied warranty of
- * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- * 	Lesser General Public License for more details.
- * 
+  This library is free software; you can redistribute it and/or
+  modify it under the terms of the GNU Lesser General Public
+  License as published by the Free Software Foundation; either
+  version 2.1 of the License, or (at your option) any later version.
+  
+  This library is distributed in the hope that it will be useful,
+  but WITHOUT ANY WARRANTY; without even the implied warranty of
+  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+  Lesser General Public License for more details.
+
+  You should have received a copy of the GNU Lesser General Public
+  License along with this library; if not, write to the Free Software
+  Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
   MobaTools V2.4.0
    
   History:
   V2.4.0 03-2021
      - ESP32 prozessors are supported
-     - ATtinyx4 are supported
+     - some ATtiny are supported ( needs a 16bit-timer1 amd a SPI or USI hardware )
      - Step-tuning for 32Bit prozessors ( exept ESP8266 ) for higher steprates
-     - 
+     - more examples
   V2.3.1 11-2020
      - Fix error with doSteps(0) and no ramp. Motor did not stop
   V2.3 07-2020
@@ -121,7 +124,7 @@
 #define MIN_STEP_CYCLE 10     // Minimum number of µsec  between to step IRQ's
 
 #elif defined ARDUINO_ARCH_AVR ////////////////////////////////////////////////////////
-#define CYCLETIME       200     // Min. irq-periode in us ( default is 200 ), 
+#define CYCLETIME       100     // Min. irq-periode in us ( default is 200 ), 
 #define MIN_STEP_CYCLE  2       // Minimum number of cycles per step. 
 #define FASTSPI                 // only for devices with USI Interface ( instead of SPI HW )
                                 // if defined SPI clock ist CPU clock / 2

@@ -1,7 +1,7 @@
 // ESP32 HW-spcific Functions
 #ifdef ARDUINO_ARCH_ESP32
 #include <MobaTools.h>
-//#define debugTP
+#define debugTP
 //#define debugPrint
 #include <utilities/MoToDbg.h>
 
@@ -43,7 +43,7 @@ portMUX_TYPE softledMux = portMUX_INITIALIZER_UNLOCKED;
 hw_timer_t * stepTimer = NULL;
 
 void seizeTimerAS() {
-bool timerInitialized = false;
+static bool timerInitialized = false;
     // Initiieren des Stepper Timers ------------------------
     if ( !timerInitialized ) {
         stepTimer = timerBegin(STEPPER_TIMER, DIVIDER, true); // true= countup

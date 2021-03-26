@@ -4,15 +4,26 @@
 
 //#warning AVR specific cpp includes
 void seizeTimerAS();
+extern uint8_t noStepISR_Cnt;   // Counter for nested StepISr-disable
 
 // _noStepIRQ und _stepIRQ werden in servo.cpp und stepper.cpp genutzt
 static inline __attribute__((__always_inline__)) void _noStepIRQ() {
         TIMSKx &= ~_BV(OCIExB) ; 
+    noStepISR_Cnt++;
+    #if defined COMPILING_MOTOSTEPPER_CPP
+    SET_TP3;
+    #endif
     interrupts(); // allow other interrupts
 }
 
-static inline __attribute__((__always_inline__)) void  _stepIRQ() {
+static inline __attribute__((__always_inline__)) void  _stepIRQ(bool force = false) {
+    if ( force ) noStepISR_Cnt = 1; //enable IRQ immediately
+    if ( --noStepISR_Cnt == 0 ) {
+        #if defined COMPILING_MOTOSTEPPER_CPP
+            CLR_TP3;
+        #endif
         TIMSKx |= _BV(OCIExB) ; 
+    }
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////

@@ -6,7 +6,7 @@
 //#define debugPrint
 
 // über diese undefs kann das Debugging global abgeschaltet werden
-#undef debugTP
+//#undef debugTP
 #undef debugPrint
 
 #ifdef debugTP 
@@ -24,27 +24,6 @@
         #define SET_TP4 PORTF |= (1<<5) 
         #define CLR_TP4 PORTF &= ~(1<<5) 
     #elif defined(__AVR_ATmega32U4__)
-        /*#define MODE_TP1 DDRF |= (1<<4) //A3
-        #define SET_TP1 PORTF |= (1<<4)
-        #define CLR_TP1 PORTF &= ~(1<<4)
-        #define MODE_TP2 DDRF |= (1<<5) //A2
-        #define SET_TP2 PORTF |= (1<<5)
-        #define CLR_TP2 PORTF &= ~(1<<5)
-        #define MODE_TP3 DDRD |= (1<<3) //D1
-        #define SET_TP3 PORTD |= (1<<3)
-        #define CLR_TP3 PORTD &= ~(1<<3)
-        #define MODE_TP4 DDRD |= (1<<2) //D0
-        #define SET_TP4 PORTD |= (1<<2)
-        #define CLR_TP4 PORTD &= ~(1<<2)
-        #define MODE_TP2 
-        #define SET_TP2 
-        #define CLR_TP2 
-        #define MODE_TP3 
-        #define SET_TP3 
-        #define CLR_TP3 
-        #define MODE_TP4 
-        #define SET_TP4 
-        #define CLR_TP4 */
         #define MODE_TP1 DDRF |= (1<<0) //A5
         #define SET_TP1 PORTF |= (1<<0)
         #define CLR_TP1 PORTF &= ~(1<<0)
@@ -101,32 +80,23 @@
         #define SET_TP4  REG_PIOA_SODR = (1<<6)
         #define CLR_TP4  REG_PIOA_CODR = (1<<6)
     #elif defined (__STM32F1__)
-        // STM32F103... ( SPI2-Pins! pin 31-28 maple mini )
-        /*#define MODE_TP1 pinMode( PB12,OUTPUT )   // TP1= PB12
-        #define SET_TP1  gpio_write_bit( GPIOB,12, HIGH );
-        #define CLR_TP1  gpio_write_bit( GPIOB,12, LOW );
-        #define MODE_TP2 pinMode( PB13,OUTPUT )   // TP2= PB13
-        #define SET_TP2  gpio_write_bit( GPIOB,13, HIGH );
-        #define CLR_TP2  gpio_write_bit( GPIOB,13, LOW );
-        #define MODE_TP3 pinMode( PB14,OUTPUT )   // TP3 = PB14
-        #define SET_TP3  gpio_write_bit( GPIOB,14, HIGH );
-        #define CLR_TP3  gpio_write_bit( GPIOB,14, LOW );
-        #define MODE_TP4 pinMode( PB15,OUTPUT )   // TP4 = PB15
-        #define SET_TP4  gpio_write_bit( GPIOB,15, HIGH );
-        #define CLR_TP4  gpio_write_bit( GPIOB,15, LOW );*/
         //Test-HW füer Stepper:
-        #define MODE_TP1 pinMode( PA0,OUTPUT )   // TP1= PA1
-        #define SET_TP1  digitalWrite( PA0, HIGH );
-        #define CLR_TP1  digitalWrite( PA0, LOW );
-        #define MODE_TP2 pinMode( PA1,OUTPUT )  
-        #define SET_TP2  digitalWrite( PA1, HIGH );
-        #define CLR_TP2  digitalWrite( PA1, LOW );
-        #define MODE_TP3 pinMode( PA2,OUTPUT )   // 
-        #define SET_TP3  digitalWrite( PA2, HIGH );
-        #define CLR_TP3  digitalWrite( PA2, LOW );
-        #define MODE_TP4 pinMode( PA3,OUTPUT )   // 
-        #define SET_TP4  digitalWrite( PA3, HIGH );
-        #define CLR_TP4  digitalWrite( PA3, LOW );
+        #define TP1 PB1
+        #define TP2 PB0
+        #define TP3 PB13 
+        #define TP4 PB15
+        #define MODE_TP1 pinMode( TP1,OUTPUT )   // TP1= PA1
+        #define SET_TP1  digitalWrite( TP1, HIGH )
+        #define CLR_TP1  digitalWrite( TP1, LOW )
+        #define MODE_TP2 pinMode( TP2,OUTPUT )  
+        #define SET_TP2  digitalWrite( TP2, HIGH )
+        #define CLR_TP2  digitalWrite( TP2, LOW )
+        #define MODE_TP3 pinMode( TP3,OUTPUT )   // 
+        #define SET_TP3  digitalWrite( TP3, HIGH )
+        #define CLR_TP3  digitalWrite( TP3, LOW )
+        #define MODE_TP4 pinMode( TP4,OUTPUT )   // 
+        #define SET_TP4  digitalWrite( TP4, HIGH )
+        #define CLR_TP4  digitalWrite( TP4, LOW )
     #elif defined ESP8266
         #define MODE_TP1 pinMode( 15,OUTPUT )  // GPIO 15
         #define SET_TP1  GPOS = (1 << 15)
@@ -142,10 +112,10 @@
         #define CLR_TP4 
          
     #elif defined ESP32
-        #define TP1 14
-        #define TP2 12
-        #define TP3 13
-        #define TP4 15
+        #define TP1 15
+        #define TP2 21
+        #define TP3 14
+        #define TP4 13
         #define MODE_TP1 pinMode( TP1,OUTPUT )  // GPIO 13
         #define SET_TP1  digitalWrite( TP1, HIGH )
         #define CLR_TP1  digitalWrite( TP1, LOW )

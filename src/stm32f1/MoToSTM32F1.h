@@ -1,18 +1,34 @@
 #ifndef MOTOSTM32F1_H
 #define MOTOSTM32F1_H
-// ESP32 specific defines for Cpp files
+// STM32F1 specific defines for Cpp files
 
 //#warning STM32F1 specific cpp includes
+extern uint8_t noStepISR_Cnt;   // Counter for nested StepISr-disable
 
 void seizeTimerAS();
 static inline __attribute__((__always_inline__)) void _noStepIRQ() {
-            timer_disable_irq(MT_TIMER, TIMER_STEPCH_IRQ);
-            // *bb_perip(&(MT_TIMER->regs).adv->DIER, TIMER_STEPCH_IRQ) = 0;
+    //timer_disable_irq(MT_TIMER, TIMER_STEPCH_IRQ);
+    *bb_perip(&(MT_TIMER->regs).adv->DIER, TIMER_STEPCH_IRQ) = 0;
+    noStepISR_Cnt++;
+    //noInterrupts();
+    //nvic_globalirq_disable();
+    #if defined COMPILING_MOTOSTEPPER_CPP
+        Serial.println(noStepISR_Cnt);
+        SET_TP3;
+    #endif
 }
-static inline __attribute__((__always_inline__)) void  _stepIRQ() {
+static inline __attribute__((__always_inline__)) void  _stepIRQ(bool force = false) {
     //timer_enable_irq(MT_TIMER, TIMER_STEPCH_IRQ) cannot be used, because this also clears pending irq's
-    *bb_perip(&(MT_TIMER->regs).adv->DIER, TIMER_STEPCH_IRQ) = 1;
-    interrupts();
+    if ( force ) noStepISR_Cnt = 1; //enable IRQ immediately
+    if ( --noStepISR_Cnt == 0 ) {
+        #if defined COMPILING_MOTOSTEPPER_CPP
+            CLR_TP3;
+        #endif
+        *bb_perip(&(MT_TIMER->regs).adv->DIER, TIMER_STEPCH_IRQ) = 1;
+        //nvic_globalirq_enable();
+        //interrupts();
+    }
+    Serial.println(noStepISR_Cnt);
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////

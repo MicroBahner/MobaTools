@@ -6,10 +6,17 @@
 void seizeTimerAS();
 void ISR_Servo( void *arg );
 inline __attribute__((__always_inline__)) void _noStepIRQ() {
-            portENTER_CRITICAL(&stepperMux);
+    portENTER_CRITICAL(&stepperMux);
+    #if defined COMPILING_MOTOSTEPPER_CPP
+    SET_TP3;
+    #endif
 }
-inline __attribute__((__always_inline__)) void  _stepIRQ() {
-            portEXIT_CRITICAL(&stepperMux);
+inline __attribute__((__always_inline__)) void  _stepIRQ(bool force = true) { 
+    // paramter force needed for compatibility with other architectures
+        #if defined COMPILING_MOTOSTEPPER_CPP
+            CLR_TP3;
+        #endif
+    portEXIT_CRITICAL(&stepperMux);
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////

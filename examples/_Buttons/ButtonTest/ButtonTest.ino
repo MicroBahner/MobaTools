@@ -4,7 +4,7 @@
 
 #include <MoToButtons.h>
 // Variablen deklarieren und mit definierten Grundwerten vorbelegen
-const byte tasterPinNr [] = { A0, A1, A2, A3 };
+const byte tasterPinNr [] = { 14, 15, 16, 17 };     // = A0...A3 auf UNO/Nano
 const byte anzahlTaster = sizeof(tasterPinNr);                  // Anzahl der angeschlossenen Taster
 // Variablen für die LEDs
 const byte LEDgruenPinNr[] = { 2, 3, 4, 5 };  // Array für Pin-Nummern der grünen LEDs definieren
@@ -46,15 +46,16 @@ void loop() {
   
   // Block "Verarbeitung / Ausgabe": TasterStellung auswerten und Aktion durchführen
   for (byte i = 0; i < anzahlTaster; i++) {
-    // Mit dieser Bedingung wird mit steigender Flanke (also beim Drücken des Tasters) geschaltet
-    // -> beim Drücken rote Led toggeln
+    // Mit dieser Bedingung wird bei langem Tastendruck (also hier 500ms nach dem Drücken des Tasters) geschaltet
+    // -> beim langen Drücken rote Led toggeln
     if ( Taster1.longPress(i) ) {
       digitalWrite(LEDrotPinNr[i], !digitalRead(LEDrotPinNr[i]));      // rote LED einschalten
       Serial.print(" Langer Tastendruck: "); Serial.println(i);
     }
 
-    // Mit dieser Bedingung wird mit fallender Flanke (also beim Loslassen des Tasters) geschaltet
-    // -> beim Loslassen gruene Led toggeln
+    // Mit dieser Bedingung wird bei kurzem Tastendruck geschaltet
+    // (also beim Loslassen des Tasters bei weniger als 500ms Drückzeit )
+    // -> beim Loslassen (nach kurzem Drücken ) gruene Led toggeln
     if ( Taster1.shortPress(i) ) {
       digitalWrite(LEDgruenPinNr[i], !digitalRead(LEDgruenPinNr[i]));      // rote LED ausschalten
       Serial.print(" Kurzer Tastendruck: "); Serial.println(i);

@@ -7,6 +7,7 @@
 
 //#warning "HW specfic - avr ---"
 
+uint8_t noStepISR_Cnt;   // Counter for nested StepISr-disable
 
 //void ISR_Stepper(void);     // defined in MoToISR.cpp
 nextCycle_t nextCycle;
@@ -87,7 +88,7 @@ extern uint8_t spiByteCount;
 #ifdef SPCR
 // use an ISR only if we have a 'real' SPI Hardware
 ISR ( SPI_STC_vect ) { 
-    SET_TP4;
+    //SET_TP4;
     // output step-pattern on SPI, set SS when ready
     if ( spiByteCount++ == 0 ) {
         // end of shifting out high Byte, shift out low Byte
@@ -98,7 +99,7 @@ ISR ( SPI_STC_vect ) {
         SET_SS;
         spiByteCount = 0;
     }
-    CLR_TP4;
+    //CLR_TP4;
     
 }
 #endif

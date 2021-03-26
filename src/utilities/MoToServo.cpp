@@ -26,7 +26,7 @@ void IRAM_ATTR ISR_Servo( void *arg ) {
     portENTER_CRITICAL_ISR(&servoMux);
     SET_TP2;
     if ( _servoData->ist != _servoData->soll ) {
-        SET_TP1;
+        //SET_TP1;
         _servoData->offcnt = 50;
         if ( _servoData->ist > _servoData->soll ) {
             _servoData->ist -= _servoData->inc;
@@ -39,16 +39,16 @@ void IRAM_ATTR ISR_Servo( void *arg ) {
         //Serial.println(_servoData->ist );
             servoWrite( _servoData, _servoData->ist ); 
         //SET_TP1;
-        CLR_TP1;
+        //CLR_TP1;
     } else if ( !_servoData->noAutoff ) { // no change in pulse length, look for autooff
         if ( --_servoData->offcnt == 0 ) {
             SET_TP3;
             servoPulseOff( _servoData );
-            CLR_TP3;
+            //CLR_TP3;
         }
     }
     portEXIT_CRITICAL_ISR(&servoMux);
-    CLR_TP2;
+    //CLR_TP2;
 }
 #endif //IS_ESP
 
