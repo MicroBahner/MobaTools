@@ -25,7 +25,7 @@
   V2.4.0 03-2021
      - ESP32 prozessors are supported
      - some ATtiny are supported ( needs a 16bit-timer1 amd a SPI or USI hardware )
-     - Step-tuning for 32Bit prozessors ( exept ESP8266 ) for higher steprates
+     - Step-tuning for 32Bit prozessors ( except ESP8266 ) for higher steprates
      - more examples
   V2.3.1 11-2020
      - Fix error with doSteps(0) and no ramp. Motor did not stop
@@ -102,10 +102,6 @@
 
 // defines that may be changed by the user
 
-// stepper related defines
-#define MAX_STEPPER     6       // 
-#define DEF_SPEEDSTEPS  3000    // default speed after attach
-#define DEF_RAMP        0       // default ramp after attach 
     
 // default CYCLETIME is processordependent, change only if you know what you are doing ).
 #ifdef  ARDUINO_ARCH_ESP8266 ///////////////////////////////////////////////////////////
@@ -117,7 +113,7 @@
 // gpio16 has no interrupt capability ( but can be used as dir-pin for a stepper)
 
 #elif defined ARDUINO_ARCH_STM32F1 /////////////////////////////////////////////////////
-#define MIN_STEP_CYCLE  5   // Minimum number of µsec  between to step IRQ's ( end of ISR to start of next )
+#define MIN_STEP_CYCLE  8   // Minimum number of µsec  between to step IRQ's ( end of ISR to start of next )
 
 #elif defined ARDUINO_ARCH_ESP32 ///////////////////////////////////////////////////////
 #define USE_VSPI                // default is HSPI ( for SPI-Stepper )
@@ -135,10 +131,14 @@
     #error Processor not supported
 #endif //////////////////////////////////////////////////////////////////////////////////
 
+// stepper related defines
+#define MAX_STEPPER     6       // 
+#define DEF_SPEEDSTEPS  3000    // default speed after attach
+#define DEF_RAMP        0       // default ramp after attach 
 #define RAMPOFFSET      16      // startvalue of rampcounter
 
 // servo related defines
-#ifdef  IS_ESP
+#if defined ARDUINO_ARCH_ESP32 || defined ARDUINO_ARCH_ESP8266 
 #define MINPULSEWIDTH   550     // there is no general limit on ESP
 #define MAXPULSEWIDTH   2600    // there is no general limit on ESP
 #else // AVR and STM32
