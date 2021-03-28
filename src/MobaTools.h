@@ -113,14 +113,14 @@
 // gpio16 has no interrupt capability ( but can be used as dir-pin for a stepper)
 
 #elif defined ARDUINO_ARCH_STM32F1 /////////////////////////////////////////////////////
-#define MIN_STEP_CYCLE  8   // Minimum number of µsec  between to step IRQ's ( end of ISR to start of next )
+#define MIN_STEP_CYCLE  25   // Minimum number of µsec  per step 
 
 #elif defined ARDUINO_ARCH_ESP32 ///////////////////////////////////////////////////////
 #define USE_VSPI                // default is HSPI ( for SPI-Stepper )
-#define MIN_STEP_CYCLE 10     // Minimum number of µsec  between to step IRQ's
+#define MIN_STEP_CYCLE 20       // Minimum number of µsec  per Step
 
 #elif defined ARDUINO_ARCH_AVR ////////////////////////////////////////////////////////
-#define CYCLETIME       100     // Min. irq-periode in us ( default is 200 ), 
+#define CYCLETIME       200     // Min. irq-periode in us ( default is 200 ), 
 #define MIN_STEP_CYCLE  2       // Minimum number of cycles per step. 
 #define FASTSPI                 // only for devices with USI Interface ( instead of SPI HW )
                                 // if defined SPI clock ist CPU clock / 2

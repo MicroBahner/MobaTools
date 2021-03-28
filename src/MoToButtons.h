@@ -174,15 +174,7 @@ class MoToButtons {
             bitClear( _shortPress, i );
             _buttonTime[i] = 0;
           } else if ( bitRead( releaseEvent, i ) ) {
-            // button was released, check if it was clicked,  presssed long or short
-            if ( ! bitRead( _clicked, i ) && bitRead( _noDoubleClick, i ) ) {
-              // it was the release of the second click with state already read
-              // only clear _noDoubleClick
-              bitClear( _noDoubleClick, i );
-            } else if ( _buttonTime[i] < _clickTime ) {
-                // it was a first click
-                bitSet( _noDoubleClick, i );
-            }
+            // button was released, check if it was presssed long, short or clicked,  
             if (_buttonTime[i] < _pressTime ) {
                 // this release event is a short press
                 bitSet( _shortPress, i );
@@ -191,6 +183,18 @@ class MoToButtons {
                 bitClear ( _shortPress, i );
             }
 
+            if ( ! bitRead( _clicked, i ) && bitRead( _noDoubleClick, i ) ) {
+              // it was the release of the second click with state already read
+              // only clear _noDoubleClick
+              bitClear( _noDoubleClick, i );
+              #ifdef CLICK_NO_SHORT
+                // it was the release of a doubleClick so delete shortpress too
+                bitClear( _shortPress, i );
+              #endif
+            } else if ( _buttonTime[i] < _clickTime ) {
+                // it was a first click
+                bitSet( _noDoubleClick, i );
+            }
           }
           // check if it is a long press ( button is active, and longpresstime elapsed
           if ( bitRead( _actState,i) && _buttonTime[i]>_pressTime &&!bitRead( _shortPress,i )  ) {
@@ -277,6 +281,10 @@ class MoToButtons {
       if ( buttonNbr >= _buttonCnt ) return 0;
       // get click state of button (debounced)
       uint8_t clickType = NOCLICK;
+      #ifdef CLICK_NO_SHORT
+        // if __noDoubleClick is set it is at least a single click, so delete shortpress
+        if ( bitRead( _noDoubleClick, buttonNbr ) )bitClear( _shortPress, buttonNbr );
+      #endif
       if (bitRead( _clicked, buttonNbr ) ) {
         if ( bitRead( _noDoubleClick, buttonNbr) ) clickType = SINGLECLICK;
         else clickType = DOUBLECLICK;

@@ -63,12 +63,12 @@ extern nextCycle_t nextCycle;   // to be used in ISR for stepper and softled
 #define EggTimer    MoToTimer
 
 // defines for the stepper motor
-#define HALFSTEP    1
+/*#define HALFSTEP    1
 #define FULLSTEP    2
 #define A4988       3   // using motordriver A4988
 #define FULL2Wire   4   // not yet used
 #define NOSTEP      0   // invalid-flag
-
+*/
 
 // for formatted printing to Serial( just like fprintf )
 // you need to define txtbuf with proper length to use this

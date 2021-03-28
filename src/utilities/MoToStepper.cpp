@@ -332,6 +332,7 @@ int MoToStepper::setSpeed( int rpm10 ) {
 uintxx_t MoToStepper::setSpeedSteps( uintxx_t speed10 ) {
     // Speed in steps per sec * 10
     // without a new ramplen, the ramplen is adjusted according to the speedchange
+    speed10 = min( uintxx_t(1000000L / MIN_STEPTIME * 10), speed10 );
     #ifdef IS_32BIT
     long rtmp = (uint64_t)speed10*_lastRampLen/_lastRampSpeed;
     #else

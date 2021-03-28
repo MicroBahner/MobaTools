@@ -22,11 +22,11 @@ void ISR_Stepper() {
     //if ( softledISR ) softledISR(cyclesLastIRQ);
     // ======================= end of softleds =====================================
     // set compareregister to next interrupt time;
-	// next ISR must be at least MIN_STEP_CYCLE beyond actual counter value ( time between to ISR's )
+	// next ISR must be at least MIN_STEP_CYCLE/4 beyond actual counter value ( time between to ISR's )
 	int minOCR = timer_get_count(MT_TIMER);
 	int nextOCR = timer_get_compare(MT_TIMER, STEP_CHN);
 	if ( minOCR < nextOCR ) minOCR += TIMER_OVL_TICS; // timer had overflow already
-    minOCR = minOCR + ( MIN_STEP_CYCLE * TICS_PER_MICROSECOND ); // minimumvalue for next OCR
+    minOCR = minOCR + ( (MIN_STEP_CYCLE/4 * TICS_PER_MICROSECOND ); // minimumvalue for next OCR
 	nextOCR = nextOCR + ( nextCycle * TICS_PER_MICROSECOND );
 	if ( nextOCR < minOCR ) {
 		// time till next ISR ist too short, set to mintime and adjust nextCycle
