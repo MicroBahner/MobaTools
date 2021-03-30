@@ -121,7 +121,6 @@ class MoToButtons {
     MoToButtons( button_t (*getHWbuttons)(), uint8_t debTime, uint16_t pressTime, uint16_t doubleClick = (400 ) ) {
       _getHWbuttons = getHWbuttons;
       _debTime = debTime;
-      _initLocals( );
       _pressTime = pressTime / debTime;   // in debTime tics
       _dClickTime = doubleClick / debTime;
       _initLocals( );

@@ -9,6 +9,7 @@
 
 // if this define is commented out, you will get a shortpress AND a click event when the button is clicked
 #define CLICK_NO_SHORT                        // click or double click supresses 'short press'
+
 #include <MobaTools.h>                        // default is 16 buttons per instance
 #include <Wire.h>
 
@@ -55,7 +56,7 @@ void loop() {
   buttonPad.processButtons();
   //--------------------------------------------------------
 
-  digitalWrite( holdLed, (buttonPad.allStates()>0));
+  digitalWrite( holdLed, (buttonPad.allStates()!=0));
 
   if ( buttonPad.changed() ) {
     // at least on led changed its state
