@@ -1,7 +1,7 @@
 #define MAX8BUTTONS
 #include <MobaTools.h>
 
-const uint32_t BLENDZEIT = 100;
+const uint32_t BLENDZEIT = 50;
 const byte taster = A0;
 const byte ledPins[] = {2,3,4,5,6,7,8,9};
 const byte pinCount = sizeof(ledPins);
@@ -24,7 +24,7 @@ void setup() {
   
   for (byte led = 0; led < pinCount; led++) {
     meineLeds[led].attach(ledPins[led]);
-    meineLeds[led].riseTime( BLENDZEIT*5 );    // Aufblendzeit in ms
+    meineLeds[led].riseTime( BLENDZEIT*10 );    // Aufblendzeit in ms
   }
 }
 
