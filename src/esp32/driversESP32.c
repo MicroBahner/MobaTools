@@ -55,7 +55,7 @@ int8_t freePwmNbr( uint8_t pwmNbr ) {
 int8_t initPwmChannel( uint8_t pin, uint8_t timer ) {
     ledc_channel_config_t channelConfig;
     ledc_timer_config_t  timerConfig;
-    uint8_t pwmNbr = _findPwmNbr();
+    int8_t pwmNbr = _findPwmNbr();
     
     if ( pwmNbr >= 0 ) {
         // found a free channel
@@ -216,7 +216,7 @@ int8_t freePwmNbr( uint8_t pwmNbr ) {
 }
 
 int8_t initPwmChannel( uint8_t pin, uint8_t timer ) {
-    uint8_t pwmNbr = _findPwmNbr();
+    int8_t pwmNbr = _findPwmNbr();
     if ( pwmNbr >= 0 ) {
         // found a free channel
         pwmUse[pwmNbr].timer = timer;
