@@ -14,7 +14,7 @@
 #ifdef ARDUINO_ARCH_ESP32
 
 
-#include "esp32-hal-gpio.h"
+#include "esp32-mt-gpio.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "rom/ets_sys.h"

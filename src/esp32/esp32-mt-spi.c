@@ -13,7 +13,7 @@
 // limitations under the License.
 #ifdef ARDUINO_ARCH_ESP32
 
-#include "esp32-hal-spi.h"
+#include "esp32-mt-spi.h"              // MobaTools Version
 #include "esp32-hal.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"

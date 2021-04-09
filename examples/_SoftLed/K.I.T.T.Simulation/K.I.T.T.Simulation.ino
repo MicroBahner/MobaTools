@@ -51,6 +51,7 @@ void loop() {
   }
   lauflicht(simPtr[simuIx]);                                // call simulation with pointer to active sim-Array
 }
+
 void lauflicht( const byte *actSim ) {
   static byte *lastSim;                                     // to check if Simulation has changed
   static byte lastPattern;                                  // leds to switch off ( last led pattern )
@@ -70,7 +71,7 @@ void lauflicht( const byte *actSim ) {
       }
     }
 
-    if ( actSim[++patternIx] == 0xff ) patternIx = 1;       // switch to next pattern... 
+    if ( actSim[++patternIx] == 0xff ) patternIx = 1;       // switch to next pattern, start over at the end ...
     for ( byte ledIx = 0; ledIx < pinCount; ledIx++ ) {     // and turn on leds according to new pattern
       if ( (1 << ledIx) & actSim[patternIx] ) {
         myLeds[ledIx].riseTime( 5);                         // use a short risetime ...

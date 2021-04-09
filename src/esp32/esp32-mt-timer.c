@@ -13,7 +13,7 @@
 // limitations under the License.
 #ifdef ARDUINO_ARCH_ESP32
 
-#include "esp32-timer.h"
+#include "esp32-mt-timer.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/xtensa_api.h"
 #include "freertos/task.h"
