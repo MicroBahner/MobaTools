@@ -55,6 +55,7 @@ extern uint8_t bitSS;;
         #undef SS
         #define SS USI_SS
     #endif
+    /* //Testweise den SS-Pin ausgeben
     #define STRING2(x) #x
     #define STRING(x) "\n\r>>>>>>SS-Pin: "  STRING2(x)
     #ifdef PIN_SPI_SS
@@ -64,7 +65,7 @@ extern uint8_t bitSS;;
     #else
         #pragma message "SS-Pin not defined"
     #endif
-    
+    */
     volatile uint8_t *portSS;
     uint8_t bitSS;;
 

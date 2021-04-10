@@ -2,7 +2,7 @@
 #ifdef ARDUINO_ARCH_ESP8266
 #include <MobaTools.h>
 //#define debugTP
-//#define debugPrint
+#define debugPrint
 #include <utilities/MoToDbg.h>
 
 //#warning "HW specfic - ESP8266 ---"
@@ -38,10 +38,12 @@ gpioISR_t gpioTab[MAX_GPIO] = {
 static const uint32_t mask6_11 = 0b00000111111000000;
 static uint32_t gpioUsedMask = mask6_11; // gpio 6..11 are always 'in use'
 bool gpioUsed( unsigned int gpio ) {
+    DB_PRINT( "GpioUsed=%05X, RetVal( %d ) =  %05X ", gpioUsedMask, gpio,  ( gpioUsedMask & ( 1<<gpio )) )
     return ( gpioUsedMask & ( 1<<gpio ) ) ;
 }
 void setGpio( unsigned int gpio ) {
     gpioUsedMask |= ( 1<<gpio );
+    DB_PRINT( "new gpio(%d), Mask=%05X", gpio, gpioUsedMask );
 }
 void clrGpio( unsigned int gpio ) {
     gpioUsedMask &= ~( 1<<gpio );

@@ -10,10 +10,8 @@
 
 // defines for the stepper motor
 #define NOSTEP      0   // invalid-flag
-#ifndef ESP8266
 #define HALFSTEP    1
 #define FULLSTEP    2
-#endif
 #define A4988       3   // using motordriver A4988
 #define STEPDIR		3	// all motordrivers with a step und dir input ( same as A4988 )
 

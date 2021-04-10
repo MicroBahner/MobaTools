@@ -7,8 +7,8 @@
 */
 #define COMPILING_MOTOSTEPPER_CPP
 
-#define debugTP
-#define debugPrint
+//#define debugTP
+//#define debugPrint
 #include <utilities/MoToDbg.h>
 #include <MobaTools.h>
 #define TODO	// ignore 
@@ -315,7 +315,7 @@ void MoToStepper::attachEnable( uint8_t enablePin, uint16_t delay, bool active )
         gpioTab[gpio2ISRx(_stepperData.pins[1])].MoToISR = (void (*)(void*))ISR_StepperEnable;
         gpioTab[gpio2ISRx(_stepperData.pins[1])].IsrData = &_stepperData;
         attachInterrupt( _stepperData.pins[1], gpioTab[gpio2ISRx(_stepperData.pins[1])].gpioISR, FALLING );
-        setGpio(_stepperData.enable);    // mark pin as used
+        setGpio(_stepperData.enablePin);    // mark pin as used
         _stepperData.cycDelay = delay;      // delay (ms) between enablePin HIGH/LOW and stepper moving
     #else
     _stepperData.cycDelay = 1000L * delay / CYCLETIME;      // delay ( in cycles ) between enablePin HIGH/LOW and stepper moving
