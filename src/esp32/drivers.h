@@ -3,7 +3,7 @@
 #ifndef ESP32_DRIVER_H
 #define ESP32_DRIVER_H
 
-#include "esp32-mt-timer.h"
+#include "esp32-hal-timer.h"
 #include "esp32-mt-spi.h"
 #ifdef __cplusplus
 extern "C" {
