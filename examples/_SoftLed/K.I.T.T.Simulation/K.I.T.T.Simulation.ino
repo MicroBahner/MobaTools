@@ -8,7 +8,7 @@
 #include <MobaTools.h>
 
 //  Arrays with bitcoded sequence of LED patterns. At the end it starts over again.
-//  first byte is timedelay between steps to next pattern, $FF marks the end
+//  first byte is timedelay between steps to next pattern, 0xff marks the end
 // feel free to add more ... ;-)
 const byte simu1[] = { 100, 0x01, 0x02, 0x04, 0x08, 0x10, 0x20, 0x40, 0x80, 0x40, 0x20, 0x10, 0x08, 0x04, 0x02, 0xff };
 const byte simu2[] = { 200, 0x81, 0x42, 0x24, 0x18, 0x18, 0x24, 0x42, 0x81, 0xff };
@@ -23,8 +23,8 @@ byte simuIx;                                                // Index of actual s
 const byte taster = 12;                                     // a press switches to next simulation
 const byte ledPins[] = {15, 2, 4, 16, 17, 5, 18, 19};       // pins for ESP32 dev module, must be 8 leds
 #else
-const byte taster = 10;                                     // a press switches to next simulation
-const byte ledPins[] = {2, 3, 4, 5, 6, 7, 8, 9};            // pins for AVR ( UNO,Nano,Mini,Leonardo.., must be 8 leds
+const byte taster = 2;                                     // a press switches to next simulation
+const byte ledPins[] = {3, 4, 5, 6, 7, 8, 9, 10};            // pins for AVR ( UNO,Nano,Mini,Leonardo.., must be 8 leds
 #endif
 const byte pinCount = sizeof(ledPins);
 

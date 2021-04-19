@@ -119,19 +119,19 @@ static inline __attribute__((__always_inline__)) void attachInterruptAS(  ledDat
         if ( spiInitialized ) return;
         // initialize SPI hardware.
         // MSB first, default Clk Level is 0, shift on leading edge
-        spiHs = spiStartBus(SPI_USED, SPI_CLOCK_DIV4, SPI_MODE0, SPI_MSBFIRST);
+        spiHs = spiStartBusMoTo(SPI_USED, SPI_CLOCK_DIV4, SPI_MODE0, SPI_MSBFIRST);
         //if ( spiHs == NULL ) Serial.println( "Init SPI failed");
-        spiAttachSCK(spiHs, SCK);
+        spiAttachSCKMoTo(spiHs, SCK);
         // MISO is not used, only serial output
-        spiAttachMOSI(spiHs, MOSI);
-        spiAttachSS(spiHs, 0, SS);
-        spiSSEnable(spiHs);
+        spiAttachMOSIMoTo(spiHs, MOSI);
+        spiAttachSSMoTo(spiHs, 0, SS);
+        spiSSEnableMoTo(spiHs);
 
         spiInitialized = true;  
     }
 
     static inline __attribute__((__always_inline__)) void startSpiWriteAS( uint8_t spiData[] ) {
-       spiWriteShortNL(spiHs, (spiData[1]<<8) + spiData[0] );
+       spiWriteShortNLMoTo(spiHs, (spiData[1]<<8) + spiData[0] );
     }    
     
 

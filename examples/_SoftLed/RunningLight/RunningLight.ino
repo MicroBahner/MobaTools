@@ -2,8 +2,8 @@
 #include <MobaTools.h>
 
 const uint32_t BLENDZEIT = 50;
-const byte taster = A0;
-const byte ledPins[] = {2,3,4,5,6,7,8,9};
+const byte taster = 2;
+const byte ledPins[] = {3,4,5,6,7,8,9, 10};
 const byte pinCount = sizeof(ledPins);
 enum {LAUF, AUSSCHALTEN, AUS};
 byte schritt = LAUF;
@@ -31,7 +31,8 @@ void setup() {
 void loop() {
   Taster.processButtons();
   switch (schritt) {
-    case LAUF: lauflicht();
+    case LAUF: 
+      lauflicht();
       if (Taster.pressed(0)) {
         schritt = AUSSCHALTEN;
       }

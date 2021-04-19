@@ -12,8 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef MAIN_ESP32_HAL_SPI_H_
-#define MAIN_ESP32_HAL_SPI_H_
+// MobaTools Version
+#ifndef MAIN_ESP32_MT_SPI_H_
+#define MAIN_ESP32_MT_SPI_H_   // This too supresses the hal-Version in MobaTools files
 
 #ifdef __cplusplus
 extern "C" {
@@ -54,85 +55,15 @@ extern "C" {
 struct spi_struct_t;
 typedef struct spi_struct_t spi_t;
 
-spi_t * spiStartBus(uint8_t spi_num, uint32_t freq, uint8_t dataMode, uint8_t bitOrder);
-void spiStopBus(spi_t * spi);
+spi_t * spiStartBusMoTo(uint8_t spi_num, uint32_t freq, uint8_t dataMode, uint8_t bitOrder);
+//void spiStopBus(spi_t * spi);
 
 //Attach/Detach Signal Pins
-void spiAttachSCK(spi_t * spi, int8_t sck);
-void spiAttachMISO(spi_t * spi, int8_t miso);
-void spiAttachMOSI(spi_t * spi, int8_t mosi);
-void spiDetachSCK(spi_t * spi, int8_t sck);
-void spiDetachMISO(spi_t * spi, int8_t miso);
-void spiDetachMOSI(spi_t * spi, int8_t mosi);
-
-//Attach/Detach SS pin to SPI_CSx signal
-void spiAttachSS(spi_t * spi, uint8_t cs_num, int8_t ss);
-void spiDetachSS(spi_t * spi, int8_t ss);
-
-//Enable/Disable SPI_CSx pins
-void spiEnableSSPins(spi_t * spi, uint8_t cs_mask);
-void spiDisableSSPins(spi_t * spi, uint8_t cs_mask);
-
-//Enable/Disable hardware control of SPI_CSx pins
-void spiSSEnable(spi_t * spi);
-void spiSSDisable(spi_t * spi);
-
-//Activate enabled SPI_CSx pins
-void spiSSSet(spi_t * spi);
-//Deactivate enabled SPI_CSx pins
-void spiSSClear(spi_t * spi);
-
-void spiWaitReady(spi_t * spi);
-
-uint32_t spiGetClockDiv(spi_t * spi);
-uint8_t spiGetDataMode(spi_t * spi);
-uint8_t spiGetBitOrder(spi_t * spi);
-
-
-/*
- * Non transaction based lock methods (each locks and unlocks when called)
- * */
-void spiSetClockDiv(spi_t * spi, uint32_t clockDiv);
-void spiSetDataMode(spi_t * spi, uint8_t dataMode);
-void spiSetBitOrder(spi_t * spi, uint8_t bitOrder);
-
-void spiWrite(spi_t * spi, uint32_t *data, uint8_t len);
-void spiWriteByte(spi_t * spi, uint8_t data);
-void spiWriteWord(spi_t * spi, uint16_t data);
-void spiWriteLong(spi_t * spi, uint32_t data);
-
-void spiTransfer(spi_t * spi, uint32_t *out, uint8_t len);
-uint8_t spiTransferByte(spi_t * spi, uint8_t data);
-uint16_t spiTransferWord(spi_t * spi, uint16_t data);
-uint32_t spiTransferLong(spi_t * spi, uint32_t data);
-void spiTransferBytes(spi_t * spi, uint8_t * data, uint8_t * out, uint32_t size);
-void spiTransferBits(spi_t * spi, uint32_t data, uint32_t * out, uint8_t bits);
-
-/*
- * New (EXPERIMENTAL) Transaction lock based API (lock once until endTransaction)
- * */
-void spiTransaction(spi_t * spi, uint32_t clockDiv, uint8_t dataMode, uint8_t bitOrder);
-void spiSimpleTransaction(spi_t * spi);
-void spiEndTransaction(spi_t * spi);
-
-void spiWriteNL(spi_t * spi, const void * data, uint32_t len);
-void spiWriteByteNL(spi_t * spi, uint8_t data);
-void spiWriteShortNL(spi_t * spi, uint16_t data);
-void spiWriteLongNL(spi_t * spi, uint32_t data);
-void spiWritePixelsNL(spi_t * spi, const void * data, uint32_t len);
-
-#define spiTransferNL(spi, data, len) spiTransferBytesNL(spi, data, data, len)
-uint8_t spiTransferByteNL(spi_t * spi, uint8_t data);
-uint16_t spiTransferShortNL(spi_t * spi, uint16_t data);
-uint32_t spiTransferLongNL(spi_t * spi, uint32_t data);
-void spiTransferBytesNL(spi_t * spi, const void * data_in, uint8_t * data_out, uint32_t len);
-void spiTransferBitsNL(spi_t * spi, uint32_t data_in, uint32_t * data_out, uint8_t bits);
-
-/*
- * Helper functions to translate frequency to clock divider and back
- * */
-uint32_t spiFrequencyToClockDiv(uint32_t freq);
-uint32_t spiClockDivToFrequency(uint32_t freq);
+void spiAttachMOSIMoTo(spi_t * spi, int8_t mosi);
+void spiAttachSCKMoTo(spi_t * spi, int8_t sck);
+void spiAttachSSMoTo(spi_t * spi, uint8_t cs_num, int8_t ss);
+void spiWriteShortNLMoTo(spi_t * spi, uint16_t data);
+void spiSSEnableMoTo(spi_t * spi);
 
 #ifdef __cplusplus
 }
