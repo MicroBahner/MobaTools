@@ -29,8 +29,8 @@ void IRAM_ATTR ISR_Stepper(void) {
         CLR_TP1;
 		aktAlarm =  minNextAlarm;
 	}
-    timerAlarmWrite(stepTimer, aktAlarm , false); // no autorelaod
-    timerAlarmEnable(stepTimer);
+    timerAlarmWriteMoTo(stepTimer, aktAlarm , false); // no autorelaod
+    timerAlarmEnableMoTo(stepTimer);
     SET_TP1;
     portEXIT_CRITICAL_ISR(&stepperMux);
     CLR_TP1; // Oszimessung Dauer der ISR-Routine
@@ -46,10 +46,10 @@ void seizeTimerAS() {
 static bool timerInitialized = false;
     // Initiieren des Stepper Timers ------------------------
     if ( !timerInitialized ) {
-        stepTimer = timerBegin(STEPPER_TIMER, DIVIDER, true); // true= countup
-        timerAttachInterrupt(stepTimer, &ISR_Stepper, true);  // true= edge Interrupt
-        timerAlarmWrite(stepTimer, ISR_IDLETIME*TICS_PER_MICROSECOND , false); // false = no autoreload );
-        timerAlarmEnable(stepTimer);
+        stepTimer = timerBeginMoTo(STEPPER_TIMER, DIVIDER, true); // true= countup
+        timerAttachInterruptMoTo(stepTimer, &ISR_Stepper, true);  // true= edge Interrupt
+        timerAlarmWriteMoTo(stepTimer, ISR_IDLETIME*TICS_PER_MICROSECOND , false); // false = no autoreload );
+        timerAlarmEnableMoTo(stepTimer);
         timerInitialized = true;  
         MODE_TP1;   // set debug-pins to Output
         MODE_TP2;
