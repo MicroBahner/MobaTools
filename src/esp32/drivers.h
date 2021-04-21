@@ -96,7 +96,7 @@ typedef struct {
 extern pwmUse_t pwmUse[16];
 
 
-
+//#define LEDC_USE_SDK       // Die SDK-Aufrufe sind NICHT Interruptfest - die SDK-Version darf daher nicht aktiviert werden
 #define SERVO_TIMER         2
 #define LED_TIMER           3
 

@@ -9,7 +9,7 @@
 // ------------------ SOFTLED & Servos ------------------------------------------------------
 // different versions of ledc programmimng: ( if both are defined, a mixed version is selected - not yet implemented )
 #ifdef LEDC_USE_SDK
-    #define SDK_ACCESS
+    #define SDK_ACCESS  // Die SDK-Aufrufe sind NICHT Interruptfest - die SDK-Version darf daher nicht aktiviert werden
 #else
     #define REGISTER_ACCESS
 #endif
