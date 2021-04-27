@@ -58,6 +58,7 @@ void seizeTimer1();
 // ----------------   defines for servo and softled ( ledc pwm hardware on ESP32 is used ) -----------------------
 //if  the following line is commented out, direct register access is used ( interrupts are not disabled during flash access )
 //#define LEDC_USE_SDK          // use SDK calls für Servo & Led Pulses ( interrupts are disbled during flash access )
+                                // !!!!!!! Die SDK-Aufrufe sind NICHT Interruptfest - die SDK-Version darf daher nicht // // !!!!!!! aktiviert werden, da die Interrupts NICHT abgeschaltet werden 
 
 #ifdef COMPILING_MOTOSERVO_CPP
     //#warning compiling servo.cpp for ESP32
@@ -96,7 +97,6 @@ typedef struct {
 extern pwmUse_t pwmUse[16];
 
 
-//#define LEDC_USE_SDK       // Die SDK-Aufrufe sind NICHT Interruptfest - die SDK-Version darf daher nicht aktiviert werden
 #define SERVO_TIMER         2
 #define LED_TIMER           3
 
