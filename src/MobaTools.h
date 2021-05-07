@@ -120,6 +120,7 @@
 #define MIN_STEP_CYCLE 20       // Minimum number of µsec  per Step
 
 #elif defined ARDUINO_ARCH_AVR ////////////////////////////////////////////////////////
+//#define NO_TIMER3             // never use Timer 3
 #define CYCLETIME       200     // Min. irq-periode in us ( default is 200 ), 
 #define MIN_STEP_CYCLE  2       // Minimum number of cycles per step. 
 #define FASTSPI                 // only for devices with USI Interface ( instead of SPI HW )

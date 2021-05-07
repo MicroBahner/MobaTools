@@ -19,7 +19,7 @@
 #endif
 
 // define timer to use
-#ifdef TCNT3
+#if defined ( TCNT3 ) && !defined ( NO_TIMER3 )
     // Timer 3 is available, use it
     //#warning "Timer 3 used"
     #define TCNTx       TCNT3
