@@ -86,13 +86,60 @@ class MoToTimebase
 class MoToTimer
 {
   private:
-    #define RUNNING 0b1
-    #define NOTEXPIRED 0b10
+    static constexpr byte RUNNING = 0b1;
+    static constexpr byte NOTEXPIRED = 0b10;
+    byte active;    // Bit0: Timer is running, Bit 1: not expired Flag
+    unsigned long startTime;
+    unsigned long runTime;
+    
+  public:
+    MoToTimer() {
+        active = 0;
+    }
+
+    void setTime(  unsigned long wert ) {
+        startTime =  millis();
+        runTime = wert;
+        active = RUNNING | NOTEXPIRED; // set running and !expired flag
+    }
+
+    bool running() {
+        if ( active & RUNNING ) active &= ~RUNNING | ( millis() - startTime < runTime );
+        return active & RUNNING;
+    }
+
+    bool expired() { // event 'timer expired'
+        // this event is cleared after call of this method
+        if ( running() || active == 0 ) return false;
+        else active = 0;
+        return true;
+    }
+
+    void stop() { active = 0; }
+    
+    unsigned long getElapsed() {
+        // return elapsed time
+        // returns 0 if the timer is not running
+        if ( running() ) return ( millis() - startTime );
+        else return 0;
+    }    
+    unsigned long getTime() {
+        // return remaining time
+        if ( running() ) return runTime - ( millis() - startTime );
+        else return 0;
+    }
+};
+
+class MoToTimerRop // Ram optimized version
+{
+  private:
+    static constexpr byte RUNNING = 0b1;
+    static constexpr byte NOTEXPIRED = 0b10;
     byte active;    // Bit0: Timer is running, Bit 1: not expired Flag
     long endtime;
     
   public:
-    MoToTimer() {
+    MoToTimerRop() {
         active = 0;
     }
 
@@ -121,4 +168,5 @@ class MoToTimer
         else return 0;
     }
 };
+
 #endif
