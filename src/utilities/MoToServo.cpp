@@ -105,7 +105,7 @@ static bool searchNextPulse() {
 ISR ( TIMERx_COMPA_vect) {
     uint8_t saveTIMSK;
     saveTIMSK = TIMSKx; // restore IE for stepper later ( maybe it is not enabled)
-#elif defined __STM32F1__
+#elif defined __STM32Fx__
 void ISR_Servo( void) {
     uint16_t OCRxA = 0;
 #endif
@@ -241,7 +241,7 @@ void ISR_Servo( void) {
         }
         //CLR_TP2; CLR_TP3; // Oszimessung Dauer der ISR-Routine ON
     } //end of 'pulse ON'
-    #ifdef __STM32F1__
+    #ifdef __STM32Fx__
     timer_set_compare(MT_TIMER,  SERVO_CHN, OCRxA);
     #endif 
     //CLR_TP1; CLR_TP3; // Oszimessung Dauer der ISR-Routine

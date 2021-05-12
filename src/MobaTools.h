@@ -115,6 +115,9 @@
 #elif defined ARDUINO_ARCH_STM32F1 /////////////////////////////////////////////////////
 #define MIN_STEP_CYCLE  25   // Minimum number of µsec  per step 
 
+#elif defined ARDUINO_ARCH_STM32F4 /////////////////////////////////////////////////////
+#define MIN_STEP_CYCLE  20   // Minimum number of µsec  per step 
+
 #elif defined ARDUINO_ARCH_ESP32 ///////////////////////////////////////////////////////
 #define USE_VSPI                // default is HSPI ( for SPI-Stepper )
 #define MIN_STEP_CYCLE 20       // Minimum number of µsec  per Step

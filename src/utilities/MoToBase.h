@@ -15,6 +15,8 @@
 #include <avr/drivers.h>
 #elif defined ARDUINO_ARCH_STM32F1
 #include <stm32f1/drivers.h>
+#elif defined ARDUINO_ARCH_STM32F4
+#include <stm32f4/drivers.h>
 #elif defined ARDUINO_ARCH_ESP8266
 #include <esp8266/drivers.h>
 #elif defined ARDUINO_ARCH_ESP32

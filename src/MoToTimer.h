@@ -119,9 +119,9 @@ class MoToTimer
     
     unsigned long getElapsed() {
         // return elapsed time
-        // returns 0 if the timer is not running
+        // returns 0xFFFFFFFF if the timer is not running
         if ( running() ) return ( millis() - startTime );
-        else return 0;
+        else return 0xFFFFFFFFUL;
     }    
     unsigned long getTime() {
         // return remaining time

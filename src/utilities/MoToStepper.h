@@ -43,7 +43,7 @@
 #define MAXRAMPLEN      16000       // Do not change!
 #endif
 
-#ifdef __STM32F1__
+#ifdef __STM32Fx__
     void ISR_Stepper(void);
 #endif
 

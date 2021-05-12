@@ -1,8 +1,8 @@
-#ifndef STM32F1_DRIVER_H
-#define STM32F1_DRIVER_H
+#ifndef STM32F4_DRIVER_H
+#define STM32F4_DRIVER_H
 //////////////////////////////////////// processor dependent defines and declarations //////////////////////////////////////////
     //--------------------------------------------------------------------------------------------------------------
-//vvvvvvvvvvvvvvvvvvvvvvvvvv STM32F1 processors vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
+//vvvvvvvvvvvvvvvvvvvvvvvvvv STM32F4 processors vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
 #define __STM32Fx__
 #define IS_32BIT
 #define IRAM_ATTR       // delete in .cpp files, because it has no meaning for STM32 processors
@@ -27,7 +27,7 @@
 extern bool timerInitialized;
 void seizeTimer1();
 //#define USE_SPI2          // Use SPI1 if not defined
-//^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ STM32F1 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+//^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ STM32F4 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-#define ARCHITECT_INCLUDE <stm32f1/MoToSTM32F1.h>
+#define ARCHITECT_INCLUDE <stm32f4/MoToSTM32F4.h>
 #endif
