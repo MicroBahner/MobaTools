@@ -16,6 +16,7 @@ Released versions can be installed by means of the library manager in arduino ID
 - AVR ATmega
 - AVR ATtiny, if it has the 16-bit timer 1 and a SPI or USI hardware
 - STM32F103x processors ( the core of Roger Clark must be used )
+- STM32F401/F411 processors ( the core of Roger Clark must be used )
 - ESP32
 - ESP8266 ( with some restrictions, Stepper via SPI does not work )
 

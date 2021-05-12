@@ -56,7 +56,7 @@ void seizeTimerAS() {
         timer_oc_set_mode( MT_TIMER, SERVO_CHN, TIMER_OC_MODE_FROZEN, 0 );  // comparison between output compare register and counter 
                                                                     //has no effect on the outputs
         timer_oc_set_mode( MT_TIMER, STEP_CHN, TIMER_OC_MODE_FROZEN, 0 );
-        timer_set_prescaler(MT_TIMER, 36-1 );    // = 0.5µs Tics at 72MHz
+        timer_set_prescaler(MT_TIMER, (CLOCK_SPEED_MHZ/2)-1 );    // = 0.5µs Tics at 84MHz
         timer_set_reload(MT_TIMER, TIMERPERIODE * TICS_PER_MICROSECOND );
         timer_set_compare(MT_TIMER, STEP_CHN, 400 );
         timer_attach_interrupt(MT_TIMER, TIMER_STEPCH_IRQ, (voidFuncPtr)ISR_Stepper );

@@ -13,7 +13,7 @@ static inline __attribute__((__always_inline__)) void _noStepIRQ() {
     //noInterrupts();
     //nvic_globalirq_disable();
     #if defined COMPILING_MOTOSTEPPER_CPP
-        Serial.println(noStepISR_Cnt);
+        //Serial.println(noStepISR_Cnt);
         SET_TP3;
     #endif
 }
@@ -28,7 +28,7 @@ static inline __attribute__((__always_inline__)) void  _stepIRQ(bool force = fal
         //nvic_globalirq_enable();
         //interrupts();
     }
-    Serial.println(noStepISR_Cnt);
+    //Serial.println(noStepISR_Cnt);
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////
