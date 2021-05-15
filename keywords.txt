@@ -35,6 +35,10 @@ setMaximumPulse	KEYWORD2
 #Methods for Class MoToTimer
 setTime	KEYWORD2
 getTime	KEYWORD2
+getRuntime	KEYWORD2
+getElapsed	KEYWORD2
+getRemain	KEYWORD2
+restart	KEYWORD2
 getElapsed	KEYWORD2
 expired	KEYWORD2
 running	KEYWORD2

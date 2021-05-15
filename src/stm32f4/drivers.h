@@ -14,7 +14,7 @@
 
 #define CYCLETIME       1     // Cycle count in µs on 32Bit processors
 
-#define TICS_PER_MICROSECOND (CYCLES_PER_MICROSECOND / 36 ) // prescaler is 36 = 0.5us
+#define TICS_PER_MICROSECOND (CYCLES_PER_MICROSECOND / (CLOCK_SPEED_MHZ/2) ) //  = 0.5us
 //#define TICS_PER_MICROSECOND 2 // prescaler is 36 = 0.5us
 
 #define MT_TIMER TIMER4     // Timer used by MobaTools
@@ -26,7 +26,7 @@
 
 extern bool timerInitialized;
 void seizeTimer1();
-//#define USE_SPI2          // Use SPI1 if not defined
+#define USE_SPI2          // Use SPI1 if not defined
 //^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ STM32F4 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 #define ARCHITECT_INCLUDE <stm32f4/MoToSTM32F4.h>

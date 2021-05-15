@@ -95,14 +95,22 @@ class MoToTimer
   public:
     MoToTimer() {
         active = 0;
+        startTime = 0;
+        runTime = 0;
     }
 
     void setTime(  unsigned long wert ) {
-        startTime =  millis();
         runTime = wert;
-        active = RUNNING | NOTEXPIRED; // set running and !expired flag
+        if ( runTime > 0 ) {
+            startTime =  millis();
+            active = RUNNING | NOTEXPIRED; // set running and !expired flag
+        } else {
+            stop();
+        }
     }
 
+    unsigned long getRuntime() { return runTime; }
+    
     bool running() {
         if ( active & RUNNING ) active &= ~RUNNING | ( millis() - startTime < runTime );
         return active & RUNNING;
@@ -117,17 +125,21 @@ class MoToTimer
 
     void stop() { active = 0; }
     
+    void restart() { setTime( runTime ); }
+    
     unsigned long getElapsed() {
         // return elapsed time
-        // returns 0xFFFFFFFF if the timer is not running
-        if ( running() ) return ( millis() - startTime );
-        else return 0xFFFFFFFFUL;
-    }    
-    unsigned long getTime() {
+        if ( running() ) return ( millis() - startTime )+1;
+        else return runTime;
+    }
+    
+    unsigned long getRemain() {
         // return remaining time
         if ( running() ) return runTime - ( millis() - startTime );
         else return 0;
     }
+    unsigned long getTime() { return getRemain(); }
+    
 };
 
 class MoToTimerRop // Ram optimized version

@@ -97,10 +97,10 @@ static inline __attribute__((__always_inline__)) void initSpiAS() {
                     &board_spi_pins[1] );
 
     uint32 flags = (SPI_FRAME_MSB | SPI_CR1_DFF_16_BIT | SPI_SW_SLAVE | SPI_SOFT_SS);
-    spi_master_enable(SPI2, (spi_baud_rate)SPI_BAUD_PCLK_DIV_64, (spi_mode)SPI_MODE_0, flags);
+    spi_master_enable(SPI2, (spi_baud_rate)SPI_BAUD_PCLK_DIV_32, (spi_mode)SPI_MODE_0, flags);
     spi_irq_enable(SPI2, SPI_RXNE_INTERRUPT);
     pinMode( BOARD_SPI2_NSS_PIN, OUTPUT);
-    digitalWrite( BOARD_SPI2_NSS_PIN, LOW );
+    digitalWrite( BOARD_SPI2_NSS_PIN, HIGH );
 
     #else// use SPI 1 interface
     spi_init(SPI1);
@@ -108,10 +108,10 @@ static inline __attribute__((__always_inline__)) void initSpiAS() {
                      &board_spi_pins[0]);
 
     uint32 flags = (SPI_FRAME_MSB | SPI_CR1_DFF_16_BIT | SPI_SW_SLAVE | SPI_SOFT_SS);
-    spi_master_enable(SPI1, (spi_baud_rate)SPI_BAUD_PCLK_DIV_64, (spi_mode)SPI_MODE_0, flags);
+    spi_master_enable(SPI1, (spi_baud_rate)SPI_BAUD_PCLK_DIV_32, (spi_mode)SPI_MODE_0, flags);
     spi_irq_enable(SPI1, SPI_RXNE_INTERRUPT);
     pinMode( BOARD_SPI1_NSS_PIN, OUTPUT);
-    digitalWrite( BOARD_SPI1_NSS_PIN, LOW );
+    digitalWrite( BOARD_SPI1_NSS_PIN, HIGH );
     #endif
     spiInitialized = true;  
 }
