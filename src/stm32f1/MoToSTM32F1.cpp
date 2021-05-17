@@ -9,6 +9,7 @@
 //#warning "HW specfic - STM32F1 ---"
 
 uint8_t noStepISR_Cnt = 0;   // Counter for nested StepISr-disable
+
 void stepperISR(int32_t cyclesLastIRQ)  __attribute__ ((weak));
 void softledISR(uint32_t cyclesLastIRQ)  __attribute__ ((weak));
 nextCycle_t nextCycle;
@@ -27,7 +28,7 @@ void ISR_Stepper() {
 	int minOCR = timer_get_count(MT_TIMER);
 	int nextOCR = timer_get_compare(MT_TIMER, STEP_CHN);
 	if ( minOCR < nextOCR ) minOCR += TIMER_OVL_TICS; // timer had overflow already
-    minOCR = minOCR + ( (MIN_STEP_CYCLE/4 * TICS_PER_MICROSECOND ); // minimumvalue for next OCR
+    minOCR = minOCR + ( (MIN_STEP_CYCLE/4) * TICS_PER_MICROSECOND ); // minimumvalue for next OCR
 	nextOCR = nextOCR + ( nextCycle * TICS_PER_MICROSECOND );
 	if ( nextOCR < minOCR ) {
 		// time till next ISR ist too short, set to mintime and adjust nextCycle

@@ -18,7 +18,8 @@ static inline __attribute__((__always_inline__)) void _noStepIRQ() {
 
 static inline __attribute__((__always_inline__)) void  _stepIRQ(bool force = false) {
     if ( force ) noStepISR_Cnt = 1; //enable IRQ immediately
-    if ( --noStepISR_Cnt == 0 ) {
+    if ( noStepISR_Cnt > 0 ) noStepISR_Cnt -= 1; // don't decrease if already 0 ( if enabling IRQ is called too often )
+    if ( noStepISR_Cnt == 0 ) {
         #if defined COMPILING_MOTOSTEPPER_CPP
             CLR_TP3;
         #endif

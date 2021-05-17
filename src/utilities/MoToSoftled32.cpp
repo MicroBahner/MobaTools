@@ -6,7 +6,7 @@
   Functions for the stepper part of MobaTools
 */
 
-#if defined ARDUINO_ARCH_STM32F1 // version for 32bit controllers ( except ESP8266/32 )
+#if defined ARDUINO_ARCH_STM32F1 || defined ARDUINO_ARCH_STM32F4 // version for 32bit controllers ( except ESP8266/32 )
 #define COMPILING_MOTOSOFTLED32_CPP
 
 #include <MobaTools.h>

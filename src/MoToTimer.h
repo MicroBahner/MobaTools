@@ -3,12 +3,25 @@
 //
 // Class MoToTimer - Timer management for time delays in the loop
 /*
-    MoToTimer myTimer()         // Create Timerobject
-    void setTime(  long wert )  // Start Timer
-    bool running()              // True while timer is running
-    bool expired()              // Only 'true' at the first call after timer expiry.
-    void stop()                 // Stopping the timer prematurely
-    long getTime()              // Get remaining time if timer is running, 0 otherwise
+    MoToTimer myTimer()                 // Create Timerobject
+    void setTime( unsigned long value ) // Start Timer with new time value
+    void restart()                      // Restart Timer with last set time value ( setTime )
+    bool running()                      // True while timer is running
+    bool expired()                      // Only 'true' at the first call after timer expiry.
+    void stop()                         // Stopping the timer prematurely
+    unsigned long getRemain()           // Get remaining time if timer is running, 0 otherwise
+    unsigned long getElapsed()          // Get elapsed time if timer is running, last value of setTime otherwise
+    unsigned long getRuntime()          // Get last value of setTime
+*/
+// Class MoToTimebase - create regular Events in fixed time distance
+/*
+    MoToTimebase myTimerbase()          // Create Timerobject
+    void setBasetime( long value )       // set intervall time ( timer is not started if negative )
+    void tick( )                        // true if intervalltime elapsed ( must be called regularly to start event )
+    void stop()                         // stop creating ticks ( tick() will always return false )
+    void start()                        // Start creating ticks if a time is set, but it is not running
+    bool running()                      // True if timebase is running
+    bool inactive()                     // true if no intervall time is set
 */
 /*
   This library is free software; you can redistribute it and/or
