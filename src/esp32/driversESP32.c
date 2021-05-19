@@ -4,8 +4,6 @@
 #include <arduino.h>
 #include "drivers.h"
 
-
-
 // ------------------ SOFTLED & Servos ------------------------------------------------------
 // different versions of ledc programmimng: ( if both are defined, a mixed version is selected - not yet implemented )
 #ifdef LEDC_USE_SDK
@@ -20,7 +18,8 @@
 // version with sdk calls
 #include <driver/ledc.h>
 
-//#warning "HW specfic drivers.c (using sdk) - ESP32  --"
+#warning "HW specfic drivers.c (using sdk) - ESP32  --"
+#error "SDK-version must not be used"
 
 // variant with using the sdk to configure ledc hardware
 #define groupUsed(pwmNr)    ((pwmNr)/8)
