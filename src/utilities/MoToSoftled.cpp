@@ -256,9 +256,6 @@ uint8_t MoToSoftLed::attach(uint8_t pinArg, uint8_t invArg ){
     return true;
 }
 
-void MoToSoftLed::on(uint8_t value){
-    on();
-}
 
 void MoToSoftLed::on(){
     if ( _ledData.state ==  NOTATTACHED ) return;  // this is not a valid instance
@@ -284,10 +281,6 @@ void MoToSoftLed::on(){
         mount(stateT);
     }
     DB_PRINT( "Led %04X On, state=%d, ledRoot=%04X", (uint32_t)this, _ledData.state, (uintxx_t)ledRootP);
-}
-
-void MoToSoftLed::off(uint8_t value){
-    off();
 }
 
 void MoToSoftLed::off(){
@@ -359,4 +352,18 @@ void MoToSoftLed::riseTime( uint16_t riseTime ) {
     DB_PRINT( "_ledSpeed = %d ( risetime=%d, riseMax=%d, PWMTIME=%d )", _ledSpeed, riseTime, riseMax, LED_PWMTIME );
 }
 
-#endif // ESP
+// For compatibility with code written for other platforms too 
+// The avr implementation ignores parameters in the on and off method
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-parameter"
+
+void MoToSoftLed::on(uint8_t value){
+    on();
+}
+void MoToSoftLed::off(uint8_t value){
+    off();
+}
+#pragma GCC diagnostic pop
+
+
+#endif // ARDUINO_ARCH_AVR
