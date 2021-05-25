@@ -22,10 +22,21 @@
                             // OFF_COUNT cycles ( = OFF_COUNT * 20ms )
 #define FIRST_PULSE     100 // first pulse starts 200 tics after timer overflow, so we do not compete
                             // with overflow IRQ
+                            
+// defaults for macros that are not defined in architecture dependend includes
+#ifndef SPEED_RES
 #define SPEED_RES       (8/TICS_PER_MICROSECOND)   // All position values in tics are multiplied by this factor. This means, that one 
                             // 'Speed-tic' is 0,125 µs per 20ms cycle. This gives better resolution in defining the speed.
                             // Only when computing the next interrupt time the values are divided by this value again to get
                             // the real 'timer tics'
+#endif
+#ifndef time2tic
+    #define time2tic(pulse)  ( (pulse) *  TICS_PER_MICROSECOND * SPEED_RES )
+    #define tic2time(tics)  ( (tics) / TICS_PER_MICROSECOND / SPEED_RES )
+#endif
+#ifndef AS_Speed2Inc
+#define AS_Speed2Inc(speed) (speed)
+#endif
 
 ////////////////////////////////////////////////////////////////////////////////////
 //void ISR_Servo( void *arg );

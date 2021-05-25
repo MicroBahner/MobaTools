@@ -18,6 +18,8 @@ static byte servoCount = 0;
 
 
 #ifdef IS_ESP //------------------- Servo Interrupt für ESP8266 und ESP32 ----------------------
+static bool speedV08 = false;    // Compatibility-Flag for speed method
+
 /////////////////////////////  Pulse-interrupt for ESP8266 and ESP 32  /////////////////////////////////////////
 // This ISR is fired at the falling edge of the servo pulse. It is specific to every servo Objekt and
 // computes the length of the next pulse. The pulse itself is created by the core_esp8266_waveform routines or by ledPWM HW ( ESP32 )
@@ -37,7 +39,7 @@ void IRAM_ATTR ISR_Servo( void *arg ) {
         }
         //CLR_TP1;
         //Serial.println(_servoData->ist );
-            servoWrite( _servoData, _servoData->ist ); 
+            servoWrite( _servoData, _servoData->ist/SPEED_RES ); 
         //SET_TP1;
         //CLR_TP1;
     } else if ( !_servoData->noAutoff ) { // no change in pulse length, look for autooff
@@ -427,7 +429,7 @@ void MoToServo::write(uint16_t angleArg)
             if ( (startPulse) || (_servoData.offcnt+_servoData.noAutoff) == 0  ) {
                 SET_TP3;
                 // first pulse after attach, or pulses have been switch off by autoff
-                startServoPulse( &_servoData, _servoData.ist);
+                startServoPulse( &_servoData, _servoData.ist/SPEED_RES);
                 DB_PRINT( "start pulses at pin %d, ist=%d, soll=%d", _servoData.pin, _servoData.ist, _servoData.soll );
                 CLR_TP3;
             }
@@ -456,14 +458,12 @@ void MoToServo::setSpeed( int speed ) {
     // Set increment value for movement to new angle
     // 'speed' is 0,5µs increment per 20ms
     if ( _servoData.pwmNbr != NOT_ATTACHED ) { // only if servo is attached
-        #ifndef IS_ESP
         if ( speedV08 ) speed *= SPEED_RES;
-        #endif
         noInterrupts();
         if ( speed == 0 )
-            _servoData.inc = 2000*SPEED_RES;  // means immediate movement
+            _servoData.inc = AS_Speed2Inc(8000);  // means immediate movement
         else
-            _servoData.inc = time2tic(speed)/2;
+            _servoData.inc = AS_Speed2Inc(speed);
         interrupts();
     }
 }

@@ -114,7 +114,9 @@ int8_t freePwmNbr( uint8_t pwmNbr );
 // compute pulsewidth ( in usec ) to duty ) for Servos
 #define time2tic(pulse) ( ( (pulse) *  DUTY100) / SERVO_CYCLE )  
 // compute duty to pulsewidth ( in uS )
-#define tic2time(duty)  ( ( (duty) * SERVO_CYCLE) / DUTY100 )
+#define tic2time(duty)  ( ( (duty) * SERVO_CYCLE) / DUTY100 +1 )
+#define SPEED_RES 1     // no need  for higer resolutin of servospeed
+#define AS_Speed2Inc(speed) ( (speed*DUTY100)/(SERVO_CYCLE*8) ) // Inc in 1/8 µs
 
 // compute pulsewidth ( in usec ) to duty ) for Softleds
 // all softled pwmValues are in µs

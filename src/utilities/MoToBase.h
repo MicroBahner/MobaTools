@@ -25,12 +25,6 @@
     #error "Processor not supported"
 #endif
 
-// defaults for macros that are not defined in architecture dependend includes
-
-#ifndef time2tic
-    #define time2tic(pulse)  ( (pulse) *  TICS_PER_MICROSECOND * SPEED_RES )
-    #define tic2time(tics)  ( (tics) / TICS_PER_MICROSECOND / SPEED_RES )
-#endif
 
 #ifndef IS_ESP
     #define  IRAM_ATTR  // Attribut IRAM_ATTR entfernen wenn nicht definiert
