@@ -459,6 +459,8 @@ void MoToServo::setSpeed( int speed ) {
     // 'speed' is 0,5µs increment per 20ms
     if ( _servoData.pwmNbr != NOT_ATTACHED ) { // only if servo is attached
         if ( speedV08 ) speed *= SPEED_RES;
+        speed = constrain(  speed, 0, 8000 );  // 8000 means immediate movement, greater values make no sense
+                                        // Greater Values will also lead to an overflow on ESP32
         noInterrupts();
         if ( speed == 0 )
             _servoData.inc = AS_Speed2Inc(8000);  // means immediate movement
