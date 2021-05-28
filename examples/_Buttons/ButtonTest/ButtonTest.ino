@@ -2,6 +2,9 @@
 // mit Entprellung der Taster und Aufteilung in Eingabe - Verarbeitung - Ausgabe
 // mit Flankenerkennung im Eingabeblock
 
+// Test sketch for switching an LED on and off with a pushbutton when pressing and releasing the pushbutton
+// with debouncing of the buttons and division of the sketch into input - processing - output
+
 #include <MoToButtons.h>
 // Variablen deklarieren und mit definierten Grundwerten vorbelegen
 const byte tasterPinNr [] = { 14, 15, 16, 17 };     // = A0...A3 auf UNO/Nano

@@ -1,57 +1,53 @@
 #include <MobaTools.h>
-/* Demo zum langsamen Bewegen eines Servos
- * Die aktuelle Version der MoBatools erlaubt bis zu 16 Servos nur an beliebigen Pins
- * Eine gleichzeitige Verwendung mit der Standard Servo Library des Arduino
- * ist nicht möglich, da die gleichen HW-Komponenten verwendet werden.
- * Die Aufrufe sind kompatibel zur Standard-Servo Library. 
- * zusätzliche Aufrufe:
- * Servo2.setSpeed( wert ); Vorgabe der Geschwindigkeit. Je größer die Zahl, umso
- *                          größer ist die Geschwindigkeit. Bei 0 (defaultwert)
- *                          verhält das Servo sich wie bei der Standard Bibliothek
- * byte = Servo2.moving();  gibt den noch verbleibenden Fahrweg in % vom gesamten
- *                          Verfahrweg an. Bei 0 hat das Servo die Zielposition
- *                           erreicht und steht.
- * fehlende Aufrufe:
- * writeMicroseconds() auch beim normalen write Aufruf können Microsekunden übergeben 
- *                     werden. Die Unterscheidung Winkel (0..180) und Mikrosekunden 
- *                    ( 700...2300 )ergibt sich aus dem Zahlenwert.
- * 
- * Demo 02 : mit Abfrage der Servobewegung.
- * In diesem Sketch kann das Servo erst umgesteuert werden, wenn es seine Zielposition 
- * erreicht hat und steht. Im Demo Servo_01 kann das Servo jederzeit umgesteuert werden
+/* Demo to move a servo slowly
+ * The current version of MoBatools allows up to 16 servos only on arbitrary pins. 
+ * A simultaneous use with the standard servo library of the Arduino is not possible, 
+ * because the same HW components are used. 
+ * The calls are compatible with the standard Servo Library. 
+ * Additional calls:
+ * Servo2.setSpeed( value ); Set the speed. The larger the number, the greater the speed. 
+ *                           At 0 (default value) the servo behaves as with the standard library.
+ * byte = Servo2.moving();   specifies the remaining travel distance in % of the total travel distance. 
+ *                           At 0 the servo has reached the target position and stops.
+ *                           
+ * missing calls:
+ * writeMicroseconds();      microseconds can also be passed in the normal write call. The distinction 
+ *                           between angle (0..180) and microseconds ( 700...2300 ) results from the 
+ *                           numerical value.
+ *                           
+ * Demo 02 : with query of the servo movement. In this sketch, the servo can only be reversed when 
+ * it has reached its target position and is stationary.
+ * In the demo Servo_01 the servo can be reversed at any time.
 */
 
-// Die Taster müssen so angeschlossen sein, dass der Eingang bei gedrücktem
-// Taster auf LOW (=0) geht. 
-const int tasterPin1 = 2;    //Taster1 Pin 2
-const int tasterPin2 = 3;    //Taster2  Pin 3
-const int servoPin =  9;  // Anschluß für den Servo
-// bei Werten, die sich im Programm nie verändern, sollte immer 'const' vorangestellt
-// werden
+// The pushbuttons must be connected in such a way that the input goes LOW (=0) 
+// when the pushbutton is pressed. 
+const int buttonPin1 = 2;    //Taster1 Pin 2
+const int buttonPin2 = 3;    //Taster2  Pin 3
+const int servoPin =  9;  // Connection for the servo
 
-
-int tasterStatus1, tasterStatus2;
-MoToServo meinServo;
+int buttonState1, buttonState2;
+MoToServo myServo;
 
 void setup() {
-    pinMode(tasterPin1, INPUT_PULLUP); // so ist kein externer pullup Widerstand am 
-    pinMode(tasterPin2, INPUT_PULLUP); // Taster erforderlich
+    pinMode(buttonPin1, INPUT_PULLUP); // no external pullup resistor 
+    pinMode(buttonPin2, INPUT_PULLUP); // is required at the pushbutton
     
-    meinServo.attach(servoPin); //Servo an Pin 9
-    meinServo.setSpeed( 5 );    // Verfahrgeschwindigkeit einstellen
+    myServo.attach(servoPin); //servo at pin 9
+    myServo.setSpeed( 5 );    // set servo speed
 }
 
 void loop() {
-    tasterStatus1 = digitalRead(tasterPin1);
-    tasterStatus2 = digitalRead(tasterPin2);
+    buttonState1 = digitalRead(buttonPin1);
+    buttonState2 = digitalRead(buttonPin2);
 
-    if (tasterStatus1 == LOW && meinServo.moving() == 0 ) {
-        meinServo.write(40); //wird langsam  drehen
-        delay(100);
+    if (buttonState1 == LOW && myServo.moving() == 0 ) {
+        myServo.write(40); // will turn slowly
+        delay(100);     // This is not necessary, but shows that the servo even moves during delay()
     }
 
-    if (tasterStatus2 == LOW && meinServo.moving() == 0) {
-        meinServo.write(120); //wird langsam drehen
+    if (buttonState2 == LOW && myServo.moving() == 0) {
+        myServo.write(120); // will turn slowly
         delay(100);
     }
 
