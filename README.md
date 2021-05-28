@@ -15,7 +15,7 @@ Released versions can be installed by means of the library manager in arduino ID
 #### supported processors
 - AVR ATmega
 - AVR ATtiny, if it has the 16-bit timer 1 and a SPI or USI hardware
-- STM32F103x processors ( the core of Roger Clark must be used )
+- STM32F103x processors ( the [core of Roger Clark](https://github.com/rogerclarkmelbourne/Arduino_STM32) must be used )
 - ESP32
 - ESP8266 ( with some restrictions, Stepper via SPI does not work )
 
@@ -25,7 +25,7 @@ A documentation file in [german](MobaTools-24-de.pdf) and [english](MobaTools-24
 
 | Version |  Release Date  | Description
 | ------- |  ------------  | -----------
-| 2.4.0 | 2021-0?-??| ESP32 processor is now supported
+| 2.4.0 | 2021-05-28| ESP32 processor is now supported
 | | | ATTiny processors that have timer 1 (16-bit) and SPI or USI hadware are supported
 | | | some optimizing for 32-Bit processors, which leads to significant faster steprates for ESP32 and STM32
 | | | ESP32 creates servopulses by hardware ( they are much more stable )
