@@ -114,7 +114,7 @@ class MoToButtons {
       _pressTime = pressTime / debTime;   // in debTime tics
       _dClickTime = doubleClick / debTime;
       // Set Pins to INPUT_PULLUP
-      for ( byte i= 0; i < _pinCnt; i++ ) pinMode( pinNumbers[i], INPUT_PULLUP );
+      //for ( byte i= 0; i < _pinCnt; i++ ) pinMode( pinNumbers[i], INPUT_PULLUP );
       _initLocals( );
     }
     
@@ -130,6 +130,9 @@ class MoToButtons {
     
     void processButtons() {
       // must be called in loop frequently
+      // set input port mode at first call when read directly ( cannot be done in constructor on STM32F4 
+      if (_lastReadTime == 0 && !_getHWbuttons ) for ( byte i= 0; i < _pinCnt; i++ ) pinMode( _pinArray[i], INPUT_PULLUP );
+      
       if ( millis() - _lastReadTime > (uint32_t) _debTime || _lastReadTime == 0 ) {
         // Read button state with first call or when debounce time has elapsed
         _lastReadTime = millis();
