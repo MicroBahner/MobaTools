@@ -19,10 +19,12 @@
   License along with this library; if not, write to the Free Software
   Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
-  MobaTools V2.4.0
+  MobaTools V2.4.1
    
   History:
-  V2.4.0 03-2021
+  V2.4.1 06-2021
+     - fix typo ( arduino.h -> Arduino.h ). This created an error on linux.
+  V2.4.0 05-2021
      - ESP32 prozessors are supported
      - some ATtiny are supported ( needs a 16bit-timer1 amd a SPI or USI hardware )
      - Step-tuning for 32Bit prozessors ( except ESP8266 ) for higher steprates

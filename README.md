@@ -16,7 +16,7 @@ Released versions can be installed by means of the library manager in arduino ID
 - AVR ATmega
 - AVR ATtiny, if it has the 16-bit timer 1 and a SPI or USI hardware
 - STM32F103x processors ( the [core of Roger Clark](https://github.com/rogerclarkmelbourne/Arduino_STM32) must be used )
-- ESP32
+- ESP32 ( minimum core version is 1.0.6 )
 - ESP8266 ( with some restrictions, Stepper via SPI does not work )
 
 A documentation file in [german](MobaTools-24-de.pdf) and [english](MobaTools-24-en.pdf) is provided.
