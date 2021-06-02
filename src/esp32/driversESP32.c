@@ -1,7 +1,7 @@
 // ESP32 HW-spcific Functions
 #ifdef ARDUINO_ARCH_ESP32
 // Logging
-#include <arduino.h>
+#include <Arduino.h>
 #include "drivers.h"
 
 // ------------------ SOFTLED & Servos ------------------------------------------------------
