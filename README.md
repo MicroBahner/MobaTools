@@ -5,7 +5,7 @@ This library contains functionality
 - to control up to 16 servos with speed control
 - to control up to 6 stepper motors with accelerating and decelerating
 - to softly turn leds on and off ( bulb simulation )
-- to implement time functions without delay.
+- to implement time functions without use of delay().
 - to debounce and evaluate up to 32 buttons/switches (per instance)
 
 ### Installation
@@ -16,7 +16,7 @@ Released versions can be installed by means of the library manager in arduino ID
 - AVR ATmega
 - AVR ATtiny, if it has the 16-bit timer 1 and a SPI or USI hardware
 - STM32F103x processors ( the [core of Roger Clark](https://github.com/rogerclarkmelbourne/Arduino_STM32) must be used )
-- ESP32
+- ESP32 ( minimum core version is 1.0.6 )
 - ESP8266 ( with some restrictions, Stepper via SPI does not work )
 
 A documentation file in [german](MobaTools-24-de.pdf) and [english](MobaTools-24-en.pdf) is provided.
@@ -25,6 +25,8 @@ A documentation file in [german](MobaTools-24-de.pdf) and [english](MobaTools-24
 
 | Version |  Release Date  | Description
 | ------- |  ------------  | -----------
+| 2.4.1 | 2021-06-xx| fix typo: arduino.h -> Arduino.h ( created an error on linux )
+| | | fix bug in MoToButtons.h
 | 2.4.0 | 2021-05-28| ESP32 processor is now supported
 | | | ATTiny processors that have timer 1 (16-bit) and SPI or USI hadware are supported
 | | | some optimizing for 32-Bit processors, which leads to significant faster steprates for ESP32 and STM32
