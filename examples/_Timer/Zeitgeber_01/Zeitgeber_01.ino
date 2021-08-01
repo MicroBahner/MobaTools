@@ -1,14 +1,14 @@
 #include <MobaTools.h>
 /* Demo: Zeitverzögerungen ohne delay-befehl
- * Der 'eggtimer' arbeitet im Prinzip wie ein Kurzzeitwecker in der
+ * Der 'MoToTimer' arbeitet im Prinzip wie ein Kurzzeitwecker in der
  * Küche: Man zieht ihn auf eine bestimmte Zeit auf, und dann läuft 
  * er bis 0 zurück. Im Gegensatz zum Küchenwecker klingelt er aber nicht.
  * Man muss zyklisch nachschauen, ob er abgelaufen ist. Das passt aber
  * perfekt zum prinzip des 'loop', also einer Endlosschleife, in der man
  * zyklisch abfragt.
  * Aufrufe:
- * EggTimer.setTime( long Laufzeit );    setzt die Zeit in ms
- * bool = EggTimer.running();       == true solange die Zeit noch läuft, 
+ * MoToTimer.setTime( long Laufzeit );    setzt die Zeit in ms
+ * bool = MoToTimer.running();       == true solange die Zeit noch läuft, 
  *                                  == false wenn abgelaufen
  *                                  
  * Im Gegensatz zum Verfahren mit delay() lassen sich damit mehrere

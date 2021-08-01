@@ -174,7 +174,7 @@ class MoToButtons {
             _buttonTime[i] = 0;
           } else if ( bitRead( releaseEvent, i ) ) {
             // button was released, check if it was presssed long, short or clicked,  
-            if (_buttonTime[i] < _pressTime ) {
+            if (_buttonTime[i] <= _pressTime ) {
                 // this release event is a short press
                 bitSet( _shortPress, i );
             } else {
