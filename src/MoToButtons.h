@@ -36,7 +36,9 @@
     void    processButtons();                   // must be called in the loop frequently
                                                 // if it is called less frequently than debTime, pressTime will be inaccurate
     Reading the debounced state of the Buttons/Switches:                                          
-      bool state( uint8_t buttonNbr );       // get static state of button (debounced)
+      byte state( uint8_t buttonNbr );       // get static state of button (debounced) 
+                                                // 0 if button not pressed
+                                                // presstime in debounce tics ( up to 255 ) if pressed
       button_t allStates();                     // bit field of all buttons (debounced)
       button_t changed();                       // all bits are set where state has changed since last call
   
@@ -44,7 +46,7 @@
       bool shortPress( uint8_t buttonNbr );  // true if button was pressed short ( set when button is released, reset after call )  
       bool longPress( uint8_t buttonNbr );   // true if button was pressed long ( set when button is released, reset after call )  
       bool pressed( uint8_t buttonNbr );     // true if button is pressed ( reset after call )
-      bool released( uint8_t buttonNbr );    // true if button is released ( reset after call )
+      byte released( uint8_t buttonNbr );    // returns pressed time im debounce tics if button is released, 0 otherwise ( reset after call )
       uint8_t clicked( uint8_t buttonNbr );  // = NOCLICK, SINGLECLICK or DOUBLECLICK ( reset to NOCLICK after call )
   
     void forceChanged(){                        // force all changed with call of next 'pressed', 'released' ore 'changed'
@@ -114,6 +116,7 @@ class MoToButtons {
       _pressTime = pressTime / debTime;   // in debTime tics
       _dClickTime = doubleClick / debTime;
       // Set Pins to INPUT_PULLUP
+      // now done in processButtons on first call. It doesn't work here on STM32F4
       //for ( byte i= 0; i < _pinCnt; i++ ) pinMode( pinNumbers[i], INPUT_PULLUP );
       _initLocals( );
     }
@@ -215,9 +218,10 @@ class MoToButtons {
       }
     }
 
-    bool state( uint8_t buttonNbr ) {            // get static state of button (debounced)
+    byte state( uint8_t buttonNbr ) {            // get static state of button (debounced)
       if ( buttonNbr >= _buttonCnt ) return 0;
-      return bitRead( _actState, buttonNbr );
+      if ( bitRead( _actState, buttonNbr ) ) return _buttonTime[buttonNbr];
+      else return 0;
     }
 
     button_t allStates() {                          // bit field of all buttons (debounced)
@@ -271,12 +275,13 @@ class MoToButtons {
       bitClear( _leadingEdge, buttonNbr );
       return temp;
     }
-    bool released( uint8_t buttonNbr ) {         // trailing edge of button press
+    byte released( uint8_t buttonNbr ) {         // trailing edge of button press
       if ( buttonNbr >= _buttonCnt ) return 0;
       // get momentarily released state of button (debounced)
       bool temp = bitRead( _trailingEdge, buttonNbr );
       bitClear( _trailingEdge, buttonNbr );
-      return temp;
+      if ( temp ) return  _buttonTime[buttonNbr];
+      else return 0;
     }
 
     uint8_t clicked( uint8_t buttonNbr ) {         // single/double click of button press
