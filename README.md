@@ -25,8 +25,9 @@ A documentation file in [german](MobaTools-24-de.pdf) and [english](MobaTools-24
 
 | Version |  Release Date  | Description
 | ------- |  ------------  | -----------
-| 2.4.1 | 2021-08-xx| fix typo: arduino.h -> Arduino.h ( created an error on linux )
-| | | fix bug in MoToButtons.h
+| 2.4.1 | 2021-11-12| fix typo: arduino.h -> Arduino.h ( created an error on linux )
+| | | fix bug and minor enhancements in MoToButtons.h
+| | | fix some documentation errors
 | 2.4.0 | 2021-05-28| ESP32 processor is now supported
 | | | ATTiny processors that have timer 1 (16-bit) and SPI or USI hadware are supported
 | | | some optimizing for 32-Bit processors, which leads to significant faster steprates for ESP32 and STM32
@@ -65,7 +66,7 @@ Allows easy softon / softoff of leds. It works on all digital outputs.
 Allows easy nonblocking timedelays in sketches. You don't have to bother with millis() directly
 
 #### MoToButtons: 
-Manage up to 32 buttons and switches with debounce and event handling (pressed, released, short press, long press ) in one instance. The buttons/switches are read in via a user callback function. This enables matrix arrangements and e.g. I2C port expander to be used.
+Manage up to 32 buttons and switches with debounce and event handling (pressed, released, short press, long press, click and double click ) in one instance. The buttons/switches can be read in via a user callback function. This enables matrix arrangements and e.g. I2C port expander to be used.
 
 
 #### Additional Info:
@@ -73,7 +74,7 @@ Apart from class MoToButtons, there is no special function that has to be called
 
 The library uses Timer1 for all classes (AVR). V1.0: from this version on, timer 3 is used instead of timer 1 if available.
 On the STM32F1 platform, timer 4 is used.
-MoToButtons does not use any timer und should be compatible with all plattforms.
+MoToButtons and MoToTimer do not use any timer und should be compatible with all plattforms.
 
 With ESP8266 waveform creating fuctions, and IO-interrupts are used. Because the core functions could not be used for this purpose, the integrated functions tone(), analogWrite() and servo() cannot be used together with MobaTools.
 To overcome this problem, there exists an additional class exclusively for the ESP8266 platform:

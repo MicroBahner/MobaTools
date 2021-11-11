@@ -22,8 +22,9 @@
   MobaTools V2.4.1
    
   History:
-  V2.4.1 06-2021
+  V2.4.1 11-2021
      - fix typo ( arduino.h -> Arduino.h ). This created an error on linux.
+     - some fixes in MoToButtons and documentation
   V2.4.0 05-2021
      - ESP32 prozessors are supported
      - some ATtiny are supported ( needs a 16bit-timer1 amd a SPI or USI hardware )
