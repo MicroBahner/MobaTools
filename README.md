@@ -19,7 +19,7 @@ Released versions can be installed by means of the library manager in arduino ID
 - ESP32 ( minimum core version is 1.0.6 )
 - ESP8266 ( with some restrictions, Stepper via SPI does not work )
 
-A documentation file in [german](MobaTools-24-de.pdf) and [english](MobaTools-24-en.pdf) is provided.
+A documentation file in [german](MobaTools-241-de.pdf) and [english](MobaTools-241-en.pdf) is provided.
 
 **Latest changes:**
 
@@ -28,6 +28,7 @@ A documentation file in [german](MobaTools-24-de.pdf) and [english](MobaTools-24
 | 2.4.1 | 2021-11-12| fix typo: arduino.h -> Arduino.h ( created an error on linux )
 | | | fix bug and minor enhancements in MoToButtons.h
 | | | fix some documentation errors
+| | | Unfortunately the german documentation is missing in this release. You can download it directly here from GitHub
 | 2.4.0 | 2021-05-28| ESP32 processor is now supported
 | | | ATTiny processors that have timer 1 (16-bit) and SPI or USI hadware are supported
 | | | some optimizing for 32-Bit processors, which leads to significant faster steprates for ESP32 and STM32
