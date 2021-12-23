@@ -25,6 +25,8 @@ A documentation file in [german](MobaTools-241-de.pdf) and [english](MobaTools-2
 
 | Version |  Release Date  | Description
 | ------- |  ------------  | -----------
+| 2.4.2 | 2021-12-23| fix bug in MoToStepper.setSpeedSteps ( was possible divide by zero )
+| | | ESP crashed
 | 2.4.1 | 2021-11-12| fix typo: arduino.h -> Arduino.h ( created an error on linux )
 | | | fix bug and minor enhancements in MoToButtons.h
 | | | fix some documentation errors

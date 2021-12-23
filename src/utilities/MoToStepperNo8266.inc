@@ -438,7 +438,11 @@ uintxx_t MoToStepper::setSpeedSteps( uintxx_t speed10, int rampLen ) {
                         //Serial.print(" --");
                         //DB_PRINT ( "Slower: %u/%u -> %u/%u", _stepSpeed10,_stepperData.stepRampLen,  newSpeed10, newRampLen );
                         newRampState = rampStat::SPEEDDECEL;
-                        newDeltaSteps = ((10L * newStepsInRamp / _stepperData.stepsInRamp)+5 )/10L;
+                        if ( _stepperData.stepsInRamp == 0 ) {
+                            newDeltaSteps = ((10L * newStepsInRamp)+5 )/10L;
+                        } else {
+                            newDeltaSteps = ((10L * newStepsInRamp / _stepperData.stepsInRamp)+5 )/10L;
+                        }
                         if ( newDeltaSteps < 1 ) newDeltaSteps = 1;
                     
                 } else  {
