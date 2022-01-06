@@ -146,11 +146,11 @@
 
 // servo related defines
 #if defined ARDUINO_ARCH_ESP32 || defined ARDUINO_ARCH_ESP8266 
-#define MINPULSEWIDTH   550     // there is no general limit on ESP
-#define MAXPULSEWIDTH   2600    // there is no general limit on ESP
+#define MINPULSEWIDTH   550U     // there is no general limit on ESP
+#define MAXPULSEWIDTH   2600U    // there is no general limit on ESP
 #else // AVR and STM32
-#define MINPULSEWIDTH   700     // don't make it shorter than 700
-#define MAXPULSEWIDTH   2300    // don't make it longer than 2300
+#define MINPULSEWIDTH   700U      // don't make it shorter than 700
+#define MAXPULSEWIDTH   2300U     // don't make it longer than 2300
 #endif
 
 // softled related defines
