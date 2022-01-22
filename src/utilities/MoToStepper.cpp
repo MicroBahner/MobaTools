@@ -586,6 +586,8 @@ void MoToStepper::setZero() {
 
 void MoToStepper::setZero(long zeroPoint) {
     if ( _stepperData.output == NO_OUTPUT ) return; // not attached
+    // in FULLSTEP mode the internal steps are twice the real steps
+    if (stepMode==FULLSTEP) zeroPoint *= 2;
     noInterrupts();
     _stepperData.stepsFromZero = -zeroPoint;
     interrupts();
