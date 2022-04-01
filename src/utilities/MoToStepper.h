@@ -47,12 +47,6 @@
     void ISR_Stepper(void);
 #endif
 
-//some AccelStepper compatible method names ( maybe sligtly different in functionality
-#define moveTo              writeSteps
-#define move                doSteps
-#define setMaxSpeed( speed) setSpeedSteps( speed*10 )
-#define distanceToGo        stepsToDo
-#define currentPosition     readSteps
 
 /////////////////////////////////////////////////////////////////////////////////
 // global stepper data ( used in ISR )
@@ -187,6 +181,13 @@ class MoToStepper
     long readSteps();               // actual distance to zeropoint in steps
     uint8_t attached();
     void prDynData();             // print actual Stepperdata
+    
+    //some AccelStepper compatible method names ( may be sligtly different in functionality
+    void moveTo ( long stepPos )    { writeSteps( stepPos ); }
+    void move(long count)           { doSteps( count ); }
+    uintxx_t setMaxSpeed( uintxx_t speed ){ return setSpeedSteps( speed*10 ); }
+    long distanceToGo()             { return stepsToDo(); }
+    long currentPosition()          { return readSteps(); } 
 };
 
 #endif
