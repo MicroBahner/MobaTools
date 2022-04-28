@@ -25,10 +25,11 @@ A documentation file in [german](MobaTools-241-de.pdf) and [english](MobaTools-2
 
 | Version |  Release Date  | Description
 | ------- |  ------------  | -----------
-| 2.4.3 | 2022-xx-x| small bugfix to suppress warnings (issue [#10](https://github.com/MicroBahner/MobaTools/issues/10) )
+| 2.4.3 | 2022-04-28| small bugfix to suppress warnings (issue [#10](https://github.com/MicroBahner/MobaTools/issues/10) )
 | | | bugfix for setZero(position) for steppers in FULLSTEP mode
 | | | bugfix with AccelStepper like method names ( compiler error if both libs have been included )
 | | | 2 additional timer examples commented in english
+| | | 1 additional stepper example
 | 2.4.2 | 2021-12-23| fix bug in MoToStepper.setSpeedSteps ( was possible divide by zero )
 | | | ESP crashed
 | 2.4.1 | 2021-11-12| fix typo: arduino.h -> Arduino.h ( created an error on linux )

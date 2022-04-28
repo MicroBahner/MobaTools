@@ -1,8 +1,8 @@
 #ifndef MOBATOOLS_H
 #define MOBATOOLS_H
 /*
-  MobaTools.h - a library for model railroaders
-  Author: fpm, fpm-gh@mnet-mail.de
+  MobaTools.h - a library for model makers - and others too ;-) 
+  Author: Franz-Peter Müller, f-pm+gh@mailbox.org
   Copyright (c) 2021 All rights reserved.
 
   This library is free software; you can redistribute it and/or
@@ -19,9 +19,16 @@
   License along with this library; if not, write to the Free Software
   Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
-  MobaTools V2.4.1
+  MobaTools V2.4.3
    
   History:
+  V2.4.3 04-2022
+	 - bugfix for setZero(position) for steppers in FULLSTEP mode
+	 - bugfix with AccelStepper like method names ( compiler error if both libs have been included )
+	 - 2 additional timer examples commented in english
+	 - 1 additional stepper example
+  V2.4.2 12-2021
+	 - fix bug in MoToStepper.setSpeedSteps ( was possible divide by zero ), ESP crashed
   V2.4.1 11-2021
      - fix typo ( arduino.h -> Arduino.h ). This created an error on linux.
      - some fixes in MoToButtons and documentation
