@@ -12,7 +12,7 @@ long nextPos;
 
 
 MoToStepper myStepper ( stepsPerRev, STEPDIR );
-MoToTimer pause;                    // Pause between stepper moves
+MoToTimer stepperPause;                    // Pause between stepper moves
 bool stepperRunning;
 
 void setup() {
@@ -27,13 +27,13 @@ void loop() {
     // Wait till stepper has reached target, then set pause time
     if ( !myStepper.moving() ) {
       // stepper has reached target, start pause
-      pause.setTime( 1000 );
+      stepperPause.setTime( 1000 );
       stepperRunning = false;
     }
   } else {
-    // stepper doesn't move, wait till pause time expires
-    if ( pause.expired() ) {
-      // pause time expired. Start stepper in opposite direction
+    // stepper doesn't move, wait till stepperPause time expires
+    if ( stepperPause.expired() ) {
+      // stepperPause time expired. Start stepper in opposite direction
       if ( nextPos == 0 ) {
         nextPos = targetPos;
       } else {

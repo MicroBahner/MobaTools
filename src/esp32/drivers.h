@@ -4,7 +4,7 @@
 #define ESP32_DRIVER_H
 
 #include "esp32-hal-timer.h"
-#include "esp32-mt-spi.h"
+#include "esp32-hal-spi.h"
 #ifdef __cplusplus
 extern "C" {
 #endif

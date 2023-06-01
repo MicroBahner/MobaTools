@@ -125,7 +125,7 @@ xSemaphoreHandle _ledc_sys_lock;
 #define LEDC_CHAN(g,c) LEDC.channel_group[(g)].channel[(c)]
 #define LEDC_TIMER(g,t) LEDC.timer_group[(g)].timer[(t)]
 
-static uint16_t ledcUsed =0 ; // Bit field to mark used pwm channels
+//static uint16_t ledcUsed =0 ; // Bit field to mark used pwm channels
 #define groupUsed(pwmNr)    ((pwmNr)/8)
 #define channelUsed(pwmNr)  ((pwmNr)%8)
 
