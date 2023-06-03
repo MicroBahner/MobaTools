@@ -115,32 +115,35 @@
     
 // default CYCLETIME is processordependent, change only if you know what you are doing ).
 #ifdef  ARDUINO_ARCH_ESP8266 ///////////////////////////////////////////////////////////
-#define CYCLETIME       60      // Min. irq-periode in us ( ESP-default is 60 )
-#define MIN_STEP_CYCLE  2       // Minimum number of cycles per step. 
-#define MAX_GPIO        10      // max number of usable gpios
-// at max 10 gpio's can be used at an ESP12: gpio 0,1,2,3,4,5,12,13,14,15
-// gpio 6-10 is internally used for flash
-// gpio16 has no interrupt capability ( but can be used as dir-pin for a stepper)
+	#define CYCLETIME       60      // Min. irq-periode in us ( ESP-default is 60 )
+	#define MIN_STEP_CYCLE  2       // Minimum number of cycles per step. 
+	#define MAX_GPIO        10      // max number of usable gpios
+	// at max 10 gpio's can be used at an ESP12: gpio 0,1,2,3,4,5,12,13,14,15
+	// gpio 6-10 is internally used for flash
+	// gpio16 has no interrupt capability ( but can be used as dir-pin for a stepper)
 
 #elif defined ARDUINO_ARCH_STM32F1 /////////////////////////////////////////////////////
-#define MIN_STEP_CYCLE  25   // Minimum number of µsec  per step 
+	#define MIN_STEP_CYCLE  25   // Minimum number of µsec  per step 
 
-#elif defined ARDUINO_ARCH_STM32F4 /////////////////////////////////////////////////////
-#define MIN_STEP_CYCLE  20   // Minimum number of µsec  per step 
+	#elif defined ARDUINO_ARCH_STM32F4 /////////////////////////////////////////////////////
+	#define MIN_STEP_CYCLE  20   // Minimum number of µsec  per step 
 
 #elif defined ARDUINO_ARCH_ESP32 ///////////////////////////////////////////////////////
-#define USE_VSPI                // default is HSPI ( for SPI-Stepper )
-#define MIN_STEP_CYCLE 20       // Minimum number of µsec  per Step
-
+	#if CONFIG_IDF_TARGET_ESP32S2 || CONFIG_IDF_TARGET_ESP32S3 || CONFIG_IDF_TARGET_ESP32C3
+		#error This ESP32 version is not supported
+	#else
+		#define USE_VSPI                // default is HSPI ( for SPI-Stepper )
+		#define MIN_STEP_CYCLE 20       // Minimum number of µsec  per Step
+	#endif
 #elif defined ARDUINO_ARCH_AVR ////////////////////////////////////////////////////////
-//#define NO_TIMER3             // never use Timer 3
-#define CYCLETIME       200     // Min. irq-periode in us ( default is 200 ), 
-#define MIN_STEP_CYCLE  2       // Minimum number of cycles per step. 
-#define FASTSPI                 // only for devices with USI Interface ( instead of SPI HW )
-                                // if defined SPI clock ist CPU clock / 2
-                                // if not defined, SPI clock ist CPU clock / 4
-//#define USI_SS  7               // defines the SS - Pin with USI-SPI-Stepper
-                                // if not defined the core-default (SS) is used
+	//#define NO_TIMER3             // never use Timer 3
+	#define CYCLETIME       200     // Min. irq-periode in us ( default is 200 ), 
+	#define MIN_STEP_CYCLE  2       // Minimum number of cycles per step. 
+	#define FASTSPI                 // only for devices with USI Interface ( instead of SPI HW )
+									// if defined SPI clock ist CPU clock / 2
+									// if not defined, SPI clock ist CPU clock / 4
+	//#define USI_SS  7               // defines the SS - Pin with USI-SPI-Stepper
+									// if not defined the core-default (SS) is used
 #else ///////////////////////////////////////////////////////////////////////////////////
     #error Processor not supported
 #endif //////////////////////////////////////////////////////////////////////////////////

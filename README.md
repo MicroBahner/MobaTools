@@ -26,7 +26,7 @@ A documentation file in [german](MobaTools-241-de.pdf) and [english](MobaTools-2
 | Version |  Release Date  | Description
 | ------- |  ------------  | -----------
 | 2.5.0 | 2023-0?-??| several bugfixes
-| | | ESP32 2.x package is supported ( ESP32S3, ESP32S3, ESP32C3 are not! )
+| | | ESP32 2.x package is supported ( ESP32S2, ESP32S3, ESP32C3 are not! )
 | | | 
 | | | 
 | | | some additional stepper/servo examples
