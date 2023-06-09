@@ -52,6 +52,7 @@
 // global stepper data ( used in ISR )
 enum class rampStat:byte { INACTIVE, STOPPED, STOPPING, STARTING, CRUISING, LASTSTEP, RAMPACCEL, RAMPDECEL, SPEEDDECEL  };
 // states from CRUISING and above mean that the motor is moving
+//STOPPING: Motor does not move - waiting for disabling the motor.
 typedef struct stepperData_t {
   struct stepperData_t *nextStepperDataP;    // chain pointer
   volatile uint32_t stepCnt;        // nmbr of steps to take
