@@ -1,7 +1,7 @@
 /*
   MobaTools.h - a library for model railroaders
   Author: fpm, fpm@mnet-mail.de
-  Copyright (c) 2020 All right reserved.
+  Copyright (c) 2023 All right reserved.
 
   Functions for the stepper part of MobaTools
 */
@@ -40,7 +40,7 @@ byte MoToStepper::_stepperCount = 0;
 MoToStepper::MoToStepper(long steps ) {
     // constuctor for stepper Class, initialize data
 	#ifdef ESP8266
-    MoToStepper::initialize ( steps, A4988 );	// This is the only valid mode
+    MoToStepper::initialize ( steps, STEPDIR );	// This is the only valid mode
 	#else
     MoToStepper::initialize ( steps, HALFSTEP );
 	#endif
@@ -63,7 +63,7 @@ void MoToStepper::initialize ( long steps360, uint8_t mode ) {
     MODE_TP4;
     _stepperIx = _stepperCount ;
     stepsRev = steps360;       // number of steps for full rotation in fullstep mode
-    if ( mode != FULLSTEP && mode != A4988 ) mode = HALFSTEP;
+    if ( mode != FULLSTEP && mode != STEPDIR ) mode = HALFSTEP;
     stepMode = mode;
     // initialize data for interrupts
     _stepperData.stepCnt = 0;         // don't move
@@ -84,7 +84,7 @@ void MoToStepper::initialize ( long steps360, uint8_t mode ) {
     _stepperData.stepRampLen             = 0;               // initialize with no acceleration  
     _stepperData.delayActiv = false;            // enable delaytime is runnung ( only ESP)
     _stepperData.output = NO_OUTPUT;          // unknown, not attached yet
-    _stepperData.enablePin = 255;             // without enable
+    _stepperData.enablePin = NO_STEPPER_ENABLE;             // without enable (default)
     _stepperData.nextStepperDataP = NULL;
 	#ifndef ESP8266
     // add at end of chain
@@ -104,8 +104,8 @@ long MoToStepper::getSFZ() {
     lastSFZ = _stepperData.stepsFromZero;
     interrupts();
     //digitalWrite(16,1);
-    // in A4988 mode there is no difference between half/fullstep in counting steps
-    return ( stepMode==A4988?lastSFZ:lastSFZ / stepMode);
+    // in STEPDIR mode there is no difference between half/fullstep in counting steps
+    return ( stepMode==STEPDIR?lastSFZ:lastSFZ / stepMode);
 }
 
 bool MoToStepper::_chkRunning() {
@@ -119,9 +119,9 @@ bool MoToStepper::_chkRunning() {
 
 // public functions -------------------
 uint8_t MoToStepper::attach( byte stepP, byte dirP ) {
-    // step motor driver A4988 is used
+    // step motor driver STEPDIR is used
     byte pins[2];
-    if ( stepMode != A4988 ) return 0;    // false mode
+    if ( stepMode != STEPDIR ) return 0;    // false mode
     DB_PRINT( "Attach4988, S=%d, D=%d", stepP, dirP );
     
     pins[0] = stepP;
@@ -288,39 +288,53 @@ void MoToStepper::detach() {   // no more moving, detach from output
 		detachInterrupt( _stepperData.pins[0]);
         clrGpio(_stepperData.pins[0]);    // mark pin as unused
         clrGpio(_stepperData.pins[1]);    // mark pin as unused
-        if ( _stepperData.enablePin != 255 ) {
-            pinMode( _stepperData.enablePin, INPUT );
-            clrGpio(_stepperData.enablePin);    // mark pin as unused
-            detachInterrupt( _stepperData.enablePin);
-            _stepperData.enablePin = 255;
+        if ( _stepperData.enablePin != NO_STEPPER_ENABLE ) {
+			if ( _stepperData.enablePin != NO_ENABLEPIN ) {
+				pinMode( _stepperData.enablePin, INPUT );
+				clrGpio(_stepperData.enablePin);    // mark pin as unused
+				detachInterrupt( _stepperData.enablePin);
+			}
+            _stepperData.enablePin = NO_STEPPER_ENABLE;
         }
     #else
-    if ( _stepperData.enablePin != 255 ) {
-        pinMode( _stepperData.enablePin, INPUT );
-        _stepperData.enablePin = 255;
+    if ( _stepperData.enablePin != NO_STEPPER_ENABLE ) {
+        if ( _stepperData.enablePin != NO_ENABLEPIN ) pinMode( _stepperData.enablePin, INPUT );
+        _stepperData.enablePin = NO_STEPPER_ENABLE;
     }
 	#endif
 }
+
+#ifndef ESP8266
+void MoToStepper::attachEnable( uint16_t delay ) {
+	// This variant is for FULLSTEP and HALFSTEP mode with unipolar steppers ( no enable pin )
+	if ( stepMode == FULLSTEP || stepMode == HALFSTEP ) {
+	attachEnable( NO_ENABLEPIN, delay, true );
+	}
+}
+#endif
 
 void MoToStepper::attachEnable( uint8_t enablePin, uint16_t delay, bool active ) {
     // define an enable pin. enable is active as long as the motor moves.
     _stepperData.enablePin = enablePin;
     _stepperData.enable = active;       // defines whether activ is HIGH or LOW
-    pinMode( enablePin, OUTPUT );
-    digitalWrite( enablePin, !active );
-    DB_PRINT("Enable, pin=%d, state=%d", enablePin, !active );
-    #ifdef ESP8266
-    // initialize ISR-Table and attach interrupt to dir-Pin
-    // assign an ISR to the pin
-        gpioTab[gpio2ISRx(_stepperData.pins[1])].MoToISR = (void (*)(void*))ISR_StepperEnable;
-        gpioTab[gpio2ISRx(_stepperData.pins[1])].IsrData = &_stepperData;
-        attachInterrupt( _stepperData.pins[1], gpioTab[gpio2ISRx(_stepperData.pins[1])].gpioISR, FALLING );
-        setGpio(_stepperData.enablePin);    // mark pin as used
-        _stepperData.cycDelay = delay;      // delay (ms) between enablePin HIGH/LOW and stepper moving
-    #else
+    if ( _stepperData.enablePin != NO_ENABLEPIN ) {
+		pinMode( enablePin, OUTPUT );
+		digitalWrite( enablePin, !active );
+		DB_PRINT("Enable, pin=%d, state=%d", enablePin, !active );
+		#ifdef ESP8266
+		// initialize ISR-Table and attach interrupt to dir-Pin
+		// assign an ISR to the pin
+			gpioTab[gpio2ISRx(_stepperData.pins[1])].MoToISR = (void (*)(void*))ISR_StepperEnable;
+			gpioTab[gpio2ISRx(_stepperData.pins[1])].IsrData = &_stepperData;
+			attachInterrupt( _stepperData.pins[1], gpioTab[gpio2ISRx(_stepperData.pins[1])].gpioISR, FALLING );
+			setGpio(_stepperData.enablePin);    // mark pin as used
+			_stepperData.cycDelay = delay;      // delay (ms) between enablePin HIGH/LOW and stepper moving
+		#endif
+	}
+    #ifndef ESP8266
     _stepperData.cycDelay = 1000L * delay / CYCLETIME;      // delay ( in cycles ) between enablePin HIGH/LOW and stepper moving
     #endif
-    }
+}
 
 int MoToStepper::setSpeed( int rpm10 ) {
     // Set speed in rpm*10. Step time is computed internally based on CYCLETIME and
@@ -482,16 +496,13 @@ void MoToStepper::_doSteps( long stepValue, bool absPos ) {
 					#ifndef IS_32BIT
                     _stepperData.aCycRemain     = 0;  
 					#endif
-                    //#ifndef ESP8266
-                    if ( _stepperData.enablePin != 255 ) {
-                        // set enable pin to active and start delaytime
-                        digitalWrite( _stepperData.enablePin, _stepperData.enable );
+                   if ( _stepperData.enablePin != NO_STEPPER_ENABLE ) {
+                        // start delaytime ( Stepper is enabled in ISR )
                         _stepperData.rampState      = rampStat::STARTING;
                     } else {
                         // no delay
                         _stepperData.rampState      = rampStat::RAMPACCEL;
                     }
-                    //#endif
                 #endif
                 _stepperData.patternIxInc   = patternIxInc;
                 _stepperData.stepsInRamp    = 0;
@@ -528,9 +539,8 @@ void MoToStepper::_doSteps( long stepValue, bool absPos ) {
 				#ifndef IS_32BIT
 				_stepperData.aCycRemain     = 0; 
 				#endif
-				if ( _stepperData.enablePin != 255 ) {
-					// set enable pin to active and start delaytime
-					digitalWrite( _stepperData.enablePin, _stepperData.enable );
+				if ( _stepperData.enablePin != NO_STEPPER_ENABLE ) {
+                        // start delaytime ( Stepper is enabled in ISR )
 					_stepperData.rampState      = rampStat::STARTING;
 				} else {
 					// no delay
@@ -546,7 +556,7 @@ void MoToStepper::_doSteps( long stepValue, bool absPos ) {
     #ifdef ESP8266
     if ( startMove ) {
         // check if enable Pin must be activated
-        if ( _stepperData.enablePin !=255 ) {
+        if ( _stepperData.enablePin !=NO_STEPPER_ENABLE ) {
             if ( !_stepperData.delayActiv ) {
                 // enable must be set and delaytime is not yet running
                 digitalWrite( _stepperData.enablePin, _stepperData.enable );

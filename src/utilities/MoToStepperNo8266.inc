@@ -11,7 +11,66 @@ uint8_t spiStepperData[2]; // step pattern to be output on SPI
                             // high nibble of spiStepperData[1] is SPI_4
                             // spiStepperData[1] is shifted out first
 
-
+bool IRAM_ATTR setStepperPins( stepperData_t *stepperDataP, uint8_t stepPattern ) {
+	// setting 4-pin stepperdata to enable/disable the stepper
+	//CLR_TP2;SET_TP2;
+	// store pattern data
+	bool spiChanged = false;
+	switch ( stepperDataP->output ) {
+	  #if defined PORTD && defined PORTB
+	  case PIN4_7:
+		PORTD = (PORTD & 0x0f) | ( stepPattern <<4 );   
+		break;
+	  case PIN8_11:
+		PORTB = (PORTB & 0xf0) | ( stepPattern );   
+		break;
+	  #endif
+	  case SPI_1:
+		//SET_TP2;
+		spiStepperData[0] = (spiStepperData[0] & 0xf0) | ( stepPattern );
+		spiChanged = true; 
+		//CLR_TP2;
+		break;
+	  case SPI_2:
+		spiStepperData[0] = (spiStepperData[0] & 0x0f) | ( stepPattern <<4 );
+		spiChanged = true;
+		//CLR_TP2;
+		break;
+	  case SPI_3:
+		spiStepperData[1] = (spiStepperData[1] & 0xf0) | ( stepPattern );   
+		spiChanged = true;
+		break;
+	  case SPI_4:
+		spiStepperData[1] = (spiStepperData[1] & 0x0f) | ( stepPattern <<4 );
+		spiChanged = true;
+		break;
+	#ifdef ESP32 // !!! Auf ESP32 darf ein switch in ISR max 4 case-Blöcke enthalten !!!!
+	}
+	switch ( stepperDataP->output ) {
+	#endif
+	  case SINGLE_PINS : // Outpins are individually defined
+		for ( uint8_t bitNr = 0; bitNr < 4; bitNr++ ) {
+			if ( stepPattern & (1<<bitNr) ) {
+				#ifdef FAST_PORTWRT
+				*stepperDataP->portPins[bitNr].Adr |= stepperDataP->portPins[bitNr].Mask;
+				#else
+				digitalWrite( stepperDataP->pins[bitNr], HIGH );
+				#endif
+			} else {
+				#ifdef FAST_PORTWRT
+				*stepperDataP->portPins[bitNr].Adr &= ~stepperDataP->portPins[bitNr].Mask;
+				#else    
+				digitalWrite( stepperDataP->pins[bitNr], LOW );
+				#endif    
+			}
+		}
+		break;
+	  default:
+		// should never be reached
+		break;
+	}
+	return spiChanged;
+}
 
 #pragma GCC optimize "O3"   // optimize ISR for speed
 void IRAM_ATTR stepperISR(nextCycle_t cyclesLastIRQ) {
@@ -183,7 +242,7 @@ void IRAM_ATTR stepperISR(nextCycle_t cyclesLastIRQ) {
                         stepperDataP->rampState = rampStat::RAMPACCEL;
                     } else {
                         stepperDataP->stepsInRamp = 0;      // we cannot be in ramp when stopped
-                        if (stepperDataP->enablePin != 255) {
+                        if (stepperDataP->enablePin != NO_STEPPER_ENABLE) {
                             // enable is active, wait for disabling
                             stepperDataP->aCycSteps = stepperDataP->cycDelay;
                             stepperDataP->rampState = rampStat::STOPPING;
@@ -316,16 +375,35 @@ void IRAM_ATTR stepperISR(nextCycle_t cyclesLastIRQ) {
             //CLR_TP3;
         } // end of 'if stepper active AND moving'
         else if ( stepperDataP->rampState == rampStat::STARTING ) {
-            // we start with enablepin active ( cycCnt is already set to 0 )
+            // we start with enable function active ( cycCnt is already set to 0 )
+			// enable the motor and wait delaytime (cycDelay) before executing first step.
+			// if no enablepin is defined, the steppattern must be set to the last active pattern.
+			if ( stepperDataP->enablePin == NO_ENABLEPIN ) {
+				// set motorwires to last pattern ( when disabling the outputs )
+				spiChanged = setStepperPins( stepperDataP, stepPattern[ stepperDataP->patternIx ] );
+			}
+			else {
+				// set enablePin to active
+				digitalWrite( stepperDataP->enablePin, stepperDataP->enable );
+			}
             stepperDataP->aCycSteps = stepperDataP->cycDelay;
             if ( stepperDataP->stepRampLen > 0 ) stepperDataP->rampState = rampStat::RAMPACCEL;
             else                                stepperDataP->rampState = rampStat::CRUISING;
             nextCycle = (nextCycle_t)min ( (uintxx_t)nextCycle, (uintxx_t)stepperDataP->aCycSteps );
-        } else if ( stepperDataP->rampState == rampStat::STOPPING  ) {
+        } 
+		else if ( stepperDataP->rampState == rampStat::STOPPING  ) {
+			// Check if time between last step and disabling the motor has elapsed
             stepperDataP->cycCnt+=cyclesLastIRQ;
             if ( stepperDataP->cycCnt >= stepperDataP->aCycSteps ) {
                 stepperDataP->cycCnt = 0;
-                digitalWrite( stepperDataP->enablePin, !stepperDataP->enable );
+				if ( stepperDataP->enablePin == NO_ENABLEPIN ) {
+					// set motorwires to 0 to disable the motor
+					spiChanged = setStepperPins( stepperDataP, 0 );
+				} 
+				else {
+					// set enablePin to inactive
+					digitalWrite( stepperDataP->enablePin, !stepperDataP->enable );
+				}
                 stepperDataP->rampState = rampStat::STOPPED;
             }
         }
