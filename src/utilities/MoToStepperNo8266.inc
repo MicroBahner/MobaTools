@@ -424,7 +424,7 @@ void IRAM_ATTR stepperISR(nextCycle_t cyclesLastIRQ) {
 } // ==================== End of stepper ISR ======================================
 #pragma GCC optimize "Os"
 
-uintxx_t MoToStepper::setSpeedSteps( uintxx_t speed10, int rampLen ) {
+uintxx_t MoToStepper::setSpeedSteps( uintxx_t speed10, uintxx_t rampLen ) {
     // Set speed and length of ramp to reach speed ( from stop )
     // neagtive ramplen means it was set automatically
      SET_TP4;

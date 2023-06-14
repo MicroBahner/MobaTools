@@ -171,7 +171,7 @@ class MoToStepper
     void setZero( long zeroPoint, long stepsPerRotation);  // beside zero point change steps per Rotation too
     int setSpeed(int rpm10 );       // Set movement speed, rpm*10
     uintxx_t setSpeedSteps( uintxx_t speed10 ); // set speed withput changing ramp, returns ramp length
-    uintxx_t setSpeedSteps( uintxx_t speed10, int rampLen ); // set speed and ramp, returns ramp length
+    uintxx_t setSpeedSteps( uintxx_t speed10, uintxx_t rampLen ); // set speed and ramp, returns ramp length
     uintxx_t setRampLen( uintxx_t rampLen ); // set new ramplen in steps without changing speed
     uintxx_t getSpeedSteps();		// returns actual speed in steps/10sec ( even in ramp )
     void doSteps(long count);       // rotate count steps. May be positive or negative
