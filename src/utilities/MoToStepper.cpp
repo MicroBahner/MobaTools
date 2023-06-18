@@ -8,13 +8,13 @@
 #define COMPILING_MOTOSTEPPER_CPP
 
 //#define debugTP
-//#define debugPrint
+#define debugPrint
 #include <utilities/MoToDbg.h>
 #include <MobaTools.h>
 #define TODO	// ignore 
 // Global Data for all instances and classes  --------------------------------
 #ifdef debugPrint
-     const char *rsC[] = { "INACTIVE", "STOPPED", "STOPPING", "STARTING", "CRUISING", "RAMPACCEL", "RAMPDECEL", "SPEEDDECEL" };    
+     const char *rsC[] = { "INACTIVE", "STOPPED", "STOPPING", "STARTING", "CRUISING", "LASTSTEP", "RAMPACCEL", "RAMPDECEL", "SPEEDDECEL" };    
 #endif
 
 

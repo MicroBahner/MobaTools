@@ -95,6 +95,12 @@ typedef struct stepperData_t {
 								// 255: enable is not active, 254 no pin defined, bur enable is active for FULLSTEP and HALFSTEP (4pin steppers)
 	#define NO_STEPPER_ENABLE 255
 	#define NO_ENABLEPIN 254
+  uint8_t speedZero;			// Flag for speed is set to zero
+    #define NORMALSPEED		0	// speed is not set to zero
+	#define DECELSPEEDZERO	1	// lowering speed to zero ( ramping down )
+	#define ZEROSPEEDACTIVE	2	// create no further steps
+	#define MINSPEEDZERO   20	// real minimum speed before actually stopping ( creating no more steppulses )
+	
   #ifdef FAST_PORTWRT
   portBits_t portPins[4];       // Outputpins as Portaddress and Bitmask for faster writing ( only AVR processors)
   #else

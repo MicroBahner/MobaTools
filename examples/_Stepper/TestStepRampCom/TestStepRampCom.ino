@@ -168,7 +168,7 @@ void setup() {
   #else
     if (myStepper.attach( stepPins[0],stepPins[1],stepPins[2],stepPins[3] )  ) Serial.println("Attach 4Wire OK"); else Serial.println("Attach A4988 NOK");
   #endif
-  #ifdef enabelPin
+  #ifdef enablePin
     myStepper.attachEnable(enablePin, 30, LOW );
   #endif
   myStepper.setSpeedSteps( 6000, 100 );
