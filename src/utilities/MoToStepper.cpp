@@ -364,13 +364,14 @@ uintxx_t MoToStepper::setRampLen( uintxx_t rampSteps ) {
 
 int32_t MoToStepper::getSpeedSteps( ) {
 	// return actual speed in steps/ 10sec 
-    if ( _stepperData.output == NO_OUTPUT ) return -1; // not attached
+    if ( _stepperData.output == NO_OUTPUT ) return 0; // not attached
 	int8_t direction;
     #ifdef IS_32BIT
 	    // there is no remainder on 32bit systems annd aCycSteps is in µs
         int32_t actSpeedSteps = 0;
         noInterrupts();
         actSpeedSteps = _stepperData.aCycSteps;
+		direction = _stepperData.patternIxInc<0?-1:1;
         interrupts();
         if ( actSpeedSteps > 0 ) actSpeedSteps = 10000000 / actSpeedSteps;
     #else
@@ -382,12 +383,12 @@ int32_t MoToStepper::getSpeedSteps( ) {
         uint16_t stepsInRamp = _stepperData.stepsInRamp;
         rampStat rampState = _stepperData.rampState;
         #ifdef debugPrint
-        aCycSteps = _stepperData.aCycSteps;
-        aCycRemain = _stepperData.aCycRemain;
-        uint16_t tCycSteps = _stepperData.tCycSteps;
-        uint16_t tCycRemain = _stepperData.tCycRemain;
-		direction = _stepperData.patternIxInc<0?-1:1;
+			aCycSteps = _stepperData.aCycSteps;
+			aCycRemain = _stepperData.aCycRemain;
+			uint16_t tCycSteps = _stepperData.tCycSteps;
+			uint16_t tCycRemain = _stepperData.tCycRemain;
         #endif
+		direction = _stepperData.patternIxInc<0?-1:1;
         _stepIRQ();
         if ( rampState == rampStat::CRUISING ) {
             // stepper is moving with target speed
