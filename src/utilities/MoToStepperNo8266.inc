@@ -457,24 +457,34 @@ uintxx_t MoToStepper::setSpeedSteps( uintxx_t speed10, intxx_t rampLen ) {
     if (rampLen<0) newRampLen--;
     if (newRampLen > MAXRAMPLEN ) newRampLen = MAXRAMPLEN;
     newSpeed10 = min( uintxx_t(1000000L / MIN_STEPTIME * 10), speed10 );
+	_noStepIRQ();
 	if ( newSpeed10 == 0) {
-		if ( _chkRunning() && _stepperData.stepRampLen > 0) {
-			_stepperData.speedZero = DECELSPEEDZERO;	// stepper is moving, flag for ramping down to speed 0
+		if ( _chkRunning() ) { 
+			// stepper is moving, we hahe to stop it
+			if ( _stepperData.stepRampLen > 0) {
+			_stepperData.speedZero = DECELSPEEDZERO;	// there is a romp, flag for ramping down to speed 0
+			} else {
+				// no ramp, simply inhibit creating pulses, disable stepper if needed.
+				_stepperData.speedZero = ZEROSPEEDACTIVE;				
+				if (_stepperData.enablePin != NO_STEPPER_ENABLE ) {
+					_stepperData.aCycSteps = _stepperData.cycDelay;
+					_stepperData.rampState = rampStat::STOPPING;
+				}
+			}
 		} else { 
 		  // Stepper doesn't move, only inhibit starting
 			_stepperData.speedZero = ZEROSPEEDACTIVE;	// set stepper inactive ( no ISR action )
 		}  
 		newSpeed10 = MINSPEEDZERO; // minimum speed in ramp before stopping
 	} else {
-		_noStepIRQ();
 		if (_stepperData.enablePin != NO_STEPPER_ENABLE && _stepperData.speedZero == ZEROSPEEDACTIVE ) {
 			// We are starting from zero speed and enable is active, wait for enabling
 			_stepperData.aCycSteps = _stepperData.cycDelay;
 			_stepperData.rampState = rampStat::STARTING;
 		}   
 		_stepperData.speedZero = NORMALSPEED;
-		_stepIRQ(true);
 	}
+	_stepIRQ(true);
 	
     
     // compute target steplength and check whether speed and ramp fit together: 
@@ -580,7 +590,7 @@ uintxx_t MoToStepper::setSpeedSteps( uintxx_t speed10, intxx_t rampLen ) {
             _stepperData.stepCnt = __newStepCnt;
             _stepperData.stepCnt2 = __newStepCnt2;
         }
-    }
+    } 
     
     _stepperData.tCycSteps = tCycSteps;
 	#ifndef IS_32BIT
@@ -589,7 +599,7 @@ uintxx_t MoToStepper::setSpeedSteps( uintxx_t speed10, intxx_t rampLen ) {
     _stepperData.cyctXramplen = newCyctXramplen;
     _stepperData.stepRampLen = newRampLen;
     _stepIRQ(true); CLR_TP4;
-    _stepSpeed10 = newSpeed10;
+    _stepSpeed10 = speed10 == 0? 0 : newSpeed10;
     CLR_TP4;
     prDynData();
     return _stepperData.stepRampLen;

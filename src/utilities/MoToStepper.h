@@ -131,7 +131,7 @@ class MoToStepper
     stepperData_t _stepperData;      // Variables that are used in IRQ
     uint8_t _stepperIx;              // Objectnumber ( 0 ... MAX_STEPPER )
     long stepsRev;                   // steps per full rotation
-    uintxx_t _stepSpeed10;      	// speed in steps/10sec
+    uintxx_t _stepSpeed10;      	// speed in steps/10sec as last set by user
     uintxx_t _lastRampLen ;         // last manually set ramplen
     uintxx_t _lastRampSpeed;        // speed when ramp was set manually
     long stepsToMove;               // from last point
@@ -179,7 +179,7 @@ class MoToStepper
     uintxx_t setSpeedSteps( uintxx_t speed10 ); // set speed withput changing ramp, returns ramp length
     uintxx_t setSpeedSteps( uintxx_t speed10, intxx_t rampLen ); // set speed and ramp, returns ramp length
     uintxx_t setRampLen( uintxx_t rampLen ); // set new ramplen in steps without changing speed
-    uintxx_t getSpeedSteps();		// returns actual speed in steps/10sec ( even in ramp )
+    int32_t getSpeedSteps();		// returns actual speed in steps/10sec ( even in ramp )
     void doSteps(long count);       // rotate count steps. May be positive or negative
                                     // angle is updated internally, so the next call to 'write'
                                     // will move to the correct angle

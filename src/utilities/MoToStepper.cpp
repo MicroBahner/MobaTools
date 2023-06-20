@@ -362,13 +362,13 @@ uintxx_t MoToStepper::setRampLen( uintxx_t rampSteps ) {
 }
 
 
-uintxx_t MoToStepper::getSpeedSteps( ) {
+int32_t MoToStepper::getSpeedSteps( ) {
 	// return actual speed in steps/ 10sec 
-	
     if ( _stepperData.output == NO_OUTPUT ) return -1; // not attached
+	int8_t direction;
     #ifdef IS_32BIT
 	    // there is no remainder on 32bit systems annd aCycSteps is in µs
-        uint32_t actSpeedSteps = 0;
+        int32_t actSpeedSteps = 0;
         noInterrupts();
         actSpeedSteps = _stepperData.aCycSteps;
         interrupts();
@@ -382,10 +382,11 @@ uintxx_t MoToStepper::getSpeedSteps( ) {
         uint16_t stepsInRamp = _stepperData.stepsInRamp;
         rampStat rampState = _stepperData.rampState;
         #ifdef debugPrint
-        //uint16_t aCycSteps = _stepperData.aCycSteps;
-        //uint16_t aCycRemain = _stepperData.aCycRemain;
+        aCycSteps = _stepperData.aCycSteps;
+        aCycRemain = _stepperData.aCycRemain;
         uint16_t tCycSteps = _stepperData.tCycSteps;
         uint16_t tCycRemain = _stepperData.tCycRemain;
+		direction = _stepperData.patternIxInc<0?-1:1;
         #endif
         _stepIRQ();
         if ( rampState == rampStat::CRUISING ) {
@@ -398,9 +399,9 @@ uintxx_t MoToStepper::getSpeedSteps( ) {
 
             actSpeedSteps = 1000000L * 10 / ( (long)aCycSteps*CYCLETIME + (long)aCycRemain*CYCLETIME/(stepsInRamp + RAMPOFFSET ) );
         }
-        DB_PRINT( "Acyc=%5d, Arem=%5d, SiR=%d, ( Tcyc=%5d, Trem=%5d ) ", aCycSteps, aCycRemain, stepsInRamp, tCycSteps, tCycRemain );
+        DB_PRINT( "Acyc=%5d, Arem=%5d, SiR=%d, ( Tcyc=%5d, Trem=%5d, Dir=%d ) ", aCycSteps, aCycRemain, stepsInRamp, tCycSteps, tCycRemain,direction );
     #endif
-	return actSpeedSteps;
+	return (int32_t)actSpeedSteps * direction;
 }
 
 void MoToStepper::doSteps( long stepValue) {
