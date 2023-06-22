@@ -116,7 +116,9 @@
 // default CYCLETIME is processordependent, change only if you know what you are doing ).
 #ifdef  ARDUINO_ARCH_ESP8266 ///////////////////////////////////////////////////////////
 	#define CYCLETIME       60      // Min. irq-periode in us ( ESP-default is 60 )
+									// = high time of Steppulse
 	#define MIN_STEP_CYCLE  2       // Minimum number of cycles per step. 
+									// = min low time of steppulse is CYCLETIME
 	#define MAX_GPIO        10      // max number of usable gpios
 	// at max 10 gpio's can be used at an ESP12: gpio 0,1,2,3,4,5,12,13,14,15
 	// gpio 6-10 is internally used for flash

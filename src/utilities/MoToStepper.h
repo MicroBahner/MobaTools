@@ -51,9 +51,13 @@
 
 /////////////////////////////////////////////////////////////////////////////////
 // global stepper data ( used in ISR )
-enum class rampStat:byte { INACTIVE, STOPPED, STOPPING, STARTING, CRUISING, LASTSTEP, RAMPACCEL, RAMPDECEL, SPEEDDECEL  };
+enum class rampStat:byte { INACTIVE, STOPPED, SPEED0, STOPPING, STARTING, CRUISING, LASTSTEP, RAMPACCEL, RAMPDECEL, SPEEDDECEL  };
+/*
 // states from CRUISING and above mean that the motor is moving
-//STOPPING: Motor does not move - waiting for disabling the motor.
+// STOPPING: Motor does not move - waiting for disabling the motor.
+// SPEED0:	 motor is stopped because speed is set to 0, target is not yet reached ( esp. for ESP8266 )
+// STARTING: motor does not yet move, waiting time after enable
+*/
 typedef struct stepperData_t {
   struct stepperData_t *nextStepperDataP;    // chain pointer
   volatile uint32_t stepCnt;        // nmbr of steps to take

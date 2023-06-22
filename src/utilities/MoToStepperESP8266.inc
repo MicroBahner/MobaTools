@@ -43,9 +43,9 @@ void ICACHE_RAM_ATTR ISR_Stepper(stepperData_t *stepperDataP) {
         //if ( digitalRead( stepperDataP->pins[1]) ) stepperDataP->stepsFromZero--;
         //else stepperDataP->stepsFromZero++;
         // ------------------ check if last step -----------------------------------
-        if ( --stepperDataP->stepCnt == 0 ) {
-            // this was the last step.
-            if (stepperDataP->stepCnt2 > 0 ) { // check if we have to start a movement backwards
+        if ( --stepperDataP->stepCnt == 0 || stepperDataP->speedZero == ZEROSPEEDACTIVE ) {
+            // this was the last step to position or speed 0 reached.
+            if ( stepperDataP->stepCnt == 0 && stepperDataP->stepCnt2 > 0 ) { // check if we have to start a movement backwards
                 // yes, change Direction and go stpCnt2 Steps
                 stepperDataP->patternIxInc = -stepperDataP->patternIxInc;
                 // change Direction at the end of the pulse
@@ -53,14 +53,29 @@ void ICACHE_RAM_ATTR ISR_Stepper(stepperData_t *stepperDataP) {
                 stepperDataP->dirChange = true;
                 stepperDataP->stepCnt = stepperDataP->stepCnt2;
                 stepperDataP->stepCnt2 = 0;
-                stepperDataP->rampState = rampStat::RAMPACCEL;
+				if ( stepperDataP->speedZero == ZEROSPEEDACTIVE ) {
+					// Zero-speed has been reached, so dont create steppulses anymore
+					stepperDataP->rampState = rampStat::SPEED0;
+					// stop creating pulses after the current pulse
+					startWaveformISR(stepperDataP->pins[0], CYCLETIME, 10, CYCLETIME );
+					if (stepperDataP->enablePin < 254) {
+						// enable is active, wait for disabling 
+						// timing is done by a pulse on the dir output ( with IRQ at the end )
+						startWaveformISR( stepperDataP->pins[1], 1000*stepperDataP->cycDelay, 10 , (1000*stepperDataP->cycDelay)); 
+						stepperDataP->delayActiv = true;
+					}  
+				} else {
+					// ramp up in reverse direction
+					stepperDataP->rampState = rampStat::RAMPACCEL;
+				}
             } else {    
                 stepperDataP->stepsInRamp = 0;      // we cannot be in ramp when stopped
                 stepperDataP->aCycSteps = 0;    // no more Interrupts for this stepper needed
-                stepperDataP->rampState = rampStat::STOPPED;
+				if ( stepperDataP->speedZero == ZEROSPEEDACTIVE ) 	stepperDataP->rampState = rampStat::STOPPED;
+				else												stepperDataP->rampState = rampStat::SPEED0;
 				// stop creating pulses after the current pulse
 				startWaveformISR(stepperDataP->pins[0], CYCLETIME, 10, CYCLETIME );
-                if (stepperDataP->enablePin != 255) {
+                if (stepperDataP->enablePin < 254) {
                     // enable is active, wait for disabling 
 					// timing is done by a pulse on the dir output ( with IRQ at the end )
                     startWaveformISR( stepperDataP->pins[1], 1000*stepperDataP->cycDelay, 10 , (1000*stepperDataP->cycDelay)); 
@@ -120,6 +135,13 @@ void ICACHE_RAM_ATTR ISR_Stepper(stepperData_t *stepperDataP) {
                     // steps in ramp still greater than delta
                     stepperDataP->stepsInRamp -=stepperDataP->deltaSteps;
                     stepperDataP->aCycSteps = stepperDataP->cyctXramplen / ( stepperDataP->stepsInRamp + RAMPOFFSET ) ;//+1 ;
+					if ( stepperDataP->speedZero == DECELSPEEDZERO ) {
+						//target speed was 0, check if we are creating the last step
+						if ( (stepperDataP->stepsInRamp-stepperDataP->stepRampLen) <= stepperDataP->deltaSteps ) {
+							stepperDataP->speedZero = ZEROSPEEDACTIVE;
+							stepperDataP->rampState = rampStat::SPEED0;
+						}
+					}
                 } else {
                     // new targestspeed reached
                     //SET_TP3;
@@ -179,7 +201,30 @@ uintxx_t MoToStepper::setSpeedSteps( uint32_t speed10, int rampLen ) {
     if (rampLen<0) newRampLen--;
     if (newRampLen > MAXRAMPLEN ) newRampLen = MAXRAMPLEN;
     newSpeed10 = min( (uint32_t)1000000 / MIN_STEPTIME * 10, (uint32_t)speed10 );
-	if ( newSpeed10 == 0 ) newSpeed10 = 1; // minimum speed
+	if ( newSpeed10 == 0) {
+		if ( _chkRunning() ) { 
+			// stepper is moving, we hahe to stop it
+			if ( _stepperData.stepRampLen > 0) {
+				_stepperData.speedZero = DECELSPEEDZERO;	// there is a ramp, flag for ramping down to speed 0
+			} else {
+				// no ramp, simply inhibit creating pulses, disable stepper if needed.
+				_stepperData.speedZero = ZEROSPEEDACTIVE;				
+			}
+		} else { 
+		  // Stepper doesn't move, only inhibit starting
+			_stepperData.speedZero = ZEROSPEEDACTIVE;	// set stepper inactive ( no ISR action )
+			_stepperData.rampState = rampStat::SPEED0;
+		}  
+		newSpeed10 = MINSPEEDZERO; // minimum speed in ramp before stopping
+	} else {
+		if (_stepperData.enablePin != NO_STEPPER_ENABLE && _stepperData.speedZero == ZEROSPEEDACTIVE ) {
+			// We are starting from zero speed and enable is active, wait for enabling
+			_stepperData.aCycSteps = _stepperData.cycDelay;
+			_stepperData.rampState = rampStat::STARTING;
+		}   
+		_stepperData.speedZero = NORMALSPEED;
+	}
+	_stepIRQ();
     
     //DB_PRINT( "rampLen-new=%u, ramplenParam=%u", newRampLen, rampLen );
     // compute target steplength and check whether speed and ramp fit together: 
@@ -273,7 +318,42 @@ uintxx_t MoToStepper::setSpeedSteps( uint32_t speed10, int rampLen ) {
     _stepperData.cyctXramplen = newUstXramplen;
     _stepperData.stepRampLen = newRampLen;
     _stepIRQ(); CLR_TP2;
-    _stepSpeed10 = newSpeed10;
+	DB_PRINT( "_sSp10=%d, newSpd=%d speed10=%d",  _stepSpeed10, newSpeed10, speed10 );
+    if ( _stepSpeed10 == 0 && speed10 > 0 && _stepperData.stepCnt > 0) {
+		// stepper was stopped by speed - start again if there are still steps to do
+		if ( newRampLen > 0 ) {
+			// starting with ramp
+			_stepperData.rampState = rampStat::RAMPACCEL;
+		} else {
+			// starting without ramp
+			_stepperData.rampState = rampStat::CRUISING;
+		}
+        // check if enable Pin must be activated
+        if ( _stepperData.enablePin !=NO_STEPPER_ENABLE ) {
+			DB_PRINT("sss starting, delayActive=%d", _stepperData.delayActiv );
+            if ( !_stepperData.delayActiv ) {
+                // enable must be set and delaytime is not yet running
+                digitalWrite( _stepperData.enablePin, _stepperData.enable );
+                // create a singlepulse on dir-output to measure delaytime
+                //delayMicroseconds( 10 );
+                startWaveformMoTo( _stepperData.pins[1], 1000*_stepperData.cycDelay, 10000 , 1000*_stepperData.cycDelay); 
+                _stepperData.delayActiv = true;
+            }
+        } else {
+            // no enable control, start movement directly
+            // set dir output
+			DB_PRINT("sss starting enable , delayActive=%d", _stepperData.delayActiv );
+            digitalWrite( _stepperData.pins[1], (_stepperData.patternIxInc < 0) );
+            startWaveformMoTo( _stepperData.pins[0], CYCLETIME, _stepperData.aCycSteps-CYCLETIME, 0 ); 
+        }
+    } else {
+        // direction may have changed, so set it here
+		DB_PRINT("sss direction changed?" );
+        noInterrupts(); // with ramp direction may change in ISR
+        digitalWrite( _stepperData.pins[1], (_stepperData.patternIxInc < 0) );
+        interrupts();
+    }
+    _stepSpeed10 = speed10 == 0? 0 : newSpeed10;
     //digitalWrite(16,LOW );
     DB_PRINT("nSiR=%d, nDs=%d, _Spd10=%d",newStepsInRamp, newDeltaSteps, _stepSpeed10);
     prDynData();

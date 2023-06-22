@@ -462,7 +462,7 @@ uintxx_t MoToStepper::setSpeedSteps( uintxx_t speed10, intxx_t rampLen ) {
 		if ( _chkRunning() ) { 
 			// stepper is moving, we hahe to stop it
 			if ( _stepperData.stepRampLen > 0) {
-			_stepperData.speedZero = DECELSPEEDZERO;	// there is a romp, flag for ramping down to speed 0
+				_stepperData.speedZero = DECELSPEEDZERO;	// there is a ramp, flag for ramping down to speed 0
 			} else {
 				// no ramp, simply inhibit creating pulses, disable stepper if needed.
 				_stepperData.speedZero = ZEROSPEEDACTIVE;				
