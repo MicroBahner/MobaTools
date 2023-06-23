@@ -44,9 +44,9 @@
 #ifndef __ESP8266_WAVEFORM_H
 #define __ESP8266_WAVEFORM_H
 
-#ifndef ICACHE_RAM_ATTR  //IRAM_ATTR
+#ifdef IRAM_ATTR  //IRAM_ATTR
 	// don't use ICACHE_RAM_ATTR in newer versions of ESP8266 core
-	//#undef  ICACHE_RAM_ATTR
+	#undef  ICACHE_RAM_ATTR
 	#define ICACHE_RAM_ATTR IRAM_ATTR
 #endif
 
