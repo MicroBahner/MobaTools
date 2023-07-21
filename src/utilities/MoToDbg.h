@@ -6,8 +6,8 @@
 //#define debugPrint
 
 // über diese undefs kann das Debugging global abgeschaltet werden
-#undef debugTP
-#undef debugPrint
+//#undef debugTP
+//#undef debugPrint
 
 #ifdef debugTP 
     #if defined(__AVR_ATmega1280__) || defined(__AVR_ATmega2560__)
@@ -50,6 +50,21 @@
         #define MODE_TP4 DDRC |= (1<<4) //A4 
         #define SET_TP4 PORTC |= (1<<4) 
         #define CLR_TP4 PORTC &= ~(1<<4) 
+//    #elif defined(__AVR_ATmega4809__) // Every and UNO Rev2 have different mappings regarding A0...A7
+    #elif defined (ARDUINO_AVR_NANO_EVERY)
+        #warning "Debug-Ports active"
+        #define MODE_TP1 pinMode(A0, OUTPUT ) // A0 = PD3
+        #define SET_TP1 PORTD_OUTSET = (1<<3)
+        #define CLR_TP1 PORTD_OUTCLR = (1<<3)
+        #define MODE_TP2 pinMode(A1,OUTPUT)	// A1 = PD2
+        #define SET_TP2 PORTD_OUTSET = = (1<<2)
+        #define CLR_TP2 PORTD_OUTCLR = (1<<2)
+        #define MODE_TP3
+        #define SET_TP3
+        #define CLR_TP3
+        #define MODE_TP4
+        #define SET_TP4
+        #define CLR_TP4
     #elif defined(ARDUINO_AVR_ATTINYX4) 
         #warning "Debug-Ports active"
         #define MODE_TP1 DDRA |= (1<<1) //1

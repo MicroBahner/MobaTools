@@ -154,7 +154,7 @@ uint8_t MoToStepper::attach( byte outArg, byte pins[] ) {
 	#endif
     uint8_t attachOK = true;
     switch ( outArg ) {
-      #if defined PORTD && defined PORTB
+      #if defined PORTD && defined PORTB && defined ARDUINO_ARCH_AVR
       case PIN4_7:
         if ( MoToStepper::outputsUsed.pin4_7 ) {
             // output already in use
@@ -245,7 +245,7 @@ void MoToStepper::detach() {   // no more moving, detach from output
     byte nPins=2;
     #endif
     switch ( _stepperData.output ) {
-      #if defined PORTD && defined PORTB
+      #if defined PORTD && defined PORTB && defined ARDUINO_ARCH_AVR
       case PIN4_7:
         DDRD &= 0x0f;   // Port D Pin4-7 as Input
         PORTD &= 0x0f;  // Pullups off
@@ -424,9 +424,9 @@ void MoToStepper::_doSteps( long stepValue, bool absPos ) {
     if ( _stepperData.output == NO_OUTPUT ) return; // not attached
 	//SET_TP1;
     //Serial.print( "doSteps: " ); Serial.println( stepValue );
-    DB_PRINT(">>>>>>>>>>doSteps(%ld)>>>>>>>>>>>>>>>", stepValue );
     stepsToMove = stepValue;
-    stepCnt = abs(stepValue);
+    stepCnt = labs(stepValue); // abs() doesn't work correctly on Nano Every for type long !!??? -> labs() works!
+	DB_PRINT(">>>>>>>>>>doSteps(%ld,%ld)>>>>>>>>>>>>>>>", stepValue,stepCnt );
     
     if ( _stepperData.stepRampLen > 0 || _stepperData.rampState == rampStat::SPEEDDECEL ) {
         // stepping with ramp

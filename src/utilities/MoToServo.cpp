@@ -103,10 +103,16 @@ static bool searchNextPulse() {
 } //end of 'searchNextPulse'
 
 // ---------- OCRxA Compare Interrupt used for servo motor (overlapping pulses) ----------------
-#ifdef ARDUINO_ARCH_AVR
+// not for ESP processors
+#if defined ( ARDUINO_ARCH_AVR ) 
 ISR ( TIMERx_COMPA_vect) {
     uint8_t saveTIMSK;
     saveTIMSK = TIMSKx; // restore IE for stepper later ( maybe it is not enabled)
+#elif defined  (ARDUINO_ARCH_MEGAAVR )
+ISR (TCA0_CMP0_vect) {
+     uint8_t saveTIMSK;
+    saveTIMSK = TCA0_SINGLE_INTCTRL; // restore IE for stepper later ( maybe it is not enabled)
+	TCA0.SINGLE.INTFLAGS = TCA_SINGLE_CMP0_bm;	// Reset IRQ-flag
 #elif defined __STM32Fx__
 void ISR_Servo( void) {
     uint16_t OCRxA = 0;

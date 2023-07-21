@@ -8,7 +8,7 @@
 const byte stepPin = 9;
 const byte dirPin  = 8;
 const int stepsProUmdr = 800;   // Steps per Revolution ( exammple with 1/4 microsteps )
-int stepsProTick = 200;         // Steps to be executed every intervall
+int stepsProTick = 400;         // Steps to be executed every intervall
 const int intervallZeit = 1000; // Steps are executed every second
 const byte intervallMax = 8;     // change direction every intervallMax intervals
 
@@ -31,6 +31,7 @@ void loop() {
             intervallZaehler = 0;
             stepsProTick = -stepsProTick;
         }
+     //delay(1500);
     }
     
     // hier können weitere Aufgaben erledigt werden / additional tasks to be done

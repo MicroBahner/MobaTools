@@ -12,15 +12,17 @@
 
 //architecture specific includes
 #ifdef ARDUINO_ARCH_AVR
-#include <avr/drivers.h>
+	#include <avr/drivers.h>
+#elif defined ARDUINO_ARCH_MEGAAVR
+	#include <megaAVR/drivers.h>
 #elif defined ARDUINO_ARCH_STM32F1
-#include <stm32f1/drivers.h>
+	#include <stm32f1/drivers.h>
 #elif defined ARDUINO_ARCH_STM32F4
-#include <stm32f4/drivers.h>
+	#include <stm32f4/drivers.h>
 #elif defined ARDUINO_ARCH_ESP8266
-#include <esp8266/drivers.h>
+	#include <esp8266/drivers.h>
 #elif defined ARDUINO_ARCH_ESP32
-#include <esp32/drivers.h>
+	#include <esp32/drivers.h>
 #else
     #error "Processor not supported"
 #endif
@@ -30,12 +32,10 @@
     #define  IRAM_ATTR  // Attribut IRAM_ATTR entfernen wenn nicht definiert
 #else
 	#ifdef IRAM_ATTR  //IRAM_ATTR
-	// don't use ICACHE_RAM_ATTR in newer versions of ESP8266 core
-	#undef  ICACHE_RAM_ATTR
-	#define ICACHE_RAM_ATTR IRAM_ATTR
-#endif
-
-
+		// don't use ICACHE_RAM_ATTR in newer versions of ESP8266 core
+		#undef  ICACHE_RAM_ATTR
+		#define ICACHE_RAM_ATTR IRAM_ATTR
+	#endif
 #endif
 ////////////////////////////////////////////////// general defines for all plattforms  //////////////////////////////////////////
 // Calling compatible architecture specific functions.
@@ -54,7 +54,7 @@
 	#define uintx8_t uint8_t
 	#define intx8_t	int8_t
     #define nextCycle_t uint8_t
-    extern uint8_t nextCycle;
+    //extern uint8_t nextCycle;
 #endif
 extern nextCycle_t nextCycle;   // to be used in ISR for stepper and softled
 

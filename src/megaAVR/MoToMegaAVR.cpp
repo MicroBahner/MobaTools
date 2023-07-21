@@ -5,21 +5,27 @@
 //#define debugPrint
 #include <utilities/MoToDbg.h>
 
-//#warning "HW specfic - avr ---"
+//#warning "HW specfic - megaavr ( Mega4809 ) ---"
 
 uint8_t noStepISR_Cnt;   // Counter for nested StepISr-disable
 
-//void ISR_Stepper(void);     // defined in MoToISR.cpp
 nextCycle_t nextCycle;
 static nextCycle_t cyclesLastIRQ = 1;  // cycles since last IRQ
 // ---------- OCRxB Compare Interrupt used for stepper motor and Softleds ----------------
 void stepperISR(uint8_t cyclesLastIRQ) __attribute__ ((weak));
 void softledISR(uint8_t cyclesLastIRQ) __attribute__ ((weak));
-ISR ( TIMERx_COMPB_vect) {
+
+// reenabling interrupts within an ISR
+__attribute(( naked, noinline )) void isrIrqOn () { asm("reti"); }
+
+
+ISR ( TCA0_CMP1_vect) {
     uint16_t tmp;
-  // Timer1 Compare B, used for stepper motor, starts every CYCLETIME us
+  // Timer TCA0 Compare 1, used for stepper motor, starts every CYCLETIME us
     // 26-09-15 An Interrupt is only created at timeslices, where data is to output
     SET_TP1;
+	TCA0.SINGLE.INTFLAGS = TCA_SINGLE_CMP1_bm;	// Reset IRQ-flag
+
     nextCycle = ISR_IDLETIME  / CYCLETIME ;// min ist one cycle per IDLETIME
     if ( stepperISR ) stepperISR(cyclesLastIRQ);
     //============  End of steppermotor ======================================
@@ -28,7 +34,7 @@ ISR ( TIMERx_COMPB_vect) {
     // set compareregister to next interrupt time;
     // compute next IRQ-Time in us, not in tics, so we don't need long
     //noInterrupts(); // when manipulating 16bit Timerregisters IRQ must be disabled
-    if ( nextCycle == 1 )  {
+    /* if ( nextCycle == 1 )  {
         CLR_TP1;
         noInterrupts();
         // this is timecritical: Was the ISR running longer then CYCELTIME?
@@ -46,12 +52,17 @@ ISR ( TIMERx_COMPB_vect) {
         OCRxB = ( tmp > TIMER_OVL_TICS ) ? tmp -= TIMER_OVL_TICS : tmp ;
         interrupts();
         SET_TP1;
-    } else {
+    } else*/ {
         // time till next IRQ is more then one cycletime
         // compute next IRQ-Time in us, not in tics, so we don't need long
-        tmp = ( OCRxB / TICS_PER_MICROSECOND + nextCycle * CYCLETIME );
+        /*tmp = ( OCRxB / TICS_PER_MICROSECOND + nextCycle * CYCLETIME );
         if ( tmp > TIMERPERIODE ) tmp = tmp - TIMERPERIODE;
-        OCRxB = tmp * TICS_PER_MICROSECOND;
+        OCRxB = tmp * TICS_PER_MICROSECOND;*/
+		// Testwese mt Fxwerten
+            tmp = OCRxB + ( nextCycle*50 );
+			if ( GET_COUNT >= tmp ) tmp = GET_COUNT+1;
+			if ( tmp >= 5000 ) OCRxB = tmp-5000; else OCRxB = tmp;
+		
     }
     cyclesLastIRQ = nextCycle;
     CLR_TP1; // Oszimessung Dauer der ISR-Routine
@@ -62,11 +73,15 @@ void seizeTimerAS() {
     static bool timerInitialized = false;
     if ( !timerInitialized ) {
         // using timer TCA0 in normal mode.
-        // CMP0 register used for servos
-        // CMP1 register used for steppers and softleds
+        // CMP0 register used for steppers and softleds
+        // CMP1 register used for servos
+		// CMP2	register (not yet )used for  softleds
         noInterrupts();
-        TCA0_SINGLE_CTRLA = TCA_SINGLE_CLKSEL_DIV8_gc;      // 0,5µs per tic, timer disabled
         TCA0_SINGLE_CTRLESET = TCA_SINGLE_CMD_RESET_gc;     // hard reset timer
+        //TCA0_SINGLE_CTRLA = TCA_SINGLE_CLKSEL_DIV8_gc;      // 0,5µs per tic, timer disabled - not possible because it influences millis()
+        TCA0_SINGLE_CTRLA = TCA_SINGLE_CLKSEL_DIV64_gc;      // 4µs per tic ( also used by millis() ), timer disabled
+		//+-> Arduino default of prescaler TCA0 is 64, changes would influence millis()
+		// this means 4µs per tic for TCA0
         TCA0_SINGLE_CTRLB = TCA_SINGLE_WGMODE_NORMAL_gc;    // normal mode, no autolockUpdate, no pins active
         TCA0_SINGLE_CTRLC = 0;
         TCA0_SINGLE_CTRLD = 0;                              // no split mode ( user 16bit timer )
@@ -91,7 +106,16 @@ void seizeTimerAS() {
 }
 
 extern uint8_t spiStepperData[2]; // step pattern to be output on SPI
-extern uint8_t spiByteCount;
+
+ISR ( SPI0_INT_vect ) { 
+    //SET_TP4;
+    // Because of buffered SPI, both bytes have already been written to SPI HW
+	// This IRQ fires, if both bytes have been shifted out
+    SET_SS;
+	SPI0_INTFLAGS = SPI_TXCIF_bm;     // Clear transfer complete flag
+    //CLR_TP4;
+    
+}
 
 
 void enableSoftLedIsrAS() {

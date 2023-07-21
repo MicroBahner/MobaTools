@@ -152,6 +152,9 @@
 									// if not defined, SPI clock ist CPU clock / 4
 	//#define USI_SS  7               // defines the SS - Pin with USI-SPI-Stepper
 									// if not defined the core-default (SS) is used
+#elif defined ARDUINO_ARCH_MEGAAVR ////////////////////////////////////////////////////////
+	#define CYCLETIME       200     // Min. irq-periode in us ( default is 200 ), 
+	#define MIN_STEP_CYCLE  2       // Minimum number of cycles per step. 
 #else ///////////////////////////////////////////////////////////////////////////////////
     #error Processor not supported
 #endif //////////////////////////////////////////////////////////////////////////////////

@@ -1,14 +1,17 @@
-#ifndef MOTOAVR_H
-#define MOTOAVR_H
+#ifndef MOTOMEGAAVR_H
+#define MOTOMEGAAVR_H
 // AVR specific defines for Cpp files
 
-//#warning AVR specific cpp includes
+//#warning megaAVR specific cpp includes
 void seizeTimerAS();
+// reenabling interrupts within an ISR
+__attribute(( naked, noinline )) void isrIrqOn ();
+
 extern uint8_t noStepISR_Cnt;   // Counter for nested StepISr-disable
 
 // _noStepIRQ und _stepIRQ werden in servo.cpp und stepper.cpp genutzt
 static inline __attribute__((__always_inline__)) void _noStepIRQ() {
-        TIMSKx &= ~_BV(OCIExB) ; 
+        TCA0_SINGLE_INTCTRL &= ~TCA_SINGLE_CMP1_bm ; 
     noStepISR_Cnt++;
     #if defined COMPILING_MOTOSTEPPER_CPP
     SET_TP3;
@@ -23,7 +26,7 @@ static inline __attribute__((__always_inline__)) void  _stepIRQ(bool force = fal
         #if defined COMPILING_MOTOSTEPPER_CPP
             CLR_TP3;
         #endif
-        TIMSKx |= _BV(OCIExB) ; 
+        TCA0_SINGLE_INTCTRL |= TCA_SINGLE_CMP1_bm ; 
     }
 }
 
@@ -31,7 +34,7 @@ static inline __attribute__((__always_inline__)) void  _stepIRQ(bool force = fal
 #if defined COMPILING_MOTOSERVO_CPP
 static inline __attribute__((__always_inline__)) void enableServoIsrAS() {
     // enable compare-A interrupt
-    TIMSKx |=  _BV(OCIExA) ; 
+    TCA0_SINGLE_INTCTRL |= TCA_SINGLE_CMP0_bm ; 
 }
 
 
@@ -43,37 +46,17 @@ static inline __attribute__((__always_inline__)) void enableServoIsrAS() {
 #endif // COMPILING_MOTOSOFTLED_CPP
 
 //////////////////////////////////////////////////////////////////////////////////////////////////
-// Wird auch in MoToAVR.cpp gebraucht ( SPI-Interrupt )
-extern volatile uint8_t *portSS;
+// Wird auch in MoToMegaAVR.cpp gebraucht ( SPI-Interrupt )
+extern volatile PORT_t  *portSS;
 extern uint8_t bitSS;;
-#define SET_SS *portSS |= bitSS 
-#define CLR_SS *portSS &= ~bitSS 
+#define SET_SS portSS->OUTSET = bitSS 
+#define CLR_SS portSS->OUTCLR = bitSS 
 #if defined COMPILING_MOTOSTEPPER_CPP
     static uint8_t spiInitialized = false;
-    // Macros für fast setting of SS Port
-    #if !defined SPCR && defined USI_SS
-        // we don't have a HW SPI, and SS has been defined in MobaTools.h
-        #undef SS
-        #define SS USI_SS
-    #endif
-    /* //Testweise den SS-Pin ausgeben
-    #define STRING2(x) #x
-    #define STRING(x) "\n\r>>>>>>SS-Pin: "  STRING2(x)
-    #ifdef PIN_SPI_SS
-        #pragma message (STRING(PIN_SPI_SS))
-    #elif defined SS
-        #pragma message (STRING(SS))
-    #else
-        #pragma message "SS-Pin not defined"
-    #endif
-    */
-    volatile uint8_t *portSS;
+    // Macros für fast setting of SS Port	
+    volatile PORT_t  *portSS;
     uint8_t bitSS;;
 
-#ifdef SPCR
-    // we hae ar real SPI hardware
-    //#warning "SPI Hardware is used"
-    uint8_t spiByteCount = 0;
     static inline __attribute__((__always_inline__)) void initSpiAS() {
         if ( spiInitialized ) return;
         // initialize SPI hardware.
@@ -82,16 +65,17 @@ extern uint8_t bitSS;;
         cli();
         pinMode( MOSI, OUTPUT );
         pinMode( SCK, OUTPUT );
-        portSS = portOutputRegister(digitalPinToPort(SS));
+        portSS = digitalPinToPortStruct(SS);
         bitSS = digitalPinToBitMask(SS);
         pinMode( SS, OUTPUT );
-        SPCR = (1<<SPIE)    // Interrupt enable
-             | (1<<SPE )    // SPI enable
-             | (0<<DORD)    // MSB first
-             | (1<<MSTR)    // Master Mode
-             | (0<<CPOL)    // Clock is low when idle
-             | (0<<CPHA)    // Data is sampled on leading edge
-             | (0<<SPR1) | (1<<SPR0);    // fosc/16
+		// SPI-Mode 0 mit Sendebuffer ( 2.byte kann sofort geschrieben werden )
+		// SPI0_CTRLB = SPI_MODE_0_gc | SPI_BUFEN_bm | SPI_BUFWR_bm | SPI_SSD_bm;
+		SPI0_CTRLB = SPI_MODE_0_gc | SPI_BUFEN_bm | SPI_BUFWR_bm | SPI_SSD_bm;
+		SPI0_INTCTRL = SPI_TXCIE_bm;     // Using Transfer complete ISR
+		SPI0_CTRLA =  SPI_PRESC_DIV4_gc |      // prescaler 4 / 4Mhz SPI clk
+					( 1 << SPI_MASTER_bp ) | // Master Mode
+					( 0 << SPI_DORD_bp ) |   // MSB first
+					( 1 << SPI_ENABLE_bp );     // SPI enable
         //digitalWrite( SS, HIGH );
         SET_SS;
         SREG = oldSREG;  // undo cli() 
@@ -101,115 +85,14 @@ extern uint8_t bitSS;;
     static inline __attribute__((__always_inline__)) void startSpiWriteAS( uint8_t spiData[] ) {
         //digitalWrite( SS, LOW );
         CLR_SS;
-        spiByteCount = 0;
-        SPDR = spiData[1];
+        SPI0_DATA = spiData[1];
+        SPI0_DATA = spiData[0];
     }    
     
     
-#elif defined USICR
-    // only an USI HW is available
-    
-    //#warning "USI in 3wire-Mode ist used"
-    static inline __attribute__((__always_inline__)) void initSpiAS() {
-        if ( spiInitialized ) return;
-        // set OutputPins MISO ( =DO )
-        USI_SCK_PORT |= _BV(USCK_DD_PIN);   //set the USCK pin as output
-        USI_DDR_PORT |= _BV(DO_DD_PIN);     //set the DO pin as output
-        USI_DDR_PORT &= ~_BV(DI_DD_PIN);    //set the DI pin as input
-        // set Controlregister USICR 
-        USICR = 0;  //reset
-        // set to 3-wire ( =SPI ) mode0,  Clock by USITC-bit, positive edge
-        USICR = _BV(USIWM0) | _BV(USICS1) | _BV(USICLK);
-        portSS = portOutputRegister(digitalPinToPort(SS));
-        bitSS = digitalPinToBitMask(SS);
-        pinMode( SS, OUTPUT );
-        SET_SS; //digitalWrite( SS, HIGH );
-        spiInitialized = true;  
-    }
-
-    
-    static inline __attribute__((__always_inline__)) void startSpiWriteAS( uint8_t spiData[] ) {
-        SET_TP4;
-        CLR_SS;
-        USIDR = spiData[1];
-        #ifdef FASTSPI  // SPI mit syclk/2
-        uint8_t usicrTemp = USICR | _BV(USITC);
-        USICR = usicrTemp;  // Anweisung benötigt einen systic      
-        USICR = usicrTemp;        
-        USICR = usicrTemp;        
-        USICR = usicrTemp;        
-        USICR = usicrTemp;        
-        USICR = usicrTemp;        
-        USICR = usicrTemp;        
-        USICR = usicrTemp;        
-        USICR = usicrTemp;        
-        USICR = usicrTemp;        
-        USICR = usicrTemp;        
-        USICR = usicrTemp;        
-        USICR = usicrTemp;        
-        USICR = usicrTemp;        
-        USICR = usicrTemp;        
-        USICR = usicrTemp;        
-        USIDR = spiData[0];
-        USICR = usicrTemp;        
-        USICR = usicrTemp;        
-        USICR = usicrTemp;        
-        USICR = usicrTemp;        
-        USICR = usicrTemp;        
-        USICR = usicrTemp;        
-        USICR = usicrTemp;        
-        USICR = usicrTemp;        
-        USICR = usicrTemp;        
-        USICR = usicrTemp;        
-        USICR = usicrTemp;        
-        USICR = usicrTemp;        
-        USICR = usicrTemp;        
-        USICR = usicrTemp;        
-        USICR = usicrTemp;        
-        USICR = usicrTemp;   
-        #else  // SPI mit syclk/4
-        USICR |= _BV(USITC);      // Anweisung benötigt zwei systic          
-        USICR |= _BV(USITC);        
-        USICR |= _BV(USITC);        
-        USICR |= _BV(USITC);        
-        USICR |= _BV(USITC);        
-        USICR |= _BV(USITC);        
-        USICR |= _BV(USITC);        
-        USICR |= _BV(USITC);        
-        USICR |= _BV(USITC);        
-        USICR |= _BV(USITC);        
-        USICR |= _BV(USITC);        
-        USICR |= _BV(USITC);        
-        USICR |= _BV(USITC);        
-        USICR |= _BV(USITC);        
-        USICR |= _BV(USITC);        
-        USICR |= _BV(USITC);        
-        USIDR = spiData[0];
-        USICR |= _BV(USITC);        
-        USICR |= _BV(USITC);        
-        USICR |= _BV(USITC);        
-        USICR |= _BV(USITC);        
-        USICR |= _BV(USITC);        
-        USICR |= _BV(USITC);        
-        USICR |= _BV(USITC);        
-        USICR |= _BV(USITC);        
-        USICR |= _BV(USITC);        
-        USICR |= _BV(USITC);        
-        USICR |= _BV(USITC);        
-        USICR |= _BV(USITC);        
-        USICR |= _BV(USITC);        
-        USICR |= _BV(USITC);        
-        USICR |= _BV(USITC);        
-        USICR |= _BV(USITC);   
-        #endif
-        SET_SS;
-        CLR_TP4;
-    }    
-    
-#endif  // Ende unterschiedliche AVR Prozessoren für initSPI
  
 static inline __attribute__((__always_inline__)) void enableStepperIsrAS() {
-        TIMSKx |= _BV(OCIExB) ; 
+        TCA0_SINGLE_INTCTRL |= TCA_SINGLE_CMP1_bm ;  
 }
 
 #endif // COMPILING_MOTOSTEPPER_CPP

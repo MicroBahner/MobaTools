@@ -17,7 +17,7 @@ bool IRAM_ATTR setStepperPins( stepperData_t *stepperDataP, uint8_t stepPattern 
 	// store pattern data
 	bool spiChanged = false;
 	switch ( stepperDataP->output ) {
-	  #if defined PORTD && defined PORTB
+	  #if defined PORTD && defined PORTB && defined ARDUINO_ARCH_AVR
 	  case PIN4_7:
 		PORTD = (PORTD & 0x0f) | ( stepPattern <<4 );   
 		break;
@@ -102,7 +102,9 @@ void IRAM_ATTR stepperISR(nextCycle_t cyclesLastIRQ) {
             interrupts();
             #else
             digitalWrite( stepperDataP->pins[0], HIGH );
+			#ifdef IS_32BIT
             resetPulse = true;
+			#endif
             #endif
             //CLR_TP2;
         }
@@ -143,7 +145,7 @@ void IRAM_ATTR stepperISR(nextCycle_t cyclesLastIRQ) {
                 noInterrupts(); // because of read modify write actions in setting outputs
                 #endif
                 switch ( stepperDataP->output ) {
-                  #if defined PORTD && defined PORTB
+                  #if defined PORTD && defined PORTB && defined ARDUINO_ARCH_AVR
                   case PIN4_7:
                     PORTD = (PORTD & 0x0f) | ( stepPattern[ _patIx ] <<4 );   
                     break;
