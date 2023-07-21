@@ -85,8 +85,8 @@ extern nextCycle_t nextCycle;   // to be used in ISR for stepper and softled
 
 
 typedef struct {    // portaddress and bitmask for direkt pin set/reset ( only used in AVR )
-   uint8_t* Adr;
-   uint8_t Mask;
+   volatile uint8_t* Adr;
+   volatile uint8_t Mask;
 } portBits_t;
 
 

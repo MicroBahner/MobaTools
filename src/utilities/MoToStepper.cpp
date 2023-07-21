@@ -196,8 +196,8 @@ uint8_t MoToStepper::attach( byte outArg, byte pins[] ) {
         for ( byte i = 0; i<4; i++ ) {
             #ifdef FAST_PORTWRT
             // compute portadress and bitnumber
-            _stepperData.portPins[i].Adr = (byte *) pgm_read_word_near(&port_to_output_PGM[pgm_read_byte_near(&digital_pin_to_port_PGM[ pins[i]])]);
-            _stepperData.portPins[i].Mask = pgm_read_byte_near(&digital_pin_to_bit_mask_PGM[pins[i]]);
+            _stepperData.portPins[i].Adr = portOutputRegister(digitalPinToPort(pins[i]));
+            _stepperData.portPins[i].Mask = digitalPinToBitMask(pins[i]);
             #else // store pins directly
             _stepperData.pins[i] = pins[i];
             #endif
@@ -211,8 +211,8 @@ uint8_t MoToStepper::attach( byte outArg, byte pins[] ) {
         for ( byte i = 0; i<2; i++ ) {
             #ifdef FAST_PORTWRT
             // compute portadress and bitnumber
-            _stepperData.portPins[i].Adr = (byte *) pgm_read_word_near(&port_to_output_PGM[pgm_read_byte_near(&digital_pin_to_port_PGM[ pins[i]])]);
-            _stepperData.portPins[i].Mask = pgm_read_byte_near(&digital_pin_to_bit_mask_PGM[pins[i]]);
+            _stepperData.portPins[i].Adr = portOutputRegister(digitalPinToPort(pins[i]));
+            _stepperData.portPins[i].Mask = digitalPinToBitMask(pins[i]);
             #else // store pins directly
             _stepperData.pins[i] = pins[i];
             #endif

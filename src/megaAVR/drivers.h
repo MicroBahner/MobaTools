@@ -11,7 +11,7 @@
 #define DRAM_ATTR
 
 
-//#define FAST_PORTWRT        // if this is defined, ports are written directly in IRQ-Routines,
+#define FAST_PORTWRT        // if this is defined, ports are written directly in IRQ-Routines,
                             // not with 'digitalWrite' functions
 #define TICS_PER_MICROSECOND (clockCyclesPerMicrosecond() / 64.0) // prescaler is 64 = 4µs per tic (used by millis() too )
 

@@ -54,8 +54,8 @@ struct servoData_t {
   int inc;              // Schrittweite je Zyklus um Ist an Soll anzugleichen
   uint8_t offcnt;       // counter to switch off pulses if length doesn't change
   #ifdef FAST_PORTWRT
-  uint8_t* portAdr;     // port adress related to pin number
-  uint8_t  bitMask;     // bitmask related to pin number
+  volatile uint8_t* portAdr;     // port adress related to pin number
+  volatile uint8_t  bitMask;     // bitmask related to pin number
   #endif
   uint8_t pin     ;     // pin
   int8_t pwmNbr;        // pwm channel on ESP32 , -1 means not attached on all platforms

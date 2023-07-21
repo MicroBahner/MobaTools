@@ -19,7 +19,7 @@ MoToTimebase intervall;
 
 void setup() {
     myStepper.attach( stepPin, dirPin );
-    myStepper.setSpeed( 600 );  // 60 Umdrehungen/Min
+    myStepper.setSpeed( 1200 );  // 120 Umdrehungen/Min
     myStepper.setRampLen( 20 );
     intervall.setBasetime( intervallZeit );
 }

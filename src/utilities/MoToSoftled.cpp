@@ -239,8 +239,8 @@ uint8_t MoToSoftLed::attach(uint8_t pinArg, uint8_t invArg ){
     }
     
     #ifdef FAST_PORTWRT
-    _ledData.portPin.Adr = (byte *) pgm_read_word_near(&port_to_output_PGM[pgm_read_byte_near(&digital_pin_to_port_PGM[pinArg])]);
-    _ledData.portPin.Mask = pgm_read_byte_near(&digital_pin_to_bit_mask_PGM[pinArg]);
+    _ledData.portPin.Adr = portOutputRegister(digitalPinToPort(pinArg));
+    _ledData.portPin.Mask = digitalPinToBitMask(pinArg);
     #else
     _ledData.pin=pinArg ;      // Pin-Nbr 
     #endif

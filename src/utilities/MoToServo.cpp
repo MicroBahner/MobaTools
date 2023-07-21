@@ -331,8 +331,8 @@ uint8_t MoToServo::attach( int pinArg, uint16_t pmin, uint16_t pmax, bool autoOf
     _servoData.noAutoff = autoOff?0:1 ;  
     #ifdef FAST_PORTWRT
     // compute portaddress and bitmask related to pin number
-    _servoData.portAdr = (byte *) pgm_read_word_near(&port_to_output_PGM[pgm_read_byte_near(&digital_pin_to_port_PGM[ pinArg])]);
-    _servoData.bitMask = pgm_read_byte_near(&digital_pin_to_bit_mask_PGM[pinArg]);
+    _servoData.portAdr = portOutputRegister(digitalPinToPort(pinArg));
+    _servoData.bitMask = digitalPinToBitMask(pinArg);
     DB_PRINT( "Idx: %d Portadr: 0x%x, Bitmsk: 0x%x", _servoData.servoIx, _servoData.portAdr, _servoData.bitMask );
 	#endif
     pinMode (_servoData.pin,OUTPUT);
