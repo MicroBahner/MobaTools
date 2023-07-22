@@ -81,7 +81,7 @@ void IRAM_ATTR stepperISR(nextCycle_t cyclesLastIRQ) {
     //SET_TP1;SET_TP4; // Oszimessung Dauer der ISR-Routine
     spiChanged = false;
     #ifdef __AVR_MEGA__
-    interrupts(); // allow nested interrupts, because this IRQ may take long
+    nestedInterrupts(); // allow nested interrupts, because this IRQ may take long
     #endif
     stepperDataP = stepperRootP;
     // ---------------Stepper motors ---------------------------------------------

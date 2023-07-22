@@ -57,8 +57,22 @@
         #define SET_TP1 PORTD_OUTSET = (1<<3)
         #define CLR_TP1 PORTD_OUTCLR = (1<<3)
         #define MODE_TP2 pinMode(A1,OUTPUT)	// A1 = PD2
-        #define SET_TP2 PORTD_OUTSET = = (1<<2)
+        #define SET_TP2 PORTD_OUTSET = (1<<2)
         #define CLR_TP2 PORTD_OUTCLR = (1<<2)
+        #define MODE_TP3
+        #define SET_TP3
+        #define CLR_TP3
+        #define MODE_TP4
+        #define SET_TP4
+        #define CLR_TP4
+    #elif defined (ARDUINO_AVR_UNO_WIFI_REV2)
+        #warning "Debug-Ports active"
+        #define MODE_TP1 pinMode(A0, OUTPUT ) // A0 = PD0
+        #define SET_TP1 PORTD_OUTSET = (1<<0)
+        #define CLR_TP1 PORTD_OUTCLR = (1<<0)
+        #define MODE_TP2 pinMode(A1,OUTPUT)	// A1 = PD1
+        #define SET_TP2 PORTD_OUTSET = (1<<1)
+        #define CLR_TP2 PORTD_OUTCLR = (1<<1)
         #define MODE_TP3
         #define SET_TP3
         #define CLR_TP3

@@ -81,7 +81,8 @@ extern nextCycle_t nextCycle;   // to be used in ISR for stepper and softled
 // internal defines
 
 #define TIMERPERIODE    20000   // Timer Overflow in µs
-#define TIMER_OVL_TICS  ( TIMERPERIODE*TICS_PER_MICROSECOND )
+//#define TIMER_OVL_TICS  ( TIMERPERIODE*TICS_PER_MICROSECOND )
+constexpr uint16_t TIMER_OVL_TICS = ( TIMERPERIODE*TICS_PER_MICROSECOND );
 
 
 typedef struct {    // portaddress and bitmask for direkt pin set/reset ( only used in AVR )

@@ -13,7 +13,8 @@
 
 #define FAST_PORTWRT        // if this is defined, ports are written directly in IRQ-Routines,
                             // not with 'digitalWrite' functions
-#define TICS_PER_MICROSECOND (clockCyclesPerMicrosecond() / 64.0) // prescaler is 64 = 4µs per tic (used by millis() too )
+//#define TICS_PER_MICROSECOND (clockCyclesPerMicrosecond() / 64.0) // prescaler is 64 = 4µs per tic (used by millis() too )
+#define TICS_PER_MICROSECOND (F_CPU / 1000000.0 / 64) // the clockCyclesPerMicrosecond() call inhibits compiletime evaluation
 
 // define timer to use
 // defines specially für Nano Every ( MegaAVR4808 ).

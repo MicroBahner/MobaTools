@@ -34,34 +34,31 @@ ISR ( TCA0_CMP1_vect) {
     // set compareregister to next interrupt time;
     // compute next IRQ-Time in us, not in tics, so we don't need long
     //noInterrupts(); // when manipulating 16bit Timerregisters IRQ must be disabled
-    /* if ( nextCycle == 1 )  {
+     if ( nextCycle == 1 )  {
         CLR_TP1;
         noInterrupts();
-        // this is timecritical: Was the ISR running longer then CYCELTIME?
+        // This is timecritical: Was the ISR running longer then CYCELTIME?
         // compute length of current IRQ ( which startet at OCRxB )
-        // we assume a max. runtime of 1000 Tics ( = 500µs , what nevver should happen )
+        // Tic-Time is 4µs on 4809!!! ( because of millis() using the TCA0 prescaler )
+        // We assume a max. runtime of 120 Tics ( = 480µs , what never should happen )
+		// so if the difference is > 120 tics, we assume an timer overflow
         tmp = GET_COUNT - OCRxB ;
-        if ( tmp > 1000 ) tmp += TIMER_OVL_TICS; // there was a timer overflow
-        if ( tmp > (CYCLETICS-10) ) {
+        if ( tmp > 120 ) tmp += TIMER_OVL_TICS; // there was a timer overflow
+        if ( tmp > (CYCLETICS-2) ) {
             // runtime was too long, next IRQ mus be started immediatly
             //SET_TP3;
-            tmp = GET_COUNT+10; 
+            tmp = GET_COUNT+2; 
         } else {
             tmp = OCRxB + CYCLETICS;
         }
-        OCRxB = ( tmp > TIMER_OVL_TICS ) ? tmp -= TIMER_OVL_TICS : tmp ;
+        OCRxB = ( tmp > TIMER_OVL_TICS ) ? tmp - TIMER_OVL_TICS : tmp ;
         interrupts();
         SET_TP1;
-    } else*/ {
+    } else {
         // time till next IRQ is more then one cycletime
-        // compute next IRQ-Time in us, not in tics, so we don't need long
-        /*tmp = ( OCRxB / TICS_PER_MICROSECOND + nextCycle * CYCLETIME );
-        if ( tmp > TIMERPERIODE ) tmp = tmp - TIMERPERIODE;
-        OCRxB = tmp * TICS_PER_MICROSECOND;*/
-		// Testwese mt Fxwerten
-            tmp = OCRxB + ( nextCycle*50 );
-			if ( GET_COUNT >= tmp ) tmp = GET_COUNT+1;
-			if ( tmp >= 5000 ) OCRxB = tmp-5000; else OCRxB = tmp;
+        tmp = ( OCRxB + (nextCycle * CYCLETICS) );
+        if ( tmp >= TIMER_OVL_TICS ) tmp = tmp - TIMER_OVL_TICS;
+        OCRxB = tmp ;
 		
     }
     cyclesLastIRQ = nextCycle;
@@ -101,7 +98,7 @@ void seizeTimerAS() {
         MODE_TP2;
         MODE_TP3;
         MODE_TP4;
-        DB_PRINT("Testpins initialisiert");
+        DB_PRINT("CYCLETICS=%d, TIMER_OVL_TICS=%d", CYCLETICS, TIMER_OVL_TICS );
     }
 }
 

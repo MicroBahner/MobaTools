@@ -3,6 +3,7 @@
 // AVR specific defines for Cpp files
 
 //#warning megaAVR specific cpp includes
+
 void seizeTimerAS();
 // reenabling interrupts within an ISR
 __attribute(( naked, noinline )) void isrIrqOn ();
@@ -30,6 +31,10 @@ static inline __attribute__((__always_inline__)) void  _stepIRQ(bool force = fal
     }
 }
 
+static inline __attribute__((__always_inline__)) void nestedInterrupts() {
+	//to reenable interrupts within an ISR
+	isrIrqOn ();
+}
 /////////////////////////////////////////////////////////////////////////////////////////////////
 #if defined COMPILING_MOTOSERVO_CPP
 static inline __attribute__((__always_inline__)) void enableServoIsrAS() {
@@ -63,11 +68,17 @@ extern uint8_t bitSS;;
         // MSB first, default Clk Level is 0, shift on leading edge
         uint8_t oldSREG = SREG;
         cli();
+		// MOSI,MISO ans SCK are the standard pins corresponding to the selected board
         pinMode( MOSI, OUTPUT );
         pinMode( SCK, OUTPUT );
-        portSS = digitalPinToPortStruct(SS);
-        bitSS = digitalPinToBitMask(SS);
-        pinMode( SS, OUTPUT );
+		// SS is driven by MobaTools and can be any pin ( defined in MobaTools.h )
+		// default is pin 8 for Nano Every and UNO Rev2 WiFi
+        portSS = digitalPinToPortStruct(MoToSS);
+        bitSS = digitalPinToBitMask(MoToSS);
+        pinMode( MoToSS, OUTPUT );
+		// Map SPI0-pins
+		PORTMUX_TWISPIROUTEA &=  ~PORTMUX_SPI0_gm; // Clear SPI-Bits
+		PORTMUX_TWISPIROUTEA |=  SPI_MUX; // set MUX according to Board
 		// SPI-Mode 0 mit Sendebuffer ( 2.byte kann sofort geschrieben werden )
 		// SPI0_CTRLB = SPI_MODE_0_gc | SPI_BUFEN_bm | SPI_BUFWR_bm | SPI_SSD_bm;
 		SPI0_CTRLB = SPI_MODE_0_gc | SPI_BUFEN_bm | SPI_BUFWR_bm | SPI_SSD_bm;

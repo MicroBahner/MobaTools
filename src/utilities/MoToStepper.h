@@ -35,7 +35,8 @@
 #define A4988_PINS      8
 
 
-#define CYCLETICS       (CYCLETIME*TICS_PER_MICROSECOND)
+// #define CYCLETICS       (CYCLETIME*TICS_PER_MICROSECOND)
+constexpr uint16_t CYCLETICS   =  (CYCLETIME*TICS_PER_MICROSECOND);
 #define MIN_START_CYCLES 4000/CYCLETIME  // 5ms min until first step if stepper is in stop
 #define MIN_STEPTIME    (CYCLETIME * MIN_STEP_CYCLE) 
 #ifdef IS_32BIT

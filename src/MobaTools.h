@@ -155,6 +155,17 @@
 #elif defined ARDUINO_ARCH_MEGAAVR ////////////////////////////////////////////////////////
 	#define CYCLETIME       200     // Min. irq-periode in us ( default is 200 ), 
 	#define MIN_STEP_CYCLE  2       // Minimum number of cycles per step. 
+	#ifdef ARDUINO_AVR_NANO_EVERY
+		// SPI SS for Nano Every 
+		#define MoToSS SS	// Standard for Every is pin 8;
+	#elif defined ARDUINO_AVR_UNO_WIFI_REV2
+		// SPI-SS for UNO Rev2 WiFi 
+		#define MoToSS 8		// Rev2 has no standard SS ( standard is pin22, which is not connected to anything )
+	#else
+		// default for other ( are there any?) boards
+		#define SPI_4809_MUX_gc PORTMUX_SPI0_DEFAULT_gc   /* SPI0 on PA[7:4] */
+	#endif
+	
 #else ///////////////////////////////////////////////////////////////////////////////////
     #error Processor not supported
 #endif //////////////////////////////////////////////////////////////////////////////////
