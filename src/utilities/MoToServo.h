@@ -9,6 +9,7 @@
 */
 
 // defines for servos
+constexpr uint8_t TICS_PER_4MICROSECOND = 4*TICS_PER_MICROSECOND;
 #define Servo2	MoToServo		// Kompatibilität zu Version 01 und 02
 #define AUTOOFF 1               // 2nd Parameter for servo.attach to switch off pulses in standstill
 #define OVLMARGIN           280     // Overlap margin ( Overlap is MINPULSEWIDTH - OVLMARGIN )
@@ -23,13 +24,18 @@
                             // OFF_COUNT cycles ( = OFF_COUNT * 20ms )
 #define FIRST_PULSE     100 // first pulse starts 200 tics after timer overflow, so we do not compete
                             // with overflow IRQ
-                            
+
+// All position values in tics are multiplied by this factor. This means, that one 
+// 'Speed-tic' is 0,125 µs per 20ms cycle. This gives better resolution in defining the speed.
+// Only when computing the next interrupt time the values are divided by this value again to get
+// the real 'timer tics'
+constexpr uint8_t INC_PER_MICROSECOND = 8;
+constexpr uint8_t  COMPAT_FACT = INC_PER_MICROSECOND /2; // old Increment value was same as Timer Tics ( 2 Tics/µs                           
 // defaults for macros that are not defined in architecture dependend includes
-#ifndef SPEED_RES
-#define SPEED_RES       (8/TICS_PER_MICROSECOND)   // All position values in tics are multiplied by this factor. This means, that one 
-                            // 'Speed-tic' is 0,125 µs per 20ms cycle. This gives better resolution in defining the speed.
-                            // Only when computing the next interrupt time the values are divided by this value again to get
-                            // the real 'timer tics'
+#ifdef SPEED_RES
+constexpr uint8_t INC_PER_TIC = SPEED_RES; // set to '1' for ESP32 and ESP8266
+#else
+constexpr uint8_t INC_PER_TIC = INCREMENTS_PER_MICROSECOND / TICS_PER_MICROSECOND;
 #endif
 #ifndef time2tic
     #define time2tic(pulse)  ( (pulse) *  TICS_PER_MICROSECOND * SPEED_RES )
@@ -51,7 +57,7 @@ struct servoData_t {
                         // on ESP32 'soll' 'ist' and 'inc' are in duty values (  0... DUTY100 )
   int soll;             // Position, die der Servo anfahren soll ( in Tics ). -1: not initialized
   volatile int ist;     // Position, die der Servo derzeit einnimt ( in Tics )
-  int inc;              // Schrittweite je Zyklus um Ist an Soll anzugleichen
+  int inc;              // Schrittweite je Zyklus um Ist an Soll anzugleichen( in Tics )
   uint8_t offcnt;       // counter to switch off pulses if length doesn't change
   #ifdef FAST_PORTWRT
   volatile uint8_t* portAdr;     // port adress related to pin number

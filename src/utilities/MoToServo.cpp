@@ -8,7 +8,7 @@
 #define COMPILING_MOTOSERVO_CPP  // this allows servo-specific defines in includefiles
 
 //#define debugTP
-//#define debugPrint
+#define debugPrint
 #include <utilities/MoToDbg.h>
 #include <MobaTools.h>
 
@@ -39,7 +39,7 @@ void IRAM_ATTR ISR_Servo( void *arg ) {
         }
         //CLR_TP1;
         //Serial.println(_servoData->ist );
-            servoWrite( _servoData, _servoData->ist/SPEED_RES ); 
+            servoWrite( _servoData, _servoData->ist/INC_PER_TIC ); 
         //SET_TP1;
         //CLR_TP1;
     } else if ( !_servoData->noAutoff ) { // no change in pulse length, look for autooff
@@ -181,7 +181,7 @@ void ISR_Servo( void) {
             stopPulseP = activePulseP; // because there was a 'nextPulse' there is also an 'activPulse' which is the next to stop
             OCRxA = activePulseOff;
             activePulseP = nextPulseP;
-            activePulseOff = activePulseP->ist/SPEED_RES + tmpTCNT1; // end of actually started pulse
+            activePulseOff = activePulseP->ist/INC_PER_TIC + tmpTCNT1; // end of actually started pulse
             nextPulseLength = 0;
             //SET_TP1;
         }
@@ -192,7 +192,7 @@ void ISR_Servo( void) {
                 //TOG_TP2;
                 SET_TP3;
                 activePulseP = pulseP; 
-                activePulseOff = pulseP->ist/SPEED_RES + GET_COUNT - 4; // compensate for computing time
+                activePulseOff = pulseP->ist/INC_PER_TIC + GET_COUNT - 4; // compensate for computing time
                 if ( pulseP->on && (pulseP->offcnt+pulseP->noAutoff) > 0 ) {
                     // its a 'real' pulse, set output pin
                     #ifdef FAST_PORTWRT
@@ -210,7 +210,7 @@ void ISR_Servo( void) {
                 //CLR_TP4;
                 if ( searchNextPulse() ) {
                     // there is a second pulse - this is the 'nextPulse'
-                    nextPulseLength = pulseP->ist/SPEED_RES;
+                    nextPulseLength = pulseP->ist/INC_PER_TIC;
                     nextPulseP = pulseP;
                     //SET_TP4;
                     pulseP = pulseP->prevServoDataP;
@@ -227,7 +227,7 @@ void ISR_Servo( void) {
                 CLR_TP3;
             } else {
                 // its a pulse in sequence, so this is the 'nextPulse'
-                nextPulseLength = pulseP->ist/SPEED_RES;
+                nextPulseLength = pulseP->ist/INC_PER_TIC;
                 nextPulseP = pulseP;
                 //SET_TP4;
                 pulseP = pulseP->prevServoDataP;
@@ -322,10 +322,10 @@ uint8_t MoToServo::attach( int pinArg, uint16_t pmin, uint16_t pmax, bool autoOf
 	DB_PRINT( "pin: %d, pmin:%d pmax%d autoOff=%d", pinArg, pmin, pmax, autoOff);
     
     // intialize objectspecific data
-    _lastPos = 1500*TICS_PER_MICROSECOND*SPEED_RES ;    // initalize to middle position
+    _lastPos = 1500*TICS_PER_MICROSECOND*INC_PER_TIC ;    // initalize to middle position
     _servoData.soll = -1;  // invalid position -> no pulse output
     _servoData.ist = -1;   
-    _servoData.inc = 2000*SPEED_RES;  // means immediate movement
+    _servoData.inc = 2000*INC_PER_TIC;  // means immediate movement
     _servoData.pin = pinArg;
     _servoData.on = false;  // create no pulses until next write
     _servoData.noAutoff = autoOff?0:1 ;  
@@ -358,7 +358,7 @@ uint8_t MoToServo::attach( int pinArg, uint16_t pmin, uint16_t pmax, bool autoOf
         }
          interrupts();
     #endif // no ESP8266
-    DB_PRINT("OVLMARGIN=%d, OVL_TICS=%d, MARGINTICS=%d, SPEEDRES=%d", OVLMARGIN, OVL_TICS, MARGINTICS, SPEED_RES );
+    DB_PRINT("OVLMARGIN=%d, OVL_TICS=%d, MARGINTICS=%d, SPEEDRES=%d, TPM4=%d", (int16_t) OVLMARGIN, (int16_t)OVL_TICS, (int16_t)MARGINTICS, (int16_t)INC_PER_TIC, (TICS_PER_4MICROSECOND) );
     //return ( _servoData.pwmNbr >= 0 );
     return ( _servoData.pwmNbr +1 );
 }
@@ -435,15 +435,16 @@ void MoToServo::write(uint16_t angleArg)
             if ( (startPulse) || (_servoData.offcnt+_servoData.noAutoff) == 0  ) {
                 SET_TP3;
                 // first pulse after attach, or pulses have been switch off by autoff
-                startServoPulse( &_servoData, _servoData.ist/SPEED_RES);
+                startServoPulse( &_servoData, _servoData.ist/INC_PER_TIC);
                 DB_PRINT( "start pulses at pin %d, ist=%d, soll=%d", _servoData.pin, _servoData.ist, _servoData.soll );
                 CLR_TP3;
             }
         #endif
         _servoData.offcnt = OFF_COUNT;   // auf jeden Fall wieder Pulse ausgeben
     }
-    //DB_PRINT( "Soll=%d, Ist=%d, Ix=%d, inc=%d, SR=%d, Duty100=%d, LEDC_BITS=%d", _servoData.soll,_servoData.ist, _servoData.servoIx, _servoData.inc, SPEED_RES, DUTY100, LEDC_BITS );
-    DB_PRINT( "Soll=%d, Ist=%d, Ix=%d, inc=%d, SR=%d", _servoData.soll,_servoData.ist, _servoData.servoIx, _servoData.inc, SPEED_RES );
+    //DB_PRINT( "Soll=%d, Ist=%d, Ix=%d, inc=%d, SR=%d, Duty100=%d, LEDC_BITS=%d", _servoData.soll,_servoData.ist, _servoData.servoIx, _servoData.inc, INC_PER_TIC, DUTY100, LEDC_BITS );
+    DB_PRINT( "Soll=%d, Ist=%d, Ix=%d, inc=%d, SR=%d", _servoData.soll,_servoData.ist, _servoData.servoIx, _servoData.inc, (int)INC_PER_TIC );
+	DB_PRINT( "t2tic=%d, tic2t=%d", time2tic(map( angleArg, 0,180, _minPw, _maxPw), tic2time(_servoData.soll ) );
     //delay(2);
     //CLR_TP1;
 }
@@ -464,7 +465,7 @@ void MoToServo::setSpeed( int speed ) {
     // Set increment value for movement to new angle
     // 'speed' is 0,5µs increment per 20ms
     if ( _servoData.pwmNbr != NOT_ATTACHED ) { // only if servo is attached
-        if ( speedV08 ) speed *= SPEED_RES;
+        if ( speedV08 ) speed *= INC_PER_TIC;
         speed = constrain(  speed, 0, 8000 );  // 8000 means immediate movement, greater values make no sense
                                         // Greater Values will also lead to an overflow on ESP32
         noInterrupts();
@@ -492,7 +493,7 @@ uint16_t MoToServo::readMicroseconds() {
     value = _servoData.ist;
     interrupts();
     if ( value < 0 ) value = _servoData.soll; // there is no valid actual vlaue
-    //DB_PRINT( "Ist=%d, Soll=%d, TpM=%d, SR=%d", value, _servoData.soll, TICS_PER_MICROSECOND, SPEED_RES );
+    //DB_PRINT( "Ist=%d, Soll=%d, TpM=%d, SR=%d", value, _servoData.soll, TICS_PER_MICROSECOND, INC_PER_TIC );
     return tic2time( value );   
 }
 
