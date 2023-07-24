@@ -92,7 +92,7 @@ typedef struct {
             uint32_t group   :1;     // leds group ( 0/1 )
             uint32_t timer   :2;     // Timer used ( 2 for servo, 3 for softled, 0/1 unused by MobaTools
             uint32_t channel :3;     // ledc  channel ( 0..7 )
-            uint32_t reserved:22;
+            uint32_t reserved:18;
         };
         uint32_t value;
     };
@@ -108,9 +108,11 @@ void IRAM_ATTR setPwmDuty(int8_t pwmNbr, uint32_t duty );
 void setPwmPin( uint8_t pwmNbr ) ;
 int8_t freePwmNbr( uint8_t pwmNbr );
 
-#define SERVO_FREQ  50          // 20000 
+// On ESP32 timer tics and inc are the same. 
+#define SERVO_FREQ  50          // 20ms period
 #define SOFTLED_FREQ    100
 #define LEDC_BITS  18          // bitresolution for duty cycle of servos and softleds
+								// one timertic is 0.07629 µs for servos
 #define SERVO_CYCLE ( 1000000L / SERVO_FREQ ) // Servo cycle in uS
 #define SOFTLED_CYCLE ( 1000000L / SOFTLED_FREQ ) // softled cycle in uS
 #define DUTY100     ( 1<<(LEDC_BITS) )
@@ -119,7 +121,7 @@ int8_t freePwmNbr( uint8_t pwmNbr );
 // compute duty to pulsewidth ( in uS )
 #define tic2time(duty)  ( ( (duty) * SERVO_CYCLE) / DUTY100 +1 )
 #define SPEED_RES 1     // no need  for higer resolutin of servospeed
-#define AS_Speed2Inc(speed) ( (speed*DUTY100)/(SERVO_CYCLE*8) ) // Inc in 1/8 µs
+#define AS_Speed2Inc(speed)  (speed*1280/763)  // tic == Inc == 0.07629 µs
 
 // compute pulsewidth ( in usec ) to duty ) for Softleds
 // all softled pwmValues are in µs

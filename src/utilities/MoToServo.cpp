@@ -8,7 +8,7 @@
 #define COMPILING_MOTOSERVO_CPP  // this allows servo-specific defines in includefiles
 
 //#define debugTP
-#define debugPrint
+//#define debugPrint
 #include <utilities/MoToDbg.h>
 #include <MobaTools.h>
 
@@ -25,6 +25,7 @@ static bool speedV08 = false;    // Compatibility-Flag for speed method
 // computes the length of the next pulse. The pulse itself is created by the core_esp8266_waveform routines or by ledPWM HW ( ESP32 )
 void IRAM_ATTR ISR_Servo( void *arg ) {
     servoData_t *_servoData = static_cast<servoData_t *>(arg);
+	if ( digitalRead( _servoData->pin) == HIGH ) return ;
     portENTER_CRITICAL_ISR(&servoMux);
     SET_TP2;
     if ( _servoData->ist != _servoData->soll ) {
@@ -50,7 +51,7 @@ void IRAM_ATTR ISR_Servo( void *arg ) {
         }
     }
     portEXIT_CRITICAL_ISR(&servoMux);
-    //CLR_TP2;
+    CLR_TP2;
 }
 #endif //IS_ESP
 
@@ -325,7 +326,7 @@ uint8_t MoToServo::attach( int pinArg, uint16_t pmin, uint16_t pmax, bool autoOf
     _lastPos = 1500*TICS_PER_MICROSECOND*INC_PER_TIC ;    // initalize to middle position
     _servoData.soll = -1;  // invalid position -> no pulse output
     _servoData.ist = -1;   
-    _servoData.inc = 2000*INC_PER_TIC;  // means immediate movement
+    _servoData.inc = 8000;  // means immediate movement
     _servoData.pin = pinArg;
     _servoData.on = false;  // create no pulses until next write
     _servoData.noAutoff = autoOff?0:1 ;  
@@ -358,7 +359,7 @@ uint8_t MoToServo::attach( int pinArg, uint16_t pmin, uint16_t pmax, bool autoOf
         }
          interrupts();
     #endif // no ESP8266
-    DB_PRINT("OVLMARGIN=%d, OVL_TICS=%d, MARGINTICS=%d, SPEEDRES=%d, TPM4=%d", (int16_t) OVLMARGIN, (int16_t)OVL_TICS, (int16_t)MARGINTICS, (int16_t)INC_PER_TIC, (TICS_PER_4MICROSECOND) );
+    DB_PRINT("OVLMARGIN=%d, OVL_TICS=%d, MARGINTICS=%d, SPEEDRES=%d, TPM4=%d", (int16_t) OVLMARGIN, (int16_t)OVL_TICS, (int16_t)MARGINTICS, (int16_t)INC_PER_TIC, (int)(TICS_PER_MICROSECOND*4) );
     //return ( _servoData.pwmNbr >= 0 );
     return ( _servoData.pwmNbr +1 );
 }
@@ -444,7 +445,7 @@ void MoToServo::write(uint16_t angleArg)
     }
     //DB_PRINT( "Soll=%d, Ist=%d, Ix=%d, inc=%d, SR=%d, Duty100=%d, LEDC_BITS=%d", _servoData.soll,_servoData.ist, _servoData.servoIx, _servoData.inc, INC_PER_TIC, DUTY100, LEDC_BITS );
     DB_PRINT( "Soll=%d, Ist=%d, Ix=%d, inc=%d, SR=%d", _servoData.soll,_servoData.ist, _servoData.servoIx, _servoData.inc, (int)INC_PER_TIC );
-	DB_PRINT( "t2tic=%d, tic2t=%d", time2tic(map( angleArg, 0,180, _minPw, _maxPw), tic2time(_servoData.soll ) );
+	DB_PRINT( "t2tic=%d, tic2t=%d", (int)time2tic(map( angleArg, 0,180, _minPw, _maxPw)), (int)tic2time(_servoData.soll ) );
     //delay(2);
     //CLR_TP1;
 }
@@ -452,6 +453,20 @@ void MoToServo::write(uint16_t angleArg)
 
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wunused-parameter"
+void MoToServo::setSpeedTime(uint16_t minMaxTime ) {
+	// Set speed as time (in milliseconds) needed when moving from 0° ... 180°
+	//uint16_t maxTics = time2tic ( _maxPw - _minPw );
+	uint16_t maxTics = 8* ( _maxPw - _minPw );	//	tics are counted in 0.128 µs
+	uint16_t speedCycles = minMaxTime / 20;	// Nbr of pulses needed from 0° to 180°
+	uint16_t speedTics = maxTics / speedCycles;
+	#ifdef ESP32
+	Serial.printf( "maxTics=%u, speedCycles=%u, speedTics=%u\n\r", maxTics, speedCycles,speedTics );
+	#endif
+	setSpeed( speedTics, HIGHRES );	// no compatibility mode, when new speed method is used
+}
+	
+	
+	
 void MoToServo::setSpeed( int speed, bool compatibility ) {
     // set global compatibility-Flag
     #ifndef IS_ESP
@@ -463,9 +478,9 @@ void MoToServo::setSpeed( int speed, bool compatibility ) {
 
 void MoToServo::setSpeed( int speed ) {
     // Set increment value for movement to new angle
-    // 'speed' is 0,5µs increment per 20ms
+    // 'speed' is 0,125µs increment per 20ms
     if ( _servoData.pwmNbr != NOT_ATTACHED ) { // only if servo is attached
-        if ( speedV08 ) speed *= INC_PER_TIC;
+        if ( speedV08 ) speed *= COMPAT_FACT;
         speed = constrain(  speed, 0, 8000 );  // 8000 means immediate movement, greater values make no sense
                                         // Greater Values will also lead to an overflow on ESP32
         noInterrupts();

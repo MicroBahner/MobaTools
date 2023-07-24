@@ -13,9 +13,9 @@ void setGpio( unsigned int gpio ) ;
 void clrGpio( unsigned int gpio ) ;
 
 // on ESP8266 tics are 1µs
-#define time2tic(pulse) (pulse) * SPEED_RES
+/*#define time2tic(pulse) (pulse) * SPEED_RES
 #define tic2time(duty)  (duty) / SPEED_RES
-
+*/
 
 #define slPwm2tic(pulse) (pulse)
 #define tic2slPwm(duty)  (duty)

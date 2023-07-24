@@ -8,6 +8,11 @@
   Definitions and declarations for the servo part of MobaTools
 */
 
+/* Some definitions for the servo class: >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+	increments (INC) is the internal timebase for all time computing ( it's a virtual value ). All time values ( e.g. pulselength ) are internally stored based on this value.
+	tics (TIC) ist the physical resolutin of the servo timer. This must always be an integer multiple of INC.
+*/
+
 // defines for servos
 constexpr uint8_t TICS_PER_4MICROSECOND = 4*TICS_PER_MICROSECOND;
 #define Servo2	MoToServo		// Kompatibilität zu Version 01 und 02
@@ -33,13 +38,13 @@ constexpr uint8_t INC_PER_MICROSECOND = 8;
 constexpr uint8_t  COMPAT_FACT = INC_PER_MICROSECOND /2; // old Increment value was same as Timer Tics ( 2 Tics/µs                           
 // defaults for macros that are not defined in architecture dependend includes
 #ifdef SPEED_RES
-constexpr uint8_t INC_PER_TIC = SPEED_RES; // set to '1' for ESP32 and ESP8266
+constexpr uint8_t INC_PER_TIC = SPEED_RES; // set to '1' in drivers.h for ESP32 and ESP8266
 #else
-constexpr uint8_t INC_PER_TIC = INCREMENTS_PER_MICROSECOND / TICS_PER_MICROSECOND;
+constexpr uint8_t INC_PER_TIC = INC_PER_MICROSECOND / TICS_PER_MICROSECOND;
 #endif
 #ifndef time2tic
-    #define time2tic(pulse)  ( (pulse) *  TICS_PER_MICROSECOND * SPEED_RES )
-    #define tic2time(tics)  ( (tics) / TICS_PER_MICROSECOND / SPEED_RES )
+    #define time2tic(pulse)  ( (pulse) *  INC_PER_MICROSECOND )
+    #define tic2time(tics)  ( (tics) / INC_PER_MICROSECOND )
 #endif
 #ifndef AS_Speed2Inc
 #define AS_Speed2Inc(speed) (speed)
@@ -99,6 +104,7 @@ class MoToServo
     void setSpeed(int,bool); // Set compatibility-Flag (true= compatibility with version V08 and earlier)
     #define HIGHRES 0
     #define SPEEDV08 1
+	void setSpeedTime(uint16_t  );  // set Speed as time between 0...180° in milliseconds
     
     uint8_t moving();        // returns the remaining Way to the angle last set with write() in
                              // in percentage. '0' means, that the angle is reached

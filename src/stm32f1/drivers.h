@@ -3,6 +3,7 @@
 //////////////////////////////////////// processor dependent defines and declarations //////////////////////////////////////////
     //--------------------------------------------------------------------------------------------------------------
 //vvvvvvvvvvvvvvvvvvvvvvvvvv STM32F1 processors vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
+#define STM32F1
 #define __STM32Fx__
 #define IS_32BIT
 #define IRAM_ATTR       // delete in .cpp files, because it has no meaning for STM32 processors
