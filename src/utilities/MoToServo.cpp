@@ -25,6 +25,7 @@ static bool speedV08 = false;    // Compatibility-Flag for speed method
 // computes the length of the next pulse. The pulse itself is created by the core_esp8266_waveform routines or by ledPWM HW ( ESP32 )
 void IRAM_ATTR ISR_Servo( void *arg ) {
     servoData_t *_servoData = static_cast<servoData_t *>(arg);
+	// On ESP32 the IRQ fires at start AND end of the pulse, ignore leading edge
 	if ( digitalRead( _servoData->pin) == HIGH ) return ;
     portENTER_CRITICAL_ISR(&servoMux);
     SET_TP2;
@@ -459,9 +460,6 @@ void MoToServo::setSpeedTime(uint16_t minMaxTime ) {
 	uint16_t maxTics = 8* ( _maxPw - _minPw );	//	tics are counted in 0.128 µs
 	uint16_t speedCycles = minMaxTime / 20;	// Nbr of pulses needed from 0° to 180°
 	uint16_t speedTics = maxTics / speedCycles;
-	#ifdef ESP32
-	Serial.printf( "maxTics=%u, speedCycles=%u, speedTics=%u\n\r", maxTics, speedCycles,speedTics );
-	#endif
 	setSpeed( speedTics, HIGHRES );	// no compatibility mode, when new speed method is used
 }
 	

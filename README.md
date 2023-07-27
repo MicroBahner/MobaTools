@@ -13,13 +13,13 @@ This library contains functionality
 Released versions can be installed by means of the library manager in arduino IDE
 
 #### supported processors
-- AVR ATmega
+- AVR - ATmega328P ATmega2560, ATmega4809
 - AVR ATtiny, if it has the 16-bit timer 1 and a SPI or USI hardware
 - STM32F103x processors ( the [core of Roger Clark](https://github.com/rogerclarkmelbourne/Arduino_STM32) must be used )
 - ESP32 ( minimum core version is 1.0.6 )
 - ESP8266 ( with some restrictions, Stepper via SPI does not work )
 
-A documentation file in [german](MobaTools-241-de.pdf) and [english](MobaTools-241-en.pdf) is provided.
+A documentation file in [german](MobaTools-250-de.pdf) and [english](MobaTools-250-en.pdf) is provided.
 
 **Latest changes:**
 
@@ -27,8 +27,10 @@ A documentation file in [german](MobaTools-241-de.pdf) and [english](MobaTools-2
 | ------- |  ------------  | -----------
 | 2.5.0 | 2023-0?-??| several bugfixes
 | | | ESP32 2.x package is supported ( ESP32S2, ESP32S3, ESP32C3 are not! )
-| | | 
-| | | 
+| | | ATmega4809 is supported ( Nano Every, UNO WiFi Rev2 (
+| | | .setSpeedSteps(0) is allowed now and stops the stepper without loosing the target position
+| | | .getSpeedSteps() indicates direction of movement ( negative values means moving backwards )
+| | | .attachEnable( int delayTime ) allows disabling of 4-pin steppers (FULLSTEP/HALFSTEP) without extra enable pin
 | | | some additional stepper/servo examples
 | 2.4.3 | 2022-04-28| small bugfix to suppress warnings (issue [#10](https://github.com/MicroBahner/MobaTools/issues/10) )
 | | | bugfix for setZero(position) for steppers in FULLSTEP mode

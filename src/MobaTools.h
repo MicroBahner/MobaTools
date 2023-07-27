@@ -24,10 +24,12 @@
   History:
   V2.5.0 xx-2023
 	- ESP32 board manager V2.x is supported, but the new HW variants (S2,S3,C3) are not yet supported
+	- ATmega4809 is supported ( Nano Every, UNO WiFi Rev2 )
 	- .setSpeedSteps(0) is allowed now and stops the stepper without loosing the target position
 	- .getSpeedSteps() indicates direction of movement ( negative values means moving backwards )
 	- .attachEnable( int delayTime ) allows disabling of 4-pin steppers (FULLSTEP/HALFSTEP) without
 	  an extra enable pin ( all outputs are set to 0 ). This also works when connected via SPI.
+	- some more examples
   V2.4.3 04-2022
 	 - bugfix for setZero(position) for steppers in FULLSTEP mode
 	 - bugfix with AccelStepper like method names ( compiler error if both libs have been included )
