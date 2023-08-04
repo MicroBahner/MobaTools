@@ -271,6 +271,7 @@ void MoToStepper::detach() {   // no more moving, detach from output
         // 4 single output pins
            pinMode( _stepperData.pins[3], INPUT );
            pinMode( _stepperData.pins[2], INPUT );
+        [[fallthrough]];    // supress warning
 	  #endif
       case A4988_PINS: // only pins 0/1 
            pinMode( _stepperData.pins[1], INPUT );

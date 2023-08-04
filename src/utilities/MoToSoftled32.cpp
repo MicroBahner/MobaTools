@@ -48,6 +48,7 @@ void softledISR(uint32_t cyclesLastIRQ) { // uint32 for 32-Bit processors
                 switch ( ledDataP->state ) {
                   case INCLIN:
                     changePulse = LINEAR;
+					[[fallthrough]];    // supress warning
                   case INCBULB:
                     // led with rising brightness
                     // check if led on is reached
@@ -72,6 +73,7 @@ void softledISR(uint32_t cyclesLastIRQ) { // uint32 for 32-Bit processors
                     break;
                   case DECLIN:
                     changePulse = LINEAR;
+					[[fallthrough]];    // supress warning
                   case DECBULB:
                     // led with falling brightness
                     // check if led off is reached
@@ -96,6 +98,7 @@ void softledISR(uint32_t cyclesLastIRQ) { // uint32 for 32-Bit processors
                   case ACTIVE:
                     // led with constant PWM-brightness
                     changePulse = -1; // nothing to change
+					break;
                   default: ;
                 } // end of 'switch'
                 // set time for next IRQ to min of all aPwm
