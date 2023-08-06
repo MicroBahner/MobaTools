@@ -38,18 +38,18 @@
         #define CLR_TP4 PORTB &= ~(1<<7)
     #elif defined(__AVR_ATmega328P__) 
         #warning "Debug-Ports active"
-        #define MODE_TP1 DDRC |= (1<<1) //A1
-        #define SET_TP1 PORTC |= (1<<1)
-        #define CLR_TP1 PORTC &= ~(1<<1)
-        #define MODE_TP2 DDRC |= (1<<2) // A2
-        #define SET_TP2 PORTC |= (1<<2)
-        #define CLR_TP2 PORTC &= ~(1<<2)
-        #define MODE_TP3 DDRC |= (1<<3) //A3
-        #define SET_TP3 PORTC |= (1<<3) 
-        #define CLR_TP3 PORTC &= ~(1<<3) 
-        #define MODE_TP4 DDRC |= (1<<4) //A4 
-        #define SET_TP4 PORTC |= (1<<4) 
-        #define CLR_TP4 PORTC &= ~(1<<4) 
+        #define MODE_TP1 DDRC |= (1<<0) //A0
+        #define SET_TP1 PORTC |= (1<<0)
+        #define CLR_TP1 PORTC &= ~(1<<0)
+        #define MODE_TP2 DDRC |= (1<<1) // A1
+        #define SET_TP2 PORTC |= (1<<1)
+        #define CLR_TP2 PORTC &= ~(1<<1)
+        #define MODE_TP3 DDRC |= (1<<2) //A2
+        #define SET_TP3 PORTC |= (1<<2) 
+        #define CLR_TP3 PORTC &= ~(1<<2) 
+        #define MODE_TP4 DDRC |= (1<<3) //A3 
+        #define SET_TP4 PORTC |= (1<<3) 
+        #define CLR_TP4 PORTC &= ~(1<<3) 
 //    #elif defined(__AVR_ATmega4809__) // Every and UNO Rev2 have different mappings regarding A0...A7
     #elif defined (ARDUINO_AVR_NANO_EVERY)
         #warning "Debug-Ports active"

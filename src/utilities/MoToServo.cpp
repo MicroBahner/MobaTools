@@ -108,12 +108,8 @@ static bool searchNextPulse() {
 // not for ESP processors
 #if defined ( ARDUINO_ARCH_AVR ) 
 ISR ( TIMERx_COMPA_vect) {
-    uint8_t saveTIMSK;
-    saveTIMSK = TIMSKx; // restore IE for stepper later ( maybe it is not enabled)
 #elif defined  (ARDUINO_ARCH_MEGAAVR )
 ISR (TCA0_CMP0_vect) {
-     uint8_t saveTIMSK;
-    saveTIMSK = TCA0_SINGLE_INTCTRL; // restore IE for stepper later ( maybe it is not enabled)
 	TCA0.SINGLE.INTFLAGS = TCA_SINGLE_CMP0_bm;	// Reset IRQ-flag
 #elif defined __STM32Fx__
 void ISR_Servo( void) {
@@ -139,7 +135,6 @@ void ISR_Servo( void) {
             // lay after endtime of runningpuls + safetymargin (it may be necessary to start
             // another pulse between these 2 ends)
             long tmpTCNT1 = GET_COUNT + MARGINTICS/2;
-            _noStepIRQ();   // Stepper IRQ may be too long and must not interrupt the servo IRQ 
             //CLR_TP3 ;
             OCRxA = max ( (long)((long)activePulseOff + (long) MARGINTICS - (long) nextPulseLength), tmpTCNT1 );
         } else {
@@ -176,7 +171,6 @@ void ISR_Servo( void) {
                 digitalWrite( nextPulseP->pin, HIGH );
                 #endif
             }
-            _noStepIRQ(); // Stepper ISR may be too long  and must not interrupt the servo IRQ
             //SET_TP3;
             // the 'nextPulse' we have started now, is from now on the 'activePulse', the running activPulse is now the
             // pulse to stop next.
@@ -204,7 +198,6 @@ void ISR_Servo( void) {
                     #endif
                 }
                 int32_t tmpTCNT1 = GET_COUNT+ MARGINTICS/2;
-                _noStepIRQ(); // Stepper ISR may be too long  and must not interrupt the servo IRQ
                 //SET_TP3;
                 // look for second pulse
                 //SET_TP4;
@@ -255,10 +248,6 @@ void ISR_Servo( void) {
     timer_set_compare(MT_TIMER,  SERVO_CHN, OCRxA);
     #endif 
     //CLR_TP1; CLR_TP3; // Oszimessung Dauer der ISR-Routine
-    #ifdef ARDUINO_ARCH_AVR
-    TIMSKx = saveTIMSK;      // retore Interrupt enable reg
-    #endif
-    _stepIRQ();
     CLR_TP2;
 }
 

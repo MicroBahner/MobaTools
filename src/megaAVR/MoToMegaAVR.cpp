@@ -1,7 +1,7 @@
 // AVR HW-spcific Functions
 #ifdef ARDUINO_ARCH_MEGAAVR
 #include <MobaTools.h>
-#define debugTP
+//#define debugTP
 //#define debugPrint
 #include <utilities/MoToDbg.h>
 
@@ -33,10 +33,10 @@ ISR ( TCA0_CMP1_vect) {
     // ======================= end of softleds =====================================
     // set compareregister to next interrupt time;
     // compute next IRQ-Time in us, not in tics, so we don't need long
-    //noInterrupts(); // when manipulating 16bit Timerregisters IRQ must be disabled
-     if ( nextCycle == 1 )  {
+    noInterrupts(); // when manipulating 16bit Timerregisters IRQ must be disabled (mandatory for Mega4809!!!)
+    if ( nextCycle == 1 )  {
         CLR_TP1;
-        noInterrupts();
+        //noInterrupts();
         // This is timecritical: Was the ISR running longer then CYCELTIME?
         // compute length of current IRQ ( which startet at OCRxB )
         // Tic-Time is 4µs on 4809!!! ( because of millis() using the TCA0 prescaler )
@@ -52,15 +52,15 @@ ISR ( TCA0_CMP1_vect) {
             tmp = OCRxB + CYCLETICS;
         }
         OCRxB = ( tmp > TIMER_OVL_TICS ) ? tmp - TIMER_OVL_TICS : tmp ;
-        interrupts();
+        //interrupts();
         SET_TP1;
     } else {
         // time till next IRQ is more then one cycletime
         tmp = ( OCRxB + (nextCycle * CYCLETICS) );
         if ( tmp >= TIMER_OVL_TICS ) tmp = tmp - TIMER_OVL_TICS;
         OCRxB = tmp ;
-		
     }
+	interrupts();
     cyclesLastIRQ = nextCycle;
     CLR_TP1; // Oszimessung Dauer der ISR-Routine
 }

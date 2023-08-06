@@ -27,10 +27,9 @@ ISR ( TIMERx_COMPB_vect) {
     // ======================= end of softleds =====================================
     // set compareregister to next interrupt time;
     // compute next IRQ-Time in us, not in tics, so we don't need long
-    //noInterrupts(); // when manipulating 16bit Timerregisters IRQ must be disabled
+    noInterrupts(); // when manipulating 16bit Timerregisters IRQ must be disabled
     if ( nextCycle == 1 )  {
-        CLR_TP1;
-        noInterrupts();
+        //CLR_TP1;
         // this is timecritical: Was the ISR running longer then CYCELTIME?
         // compute length of current IRQ ( which startet at OCRxB )
         // we assume a max. runtime of 1000 Tics ( = 500µs , what nevver should happen )
@@ -44,8 +43,7 @@ ISR ( TIMERx_COMPB_vect) {
             tmp = OCRxB + CYCLETICS;
         }
         OCRxB = ( tmp > TIMER_OVL_TICS ) ? tmp -= TIMER_OVL_TICS : tmp ;
-        interrupts();
-        SET_TP1;
+        //SET_TP1;
     } else {
         // time till next IRQ is more then one cycletime
         // compute next IRQ-Time in us, not in tics, so we don't need long
@@ -53,6 +51,7 @@ ISR ( TIMERx_COMPB_vect) {
         if ( tmp > TIMERPERIODE ) tmp = tmp - TIMERPERIODE;
         OCRxB = tmp * TICS_PER_MICROSECOND;
     }
+    interrupts();
     cyclesLastIRQ = nextCycle;
     CLR_TP1; // Oszimessung Dauer der ISR-Routine
 }
