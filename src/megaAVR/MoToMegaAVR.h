@@ -53,20 +53,20 @@ static inline __attribute__((__always_inline__)) void enableServoIsrAS() {
 //////////////////////////////////////////////////////////////////////////////////////////////////
 // Wird auch in MoToMegaAVR.cpp gebraucht ( SPI-Interrupt )
 extern volatile PORT_t  *portSS;
-extern uint8_t bitSS;;
+extern uint8_t bitSS;
 #define SET_SS portSS->OUTSET = bitSS 
 #define CLR_SS portSS->OUTCLR = bitSS 
 #if defined COMPILING_MOTOSTEPPER_CPP
     static uint8_t spiInitialized = false;
     // Macros für fast setting of SS Port	
     volatile PORT_t  *portSS;
-    uint8_t bitSS;;
+    uint8_t bitSS;
 
     static inline __attribute__((__always_inline__)) void initSpiAS() {
         if ( spiInitialized ) return;
         // initialize SPI hardware.
         // MSB first, default Clk Level is 0, shift on leading edge
-        uint8_t oldSREG = SREG;
+        const uint8_t oldSREG = SREG;
         cli();
 		// MOSI,MISO ans SCK are the standard pins corresponding to the selected board
         pinMode( MOSI, OUTPUT );

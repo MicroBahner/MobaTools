@@ -164,8 +164,8 @@
 		// SPI-SS for UNO Rev2 WiFi 
 		#define MoToSS 8		// Rev2 has no standard SS ( standard is pin22, which is not connected to anything )
 	#else
-		// default for other ( are there any?) boards
-		#define SPI_4809_MUX_gc PORTMUX_SPI0_DEFAULT_gc   /* SPI0 on PA[7:4] */
+		// default for other ( are there any?) boards or megaCoreX core
+		#define MoToSS 8		// standard for other boards
 	#endif
 	
 #else ///////////////////////////////////////////////////////////////////////////////////
