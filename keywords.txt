@@ -86,6 +86,7 @@ stop	KEYWORD2
 moving	KEYWORD2
 read	KEYWORD2
 readSteps	KEYWORD2
+getSpeedSteps	KEYWORD2
 attached	KEYWORD2
 
 #Methods for Class MoToButtons
