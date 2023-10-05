@@ -66,9 +66,9 @@ typedef struct stepperData_t {
   volatile int8_t patternIx;    // Pattern-Index of actual Step (0-7)
   int8_t   patternIxInc;        // halfstep: +/-1, fullstep: +/-2, STEPDIR +1/-1  the sign defines direction
   #ifdef ESP8266
-	// on 32Bit-platforms all time values are in µs
+	// on ESP8266 all time values are in µs
 	uint32_t tCycSteps;           // µseconds per step ( target value of motorspeed  )
-	volatile uint32_t aCycSteps;  // nµseconds per step ( actual motorspeed  )
+	volatile uint32_t aCycSteps;  // µseconds per step ( actual motorspeed  )
 	uint32_t cyctXramplen;        // precompiled  tCycSteps*(rampLen+RAMPOFFSET)
     uint16_t cycDelay;            // delay time: enable -> stepping
     boolean  dirChange;          // Flag: Dir has to be changed ( at falling edge )
@@ -90,7 +90,7 @@ typedef struct stepperData_t {
   uintxx_t  stepsInRamp;        // stepcounter within ramp ( counting from stop ( = 0 ): incrementing in startramp, decrementing in stopramp
   uintxx_t  deltaSteps;         // number of computed steps per real step in SPEEDDECEL
                                 // max value is stepRampLen
-  rampStat rampState;        // State of acceleration/deceleration
+  rampStat rampState;        	// State of stepper: stopped, cruising, acceleration/deceleration ...
   volatile long stepsFromZero;  // distance from last reference point ( always as steps in HALFSTEP mode )
                                 // in FULLSTEP mode this is twice the real step number
   uint8_t output  :6 ;             // PORTB(pin8-11), PORTD (pin4-7), SPI0,SPI1,SPI2,SPI3, SINGLE_PINS, A4988_PINS

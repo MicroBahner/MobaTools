@@ -329,11 +329,19 @@ void MoToStepper::attachEnable( uint8_t enablePin, uint16_t delay, bool active )
 			gpioTab[gpio2ISRx(_stepperData.pins[1])].IsrData = &_stepperData;
 			attachInterrupt( _stepperData.pins[1], gpioTab[gpio2ISRx(_stepperData.pins[1])].gpioISR, FALLING );
 			setGpio(_stepperData.enablePin);    // mark pin as used
-			_stepperData.cycDelay = delay;      // delay (ms) between enablePin HIGH/LOW and stepper moving
+			if ( delay > 0 ) {
+				_stepperData.cycDelay = delay;      // delay (ms) between enablePin HIGH/LOW and stepper moving
+			} else {
+				_stepperData.cycDelay = 1; // minimum delay on ESP8266 is 1ms
+			}
 		#endif
 	}
     #ifndef ESP8266
-    _stepperData.cycDelay = 1000L * delay / CYCLETIME;      // delay ( in cycles ) between enablePin HIGH/LOW and stepper moving
+	if ( delay > 0 ) {
+		_stepperData.cycDelay = 1000L * delay / CYCLETIME;      // delay ( in cycles ) between enablePin HIGH/LOW and stepper moving
+	} else {
+		_stepperData.cycDelay = MIN_STEP_CYCLE * 2; // minimum delay
+	}
     #endif
 }
 

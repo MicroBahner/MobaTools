@@ -247,6 +247,7 @@ void IRAM_ATTR stepperISR(nextCycle_t cyclesLastIRQ) {
                         if (stepperDataP->enablePin != NO_STEPPER_ENABLE) {
                             // enable is active, wait for disabling
                             stepperDataP->aCycSteps = stepperDataP->cycDelay;
+							//stepperDataP->cycCnt = 0;
                             stepperDataP->rampState = rampStat::STOPPING;
                         } else {    
                         stepperDataP->aCycSteps = ISR_IDLETIME;    // no more Interrupts for this stepper needed
