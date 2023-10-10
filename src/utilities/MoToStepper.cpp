@@ -144,6 +144,7 @@ uint8_t MoToStepper::attach(byte outArg) {
     
 uint8_t MoToStepper::attach( byte outArg, byte pins[] ) {
     // outArg must be one of PIN8_11 ... SPI_4 or SINGLE_PINS, A4988_PINS
+	// V2.6: PIN8_11/PIN4_7 not allowed anymore ( wasn't described in Doku since V0.8
     if ( stepMode == NOSTEP ) { DB_PRINT("Attach: invalid Object ( Ix = %d)", _stepperIx ); return 0; }// Invalid object
 	#ifdef ESP8266
 		if ( outArg != A4988_PINS ) return 0;
@@ -154,36 +155,13 @@ uint8_t MoToStepper::attach( byte outArg, byte pins[] ) {
 	#endif
     uint8_t attachOK = true;
     switch ( outArg ) {
-      #if defined PORTD && defined PORTB && defined ARDUINO_ARCH_AVR
-      case PIN4_7:
-        if ( MoToStepper::outputsUsed.pin4_7 ) {
-            // output already in use
-            attachOK = false;
-        } else {
-            // Port D initiieren, Pin4-7 as Output
-            MoToStepper::outputsUsed.pin4_7 = true;
-            DDRD |= 0xf0;
-            PORTD &= 0x0f;
-        }
-        break;
-      case PIN8_11:
-        if ( spiInitialized || MoToStepper::outputsUsed.pin8_11 ) {
-            // PIN8_11 and SPI cannot be used simultaneously ( this is not true for Arduino mega )
-            attachOK = false;
-        } else {
-            MoToStepper::outputsUsed.pin8_11 = true;
-            DDRB |= 0x0f;
-            PORTB &= 0xf0;
-        }
-        break;
-      #endif
 	  #ifndef ESP8266
       case SPI_1:
       case SPI_2:
       case SPI_3:
       case SPI_4:
-        // check if already in use or if PIN8_11 is in use
-        if ( (MoToStepper::outputsUsed.outputs & (1<<(outArg-1))) || MoToStepper::outputsUsed.pin8_11 ) {
+        // check if already in use 
+        if ( (MoToStepper::outputsUsed.outputs & (1<<(outArg-1)))  ) {
             // incompatible!
             attachOK = false;
         } else {
@@ -245,16 +223,7 @@ void MoToStepper::detach() {   // no more moving, detach from output
     byte nPins=2;
     #endif
     switch ( _stepperData.output ) {
-      #if defined PORTD && defined PORTB && defined ARDUINO_ARCH_AVR
-      case PIN4_7:
-        DDRD &= 0x0f;   // Port D Pin4-7 as Input
-        PORTD &= 0x0f;  // Pullups off
-        break;
-      case PIN8_11:
-        DDRB &= 0xf0;   // Port B Pin0-3 as Input
-        PORTB &= 0xf0;  // Pullups off
-        break;
-      #endif
+		// V2.6: PIN8_11/PIN4_7 not allowed anymore ( wasn't described in Doku since V0.8
       #ifdef FAST_PORTWRT
       case SINGLE_PINS:
         nPins+=2;           // we have 2 more pins in Mode SINGLE_PINS compared to A4988Pins (  fallthrough to next case )

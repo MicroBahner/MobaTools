@@ -17,14 +17,7 @@ bool IRAM_ATTR setStepperPins( stepperData_t *stepperDataP, uint8_t stepPattern 
 	// store pattern data
 	bool spiChanged = false;
 	switch ( stepperDataP->output ) {
-	  #if defined PORTD && defined PORTB && defined ARDUINO_ARCH_AVR
-	  case PIN4_7:
-		PORTD = (PORTD & 0x0f) | ( stepPattern <<4 );   
-		break;
-	  case PIN8_11:
-		PORTB = (PORTB & 0xf0) | ( stepPattern );   
-		break;
-	  #endif
+		// V2.6: PIN8_11/PIN4_7 not allowed anymore ( wasn't described in Doku since V0.8
 	  case SPI_1:
 		//SET_TP2;
 		spiStepperData[0] = (spiStepperData[0] & 0xf0) | ( stepPattern );
@@ -145,14 +138,7 @@ void IRAM_ATTR stepperISR(nextCycle_t cyclesLastIRQ) {
                 noInterrupts(); // because of read modify write actions in setting outputs
                 #endif
                 switch ( stepperDataP->output ) {
-                  #if defined PORTD && defined PORTB && defined ARDUINO_ARCH_AVR
-                  case PIN4_7:
-                    PORTD = (PORTD & 0x0f) | ( stepPattern[ _patIx ] <<4 );   
-                    break;
-                  case PIN8_11:
-                    PORTB = (PORTB & 0xf0) | ( stepPattern[ _patIx ] );   
-                    break;
-                  #endif
+					// V2.6: PIN8_11/PIN4_7 not allowed anymore ( wasn't described in Doku since V0.8
                   case SPI_1:
                     //SET_TP2;
                     spiStepperData[0] = (spiStepperData[0] & 0xf0) | ( stepPattern[ _patIx ] );

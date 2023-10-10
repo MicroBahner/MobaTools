@@ -21,8 +21,9 @@
 #define NO_OUTPUT   0
 
 #if defined PORTD && defined PORTB
-#define PIN8_11     1
-#define PIN4_7      2
+// V2.6: not allowed anymore ( wasn't described in Doku since V0.8
+//#define PIN8_11     1
+//#define PIN4_7      2
 #endif
 
 #ifndef ESP8266
