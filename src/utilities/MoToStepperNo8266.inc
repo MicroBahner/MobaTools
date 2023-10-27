@@ -43,6 +43,7 @@ bool IRAM_ATTR setStepperPins( stepperData_t *stepperDataP, uint8_t stepPattern 
 	#endif
 	  case SINGLE_PINS : // Outpins are individually defined
 		for ( uint8_t bitNr = 0; bitNr < 4; bitNr++ ) {
+			// setStepperPinsAS( bitNr, stepPattern & (1<<bitNr) );
 			if ( stepPattern & (1<<bitNr) ) {
 				#ifdef FAST_PORTWRT
 				*stepperDataP->portPins[bitNr].Adr |= stepperDataP->portPins[bitNr].Mask;

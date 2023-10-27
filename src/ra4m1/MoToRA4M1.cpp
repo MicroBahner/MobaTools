@@ -1,12 +1,12 @@
-// STM32F1 HW-spcific Functions
-#ifdef ARDUINO_ARCH_STM32F1
-#define bool int
+// RA4M1 HW-spcific Functions
+#ifdef ARDUINO_ARCH_RENESAS_UNO 
+//#define bool int
 #include <MobaTools.h>
 //#define debugTP
 //#define debugPrint
 #include <utilities/MoToDbg.h>
 
-//#warning "HW specfic - STM32F1 ---"
+//#warning "HW specfic - RA4M1 ---"
 
 uint8_t noStepISR_Cnt = 0;   // Counter for nested StepISr-disable
 
@@ -46,50 +46,13 @@ void ISR_Stepper() {
 void seizeTimerAS() {
     static bool timerInitialized = false;
     if ( !timerInitialized ) {
-		uint8_t timer_type = GPT_TIMER;
-		tindex = FspTimer::get_available_timer(timer_type);
-		if (tindex < 0) {
-			tindex = FspTimer::get_available_timer(timer_type, true);
-		}
-		if (tindex < 0) return false;
-		}
-		// compute pointer to active timer registers
-		gptRegP = (R_GPT0_Type *)((uint8_t *)gpt0RegP + (0x100 * tindex));
-		// compute ISR event numbers CMPA and CMPB
-		//icuEventOvf = evGPT0_OVF + (tindex * evGPT_OFSET);
-		icuEventCmpA = evGPT0_CCMPA + (tindex * evGPT_OFSET);
-		icuEventCmpB = evGPT0_CCMPB + (tindex * evGPT_OFSET);
+		// Initialize GPT Timer
 
-		MoTo_timer.begin(TIMER_MODE_PERIODIC, timer_type, tindex, 60000, 20000, TIMER_SOURCE_DIV_16)) 
-		gptRegP->GTBER = 0x3;  // no Buffer operation
-
-		MoTo_timer.setup_capture_a_irq(5, IRQ_CmpA)) 
-		MoTo_timer.setup_capture_b_irq(5, IRQ_CmpB))
-
-		// determin ICU-Index for GPT-Interrupts. this is needed to reset the correct IRQ-Flag 
-		// within the ISR
-		for (byte i = 1; i < 32; i++) {
-		uint32_t tmp;
-		tmp = (uint32_t)(icuRegP->IELSR[i]);
-		if (icuRegP->IELSR_b[i].IELS == icuEventCmpA) icuIxCmpA = i;
-		if (icuRegP->IELSR_b[i].IELS == icuEventCmpB) icuIxCmpB = i;
-		DB_PRINT ( "IrqIx=%d, Value= 0X%lX, Event=0X%X", i, tmp, (uint32_t)(icuRegP->IELSR_b[i].IELS));
-		DB_PRINT( "OvfIx=%d, CmpaIx=%d, CmpbIx=%d", icuIxOvf, icuIxCmpA, icuIxCmpB);
-
-		MoTo_timer.open())
-		/*gptRegP->GTADTRA = 20000;
-		gptRegP->GTPR = 50000;
-		*/
-
-		MoTo_timer.start())
-		gptRegP->GTBER = 0x3;  // no Buffer operation
-
-		gptRegP->GTPR = 60000;			// set max timer count ( 20ms loop time )
-		gptRegP->GTCCR[0] = 20000;		// initial cmp for stepper/Softled
-		gptRegP->GTCCR[1] = 10000;		// initial cmp for servos
-		
-		timerInitialized = true;
-	}
+        MODE_TP1;
+        MODE_TP2;
+        MODE_TP3;
+        MODE_TP4;
+    }
 }
 
 
