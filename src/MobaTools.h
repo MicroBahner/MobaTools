@@ -19,10 +19,13 @@
   License along with this library; if not, write to the Free Software
   Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
-  MobaTools V2.5.0
+  MobaTools V2.5.1
    
   History:
-  V2.5.0 xx-2023
+  V2.5.1 10-2023
+    - Fix bug when setting speed to 0 multiple times. The stepper stopped immediately when setting
+      speed to 0 again while the stepper was ramping down from the first setting to 0.
+  V2.5.0 09-2023
 	- ESP32 board manager V2.x is supported, but the new HW variants (S2,S3,C3) are not yet supported
 	- ATmega4809 is supported ( Nano Every, UNO WiFi Rev2 )
 	- .setSpeedSteps(0) is allowed now and stops the stepper without loosing the target position

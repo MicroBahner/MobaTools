@@ -452,22 +452,27 @@ uintxx_t MoToStepper::setSpeedSteps( uintxx_t speed10, intxx_t rampLen ) {
     newSpeed10 = min( uintxx_t(1000000L / MIN_STEPTIME * 10), speed10 );
 	_noStepIRQ();
 	if ( newSpeed10 == 0) {
-		if ( _chkRunning() ) { 
-			// stepper is moving, we hahe to stop it
-			if ( _stepperData.stepRampLen > 0) {
-				_stepperData.speedZero = DECELSPEEDZERO;	// there is a ramp, flag for ramping down to speed 0
-			} else {
-				// no ramp, simply inhibit creating pulses, disable stepper if needed.
-				_stepperData.speedZero = ZEROSPEEDACTIVE;				
-				if (_stepperData.enablePin != NO_STEPPER_ENABLE ) {
-					_stepperData.aCycSteps = _stepperData.cycDelay;
-					_stepperData.rampState = rampStat::STOPPING;
+		if ( _stepperData.speedZero == NORMALSPEED ) {
+			// We are not yet in ZEROSPEED-mode so stop the stepper to standstill
+			// Because ramplen has been set to 0 when already in ZEROSPEED mode we must not do that again if
+			// already active.
+			if ( _chkRunning() ) { 
+				// stepper is moving, we hahe to stop it
+				if ( _stepperData.stepRampLen > 0) {
+					_stepperData.speedZero = DECELSPEEDZERO;	// there is a ramp, flag for ramping down to speed 0
+				} else {
+					// no ramp, simply inhibit creating pulses, disable stepper if needed.
+					_stepperData.speedZero = ZEROSPEEDACTIVE;				
+					if (_stepperData.enablePin != NO_STEPPER_ENABLE ) {
+						_stepperData.aCycSteps = _stepperData.cycDelay;
+						_stepperData.rampState = rampStat::STOPPING;
+					}
 				}
-			}
-		} else { 
-		  // Stepper doesn't move, only inhibit starting
-			_stepperData.speedZero = ZEROSPEEDACTIVE;	// set stepper inactive ( no ISR action )
-		}  
+			} else { 
+			  // Stepper doesn't move, only inhibit starting
+				_stepperData.speedZero = ZEROSPEEDACTIVE;	// set stepper inactive ( no ISR action )
+			}  
+		}
 		newSpeed10 = MINSPEEDZERO; // minimum speed in ramp before stopping
 	} else {
 		if (_stepperData.enablePin != NO_STEPPER_ENABLE && _stepperData.speedZero == ZEROSPEEDACTIVE ) {
