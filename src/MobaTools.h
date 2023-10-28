@@ -23,8 +23,9 @@
    
   History:
   V2.5.1 10-2023
-    - Fix bug when setting speed to 0 multiple times. The stepper stopped immediately when setting
+    - Fix bug when setting stepper speed to 0 multiple times. The stepper stopped immediately when setting
       speed to 0 again while the stepper was ramping down from the first setting to 0.
+	- Fix some bugs when setting low delay times on stepper enable.
   V2.5.0 09-2023
 	- ESP32 board manager V2.x is supported, but the new HW variants (S2,S3,C3) are not yet supported
 	- ATmega4809 is supported ( Nano Every, UNO WiFi Rev2 )
