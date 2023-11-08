@@ -19,9 +19,13 @@
   License along with this library; if not, write to the Free Software
   Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
-  MobaTools V2.5.1
+  MobaTools V2.6.0
    
   History:
+  V2.6.0 12-2023
+    - Support UNO R4
+	- MoToStepper.read allows allows reading the angle in fractions
+	
   V2.5.1 10-2023
     - Fix bug when setting stepper speed to 0 multiple times. The stepper stopped immediately when setting
       speed to 0 again while the stepper was ramping down from the first setting to 0.
@@ -171,7 +175,8 @@
 		// default for other ( are there any?) boards or megaCoreX core
 		#define MoToSS 8		// standard for other boards
 	#endif
-	
+#elif defined ARDUINO_ARCH_RENESAS_UNO ////////////////////////////////////////////////////////
+	#define MIN_STEP_CYCLE  50       // Minimum number of µsec  per Step
 #else ///////////////////////////////////////////////////////////////////////////////////
     #error Processor not supported
 #endif //////////////////////////////////////////////////////////////////////////////////

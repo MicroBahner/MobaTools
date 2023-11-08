@@ -6,32 +6,32 @@
 #include <bsp_api.h>
 
 //#warning RA4M1 specific cpp includes
+extern IRQn_Type IRQnStepper ;		// NVIC-IRQ number for stepper IRQ ( GPT cmpA )
+extern IRQn_Type IRQnServo ;	 	// NVIC-IRQ number for servo IRQ   ( GPT cmpB )
+
 extern uint8_t noStepISR_Cnt;   // Counter for nested StepISr-disable
 
 void seizeTimerAS();
 
 static inline __attribute__((__always_inline__)) void _noStepIRQ() {
-    //timer_disable_irq(MT_TIMER, TIMER_STEPCH_IRQ);
-    *bb_perip(&(MT_TIMER->regs).adv->DIER, TIMER_STEPCH_IRQ) = 0;
+    // disable stepper IRQ ( GPT cmpA match IRQ )
+    NVIC_DisableIRQ(IRQnStepper);
     noStepISR_Cnt++;
-    //noInterrupts();
-    //nvic_globalirq_disable();
     #if defined COMPILING_MOTOSTEPPER_CPP
         //Serial.println(noStepISR_Cnt);
         SET_TP3;
     #endif
 }
 static inline __attribute__((__always_inline__)) void  _stepIRQ(bool force = false) {
-    //timer_enable_irq(MT_TIMER, TIMER_STEPCH_IRQ) cannot be used, because this also clears pending irq's
+	// enable stepper IRQ ( GPT cmpA match IRQ )
     if ( force ) noStepISR_Cnt = 1;              //enable IRQ immediately
     if ( noStepISR_Cnt > 0 ) noStepISR_Cnt -= 1; // don't decrease if already 0 ( if enabling IRQ is called too often )
     if ( noStepISR_Cnt == 0 ) {
         #if defined COMPILING_MOTOSTEPPER_CPP
             CLR_TP3;
         #endif
-        *bb_perip(&(MT_TIMER->regs).adv->DIER, TIMER_STEPCH_IRQ) = 1;
-        //nvic_globalirq_enable();
-        //interrupts();
+        NVIC_EnableIRQ(IRQnStepper);
+
     }
     //Serial.println(noStepISR_Cnt);
 }
@@ -42,8 +42,7 @@ void ISR_Servo( void );
 
 
 static inline __attribute__((__always_inline__)) void enableServoIsrAS() {
-    timer_attach_interrupt(MT_TIMER, TIMER_SERVOCH_IRQ, ISR_Servo );
-    timer_cc_enable(MT_TIMER, SERVO_CHN);
+    NVIC_EnableIRQ(IRQnServo);
 }
 
 #endif // COMPILING_MOTOSERVO_CPP

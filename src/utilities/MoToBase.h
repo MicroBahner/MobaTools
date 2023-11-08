@@ -23,6 +23,8 @@
 	#include <esp8266/drivers.h>
 #elif defined ARDUINO_ARCH_ESP32
 	#include <esp32/drivers.h>
+#elif defined ARDUINO_ARCH_RENESAS_UNO 
+	#include <ra4m1/drivers.h>
 #else
     #error "Processor not supported"
 #endif

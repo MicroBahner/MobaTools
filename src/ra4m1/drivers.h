@@ -12,7 +12,7 @@
 
 #define CYCLETIME       1     // Cycle count in µs on 32Bit processors
 
-#define TICS_PER_MICROSECOND (CYCLES_PER_MICROSECOND / 16 ) // prescaler is 16 = 0.33us
+#define TICS_PER_MICROSECOND (clockCyclesPerMicrosecond() / 16 ) // prescaler is 16 = 0.33us
 //#define TICS_PER_MICROSECOND 3 // prescaler is 16 = with 48MHz Clock
 
 #define GET_COUNT (uint32_t)gptRegP->GTCNT
