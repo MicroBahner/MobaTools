@@ -46,50 +46,27 @@ void ISR_Stepper() {
 void seizeTimerAS() {
     static bool timerInitialized = false;
     if ( !timerInitialized ) {
-		uint8_t timer_type = GPT_TIMER;
-		tindex = FspTimer::get_available_timer(timer_type);
-		if (tindex < 0) {
-			tindex = FspTimer::get_available_timer(timer_type, true);
-		}
-		if (tindex < 0) return false;
-		}
-		// compute pointer to active timer registers
-		gptRegP = (R_GPT0_Type *)((uint8_t *)gpt0RegP + (0x100 * tindex));
-		// compute ISR event numbers CMPA and CMPB
-		//icuEventOvf = evGPT0_OVF + (tindex * evGPT_OFSET);
-		icuEventCmpA = evGPT0_CCMPA + (tindex * evGPT_OFSET);
-		icuEventCmpB = evGPT0_CCMPB + (tindex * evGPT_OFSET);
-
-		MoTo_timer.begin(TIMER_MODE_PERIODIC, timer_type, tindex, 60000, 20000, TIMER_SOURCE_DIV_16)) 
-		gptRegP->GTBER = 0x3;  // no Buffer operation
-
-		MoTo_timer.setup_capture_a_irq(5, IRQ_CmpA)) 
-		MoTo_timer.setup_capture_b_irq(5, IRQ_CmpB))
-
-		// determin ICU-Index for GPT-Interrupts. this is needed to reset the correct IRQ-Flag 
-		// within the ISR
-		for (byte i = 1; i < 32; i++) {
-		uint32_t tmp;
-		tmp = (uint32_t)(icuRegP->IELSR[i]);
-		if (icuRegP->IELSR_b[i].IELS == icuEventCmpA) icuIxCmpA = i;
-		if (icuRegP->IELSR_b[i].IELS == icuEventCmpB) icuIxCmpB = i;
-		DB_PRINT ( "IrqIx=%d, Value= 0X%lX, Event=0X%X", i, tmp, (uint32_t)(icuRegP->IELSR_b[i].IELS));
-		DB_PRINT( "OvfIx=%d, CmpaIx=%d, CmpbIx=%d", icuIxOvf, icuIxCmpA, icuIxCmpB);
-
-		MoTo_timer.open())
-		/*gptRegP->GTADTRA = 20000;
-		gptRegP->GTPR = 50000;
-		*/
-
-		MoTo_timer.start())
-		gptRegP->GTBER = 0x3;  // no Buffer operation
-
-		gptRegP->GTPR = 60000;			// set max timer count ( 20ms loop time )
-		gptRegP->GTCCR[0] = 20000;		// initial cmp for stepper/Softled
-		gptRegP->GTCCR[1] = 10000;		// initial cmp for servos
-		
-		timerInitialized = true;
-	}
+        timer_init( MT_TIMER );
+        timer_pause(MT_TIMER);
+        // IRQ-Priorität von timer 4 interrupt auf lowest (15) setzen
+        nvic_irq_set_priority ( NVIC_TIMER4, 15); // Timer 4 - stmduino sets all priorities to lowest level
+                                                  // To be sure we set it here agai. These long lasting IRQ's 
+                                                  // MUST be lowest priority
+        timer_oc_set_mode( MT_TIMER, SERVO_CHN, TIMER_OC_MODE_FROZEN, 0 );  // comparison between output compare register and counter 
+                                                                    //has no effect on the outputs
+        timer_oc_set_mode( MT_TIMER, STEP_CHN, TIMER_OC_MODE_FROZEN, 0 );
+        timer_set_prescaler(MT_TIMER, 36-1 );    // = 0.5µs Tics at 72MHz
+        timer_set_reload(MT_TIMER, TIMERPERIODE * TICS_PER_MICROSECOND );
+        timer_set_compare(MT_TIMER, STEP_CHN, 400 );
+        timer_attach_interrupt(MT_TIMER, TIMER_STEPCH_IRQ, (voidFuncPtr)ISR_Stepper );
+        timer_set_compare(MT_TIMER, SERVO_CHN, FIRST_PULSE );
+        timer_resume(MT_TIMER);
+        timerInitialized = true;  
+        MODE_TP1;
+        MODE_TP2;
+        MODE_TP3;
+        MODE_TP4;
+    }
 }
 
 
