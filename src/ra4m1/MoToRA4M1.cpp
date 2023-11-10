@@ -8,15 +8,13 @@
 
 #warning "HW specfic - RA4M1 ---"
 // RA4M1 specific variables
+FspTimer MoTo_timer;	// create Timer object
+
 const uint32_t gptOfs = 0x100L;                      // offset betwen register blocks
 //const R_GPT0_Type *gpt0RegP = (R_GPT0_Type *)R_GPT0_BASE;  // GPT0-Adresse
 R_GPT0_Type *gptRegP = (R_GPT0_Type *)R_GPT0_BASE;                     // Pointer to active timer registers
 R_ICU_Type *icuRegP = (R_ICU_Type *)R_ICU_BASE;      // Pointer to Interrupt registers
 uint8_t IelsrIxOvf;                                  // Index for gpt overflow-Entry
-constexpr uint8_t evGPT0_CCMPA = 0x057;              // overflow event for gpt0, offset to next gpt = 8
-constexpr uint8_t evGPT0_CCMPB = 0x058;              // overflow event for gpt0, offset to next gpt = 8
-constexpr uint8_t evGPT0_OVF = 0x05D;                // overflow event for gpt0, offset to next gpt = 8
-constexpr uint8_t evGPT_OFSET = 8;
 // Event nbr for ICU table
 uint16_t icuEventOvf;
 uint16_t icuEventCmpA;
@@ -63,7 +61,6 @@ void ISR_Stepper() {
 }
 ////////////////////////////////////////////////////////////////////////////////////////////
 void seizeTimerAS() {
-	static FspTimer MoTo_timer;
 	int8_t tindex;  // used Timer;
     static bool timerInitialized = false;
     if ( !timerInitialized ) {
@@ -78,25 +75,12 @@ void seizeTimerAS() {
 
 		MoTo_timer.begin(TIMER_MODE_PERIODIC, timer_type, tindex, 60000, 20000, TIMER_SOURCE_DIV_16); 
 		gptRegP->GTBER = 0x3;  // no Buffer operation
-
-
-		MoTo_timer.setup_capture_a_irq(5, IRQ_CmpA);
-		MoTo_timer.setup_capture_b_irq(5, IRQ_CmpB);
-
-		// determin ICU-Index for GPT-Interrupts
-		for (byte i = 1; i < 32; i++) {
-		if (icuRegP->IELSR_b[i].IELS == icuEventCmpA) IRQnStepper = (IRQn_Type)i;
-		if (icuRegP->IELSR_b[i].IELS == icuEventCmpB) IRQnServo = (IRQn_Type)i;
-		}
-
-		MoTo_timer.open()
-
+		MoTo_timer.open();
 		MoTo_timer.start();
 
-		gptRegP->GTBER = 0x3;  // no Buffer operation
-		gptRegP->GTCCR[0] = 20000;
-		gptRegP->GTCCR[1] = 10000;
-		gptRegP->GTPR = 60000;
+		gptRegP->GTCCR[0] = 0;
+		gptRegP->GTCCR[1] = 0;
+		gptRegP->GTPR = TIMER_OVL_TICS;
 
         MODE_TP1;
         MODE_TP2;
@@ -105,27 +89,6 @@ void seizeTimerAS() {
     }
 }
 
-
-void enableServoIsrAS() {
-}
-
-extern "C" {
-// ------------------------  ISR for SPI-Stepper ------------------------
-static int rxData;
-#ifdef USE_SPI2
-void __irq_spi2(void) {// STM32  spi2 irq vector
-    rxData = spi_rx_reg(SPI2);            // Get dummy data (Clear RXNE-Flag)
-    digitalWrite(BOARD_SPI2_NSS_PIN,HIGH);
-}
-#else
-void __irq_spi1(void) {// STM32  spi1 irq vector
-    //SET_TP4;
-    rxData = spi_rx_reg(SPI1);            // Get dummy data (Clear RXNE-Flag)
-    digitalWrite(BOARD_SPI1_NSS_PIN,HIGH);
-    //CLR_TP4;
-}
-#endif
-} // end of extern "C"
 
 
 

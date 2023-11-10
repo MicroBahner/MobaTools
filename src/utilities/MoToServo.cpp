@@ -3,7 +3,7 @@
   Author: fpm, fpm@mnet-mail.de
   Copyright (c) 2020 All rights reserved.
 
-  Functions for the stepper part of MobaTools
+  Functions for the servo part of MobaTools
 */
 #define COMPILING_MOTOSERVO_CPP  // this allows servo-specific defines in includefiles
 
@@ -111,7 +111,7 @@ ISR ( TIMERx_COMPA_vect) {
 #elif defined  (ARDUINO_ARCH_MEGAAVR )
 ISR (TCA0_CMP0_vect) {
 	TCA0.SINGLE.INTFLAGS = TCA_SINGLE_CMP0_bm;	// Reset IRQ-flag
-#elif defined __STM32Fx__
+#else // STM32Fx and Renesas RA4M1
 void ISR_Servo( void) {
     uint16_t OCRxA = 0;
 #endif

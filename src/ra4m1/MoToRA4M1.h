@@ -3,11 +3,26 @@
 // RA4M1 specific defines for Cpp files
 
 #include "FspTimer.h"
+//#include <IRQManager.h>
 #include <bsp_api.h>
 
 //#warning RA4M1 specific cpp includes
+extern FspTimer MoTo_timer;
+const byte NVIC_ServoPrio = 14;
+const byte NVIC_StepperPrio = 15;
 extern IRQn_Type IRQnStepper ;		// NVIC-IRQ number for stepper IRQ ( GPT cmpA )
 extern IRQn_Type IRQnServo ;	 	// NVIC-IRQ number for servo IRQ   ( GPT cmpB )
+extern R_GPT0_Type *gptRegP;                     // Pointer to active timer registers
+extern R_ICU_Type *icuReg;      // Pointer to Interrupt registers
+extern uint8_t IelsrIxOvf;                                  // Index for gpt overflow-Entry
+extern R_ICU_Type *icuRegP;
+extern uint16_t icuEventCmpA;
+extern uint16_t icuEventCmpB;
+
+constexpr uint8_t evGPT0_CCMPA = 0x057;              // overflow event for gpt0, offset to next gpt = 8
+constexpr uint8_t evGPT0_CCMPB = 0x058;              // overflow event for gpt0, offset to next gpt = 8
+constexpr uint8_t evGPT0_OVF = 0x05D;                // overflow event for gpt0, offset to next gpt = 8
+constexpr uint8_t evGPT_OFSET = 8;
 
 extern uint8_t noStepISR_Cnt;   // Counter for nested StepISr-disable
 
@@ -42,15 +57,30 @@ void ISR_Servo( void );
 
 
 static inline __attribute__((__always_inline__)) void enableServoIsrAS() {
-    NVIC_EnableIRQ(IRQnServo);
+	if ( IRQnServo == 0 ) {
+		// IRQ not yet initialzed
+		MoTo_timer.setup_capture_b_irq(NVIC_ServoPrio, ISR_Servo);
+		// determin ICU-Index for Servo-Interrupt
+		for (byte i = 1; i < 32; i++) {
+			if (icuRegP->IELSR_b[i].IELS == icuEventCmpB) IRQnServo = (IRQn_Type)i;
+		}
+	}
 }
 
 #endif // COMPILING_MOTOSERVO_CPP
 
+void ISR_Stepper();
 /////////////////////////////////////////////////////////////////////////////////////////////////
 #if defined COMPILING_MOTOSOFTLED32_CPP
 static inline __attribute__((__always_inline__)) void enableSoftLedIsrAS() {
-    timer_cc_enable(MT_TIMER, STEP_CHN);
+	if ( IRQnStepper == 0 ) {
+		// IRQ not yet initialzed
+		MoTo_timer.setup_capture_a_irq(NVIC_StepperPrio, ISR_Stepper);
+		// determin ICU-Index for Stepper-Interrupts
+		for (byte i = 1; i < 32; i++) {
+		if (icuRegP->IELSR_b[i].IELS == icuEventCmpA) IRQnStepper = (IRQn_Type)i;
+		}
+	}
 }
 
 #endif // COMPILING_MOTOSOFTLED_CPP
@@ -59,54 +89,104 @@ static inline __attribute__((__always_inline__)) void enableSoftLedIsrAS() {
 #if defined COMPILING_MOTOSTEPPER_CPP
 
 static inline __attribute__((__always_inline__)) void enableStepperIsrAS() {
-    timer_cc_enable(MT_TIMER, STEP_CHN);
+	if ( IRQnStepper == 0 ) {
+		// IRQ not yet initialzed
+		MoTo_timer.setup_capture_a_irq(NVIC_StepperPrio, ISR_Stepper);
+		// determin ICU-Index for Stepper-Interrupts
+		for (byte i = 1; i < 32; i++) {
+		if (icuRegP->IELSR_b[i].IELS == icuEventCmpA) IRQnStepper = (IRQn_Type)i;
+		}
+	}
 }
 
 static uint8_t spiInitialized = false;
+// Pointer für SPI-Register ( Minima uses SPI1, WiFi uses SPI0 )
+// Ports für SPI pins
+// MISO is not used ( SPI transfer only mode )
+// SS is set by HW, so we don't need a finished IRQ
+#define PERI_SPI 0b00110
+#ifdef ARDUINO_UNOR4_MINIMA
+#define SPI_ENABIT MSTPB18
+#define R_SPI_R4 ((R_SPI0_Type *)R_SPI1_BASE)
+#define SPI_PORT 1
+#define SPI_PORT_MIMO 1
+#define SS_PIN 12
+#define MOSI_PIN 9
+#define CLOCK_PIN 11
+// MISO is not used ( SPI transfer only mode )
+#elif defined ARDUINO_UNOR4_WIFI
+#define R_SPI_R4 ((R_SPI0_Type *)R_SPI0_BASE)
+#define SPI_ENABIT MSTPB19
+#define SPI_PORT 1
+#define SPI_PORT_MIMO 4
+#define SS_PIN 3
+#define MOSI_PIN 11
+#define CLOCK_PIN 2
+#else
+#error unsupported board
+#endif
+
 static inline __attribute__((__always_inline__)) void initSpiAS() {
     if ( spiInitialized ) return;
     // initialize SPI hardware.
     // MSB first, default Clk Level is 0, shift on leading edge
-    #ifdef USE_SPI2// use SPI 2 interface
-    spi_init(SPI2);
-    spi_config_gpios(SPI2, 1,  // initialize as master
-                     PIN_MAP[BOARD_SPI2_NSS_PIN].gpio_device, PIN_MAP[BOARD_SPI2_NSS_PIN].gpio_bit,        
-                     PIN_MAP[BOARD_SPI2_SCK_PIN].gpio_device, PIN_MAP[BOARD_SPI2_SCK_PIN].gpio_bit,
-                     PIN_MAP[BOARD_SPI2_MISO_PIN].gpio_bit,
-                     PIN_MAP[BOARD_SPI2_MOSI_PIN].gpio_bit);
+	// SPI aktivieren
+	R_MSTP->MSTPCRB_b.SPI_ENABIT = 0;  // SPI
 
-    uint32 flags = (SPI_FRAME_MSB | SPI_CR1_DFF_16_BIT | SPI_SW_SLAVE | SPI_SOFT_SS);
-    spi_master_enable(SPI2, (spi_baud_rate)SPI_BAUD_PCLK_DIV_64, (spi_mode)SPI_MODE_0, flags);
-    spi_irq_enable(SPI2, SPI_RXNE_INTERRUPT);
-    pinMode( BOARD_SPI2_NSS_PIN, OUTPUT);
-    digitalWrite( BOARD_SPI2_NSS_PIN, LOW );
+	// Pins zuordnen
+	// Der Zugriff auf die Pin-Register muss erst freigegeben werden
+	//  #define R_PMISC        ((R_PMISC_Type *) R_PMISC_BASE)
+	R_PMISC->PWPR_b.B0WI = 0;
+	R_PMISC->PWPR_b.PFSWE = 1;
 
-    #else// use SPI 1 interface
-    spi_init(SPI1);
-    spi_config_gpios(SPI1, 1,  // initialize as master
-                     PIN_MAP[BOARD_SPI1_NSS_PIN].gpio_device, PIN_MAP[BOARD_SPI1_NSS_PIN].gpio_bit,        
-                     PIN_MAP[BOARD_SPI1_SCK_PIN].gpio_device, PIN_MAP[BOARD_SPI1_SCK_PIN].gpio_bit,
-                     PIN_MAP[BOARD_SPI1_MISO_PIN].gpio_bit,
-                     PIN_MAP[BOARD_SPI1_MOSI_PIN].gpio_bit);
+	R_PFS->PORT[SPI_PORT_MIMO].PIN[MOSI_PIN].PmnPFS_b.PMR = 1;  // Pin109 is MOSIB
+	R_PFS->PORT[SPI_PORT_MIMO].PIN[MOSI_PIN].PmnPFS_b.PSEL = PERI_SPI;
 
-    uint32 flags = (SPI_FRAME_MSB | SPI_CR1_DFF_16_BIT | SPI_SW_SLAVE | SPI_SOFT_SS);
-    spi_master_enable(SPI1, (spi_baud_rate)SPI_BAUD_PCLK_DIV_64, (spi_mode)SPI_MODE_0, flags);
-    spi_irq_enable(SPI1, SPI_RXNE_INTERRUPT);
-    pinMode( BOARD_SPI1_NSS_PIN, OUTPUT);
-    digitalWrite( BOARD_SPI1_NSS_PIN, LOW );
-    #endif
+	R_PFS->PORT[SPI_PORT].PIN[CLOCK_PIN].PmnPFS_b.PMR = 1;  // Pin111 is RSPCKB
+	R_PFS->PORT[SPI_PORT].PIN[CLOCK_PIN].PmnPFS_b.PSEL = PERI_SPI;
+
+	R_PFS->PORT[SPI_PORT].PIN[SS_PIN].PmnPFS_b.PMR = 1;  // Pin112 is SSLB0
+	R_PFS->PORT[SPI_PORT].PIN[SS_PIN].PmnPFS_b.PSEL = PERI_SPI;
+
+	R_SPI_R4->SPCR_b.SPE = 0;  // SPI disable ( set to 1 after full initialize
+
+	R_SPI_R4->SPCR_b.SPMS = 0;    // SPI operation
+	R_SPI_R4->SPCR_b.TXMD = 1;    // only transmit operations
+	R_SPI_R4->SPCR_b.MODFEN = 0;  // no mode error detection / single master mode
+	R_SPI_R4->SPCR_b.MSTR = 1;    // Master mode
+	R_SPI_R4->SPCR_b.SPEIE = 0;   // no error interrupts
+	R_SPI_R4->SPCR_b.SPTIE = 0;   // no transmit empty IRQ
+	R_SPI_R4->SPCR_b.SPRIE = 0;   // no recv IRQ
+
+	R_SPI_R4->SSLP = 0;  // Alle SSL active LOW
+
+	R_SPI_R4->SPPCR_b.MOIFV = 0;  // MOSI idle is LOW
+	R_SPI_R4->SPPCR_b.MOIFE = 1;  // MOSI idle entspr. MOIFV
+
+	R_SPI_R4->SPBR = 5;  // bit rate setting
+
+	R_SPI_R4->SPDCR_b.SPLW = 0;  // Half word access data buffer
+							   /*
+	R_SPI_R4->SPCKD_b.SCKDL = 4;    // delay SS to clock start
+	R_SPI_R4->SSLND_b.SLNDL = 4;    // delay clock end to SS
+	R_SPI_R4->SPND_b.SPNDL = 1;     // delay between transmissions 
+	*/
+	R_SPI_R4->SPCR2 = 0;         // default, no parity
+	// Modes of operation
+	R_SPI_R4->SPCMD_b[0].SPB = 0xF;  // Data length = 16  bit
+	R_SPI_R4->SPCMD_b[0].CPHA = 0;   // sampling auf steigender Flanke
+	R_SPI_R4->SPCMD_b[0].BRDV = 1;   // Vorteiler /2
+	R_SPI_R4->SPCMD_b[0].SSLA = 0;   // SSL0 aktiv
+
+
+	R_SPI_R4->SPCR_b.SPE = 1;  // SPI ensable
+
     spiInitialized = true;  
 }
 
-    static inline __attribute__((__always_inline__)) void startSpiWriteAS( uint8_t spiData[] ) {
-        #ifdef USE_SPI2
-        digitalWrite(BOARD_SPI2_NSS_PIN,LOW);
-        spi_tx_reg(SPI2, (spiData[1]<<8) + spiData[0] );
-        #else
-        digitalWrite(BOARD_SPI1_NSS_PIN,LOW);
-        spi_tx_reg(SPI1, (spiData[1]<<8) + spiData[0] );
-        #endif
-    }    
+static inline __attribute__((__always_inline__)) void startSpiWriteAS( uint8_t spiData[] ) {
+	R_SPI_R4->SPDR_HA = (spiData[1]<<8) + spiData[0];
+}    
     
 
 #endif // COMPILING_MOTOSTEPPER_CPP

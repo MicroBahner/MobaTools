@@ -2,7 +2,7 @@
 #define RA4M1_DRIVER_H
 //////////////////////////////////////// processor dependent defines and declarations //////////////////////////////////////////
     //--------------------------------------------------------------------------------------------------------------
-//vvvvvvvvvvvvvvvvvvvvvvvvvv STM32F1 processors vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
+//vvvvvvvvvvvvvvvvvvvvvvvvvv UNO R4 vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
 #define RA4M1
 #define __UNOR4__
 #define IS_32BIT
@@ -19,8 +19,8 @@
 
 extern bool timerInitialized;
 void seizeTimer1();
-//#define USE_SPI2          // Use SPI1 if not defined
-//^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ STM32F1 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+//^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ UNO R4 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 #define ARCHITECT_INCLUDE <ra4m1/MoToRA4M1.h>
 #endif
