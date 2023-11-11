@@ -1,10 +1,14 @@
 // RA4M1 HW-spcific Functions
 #ifdef ARDUINO_ARCH_RENESAS_UNO 
-//#define bool int
 #include <MobaTools.h>
-//#define debugTP
+#define debugTP
 //#define debugPrint
 #include <utilities/MoToDbg.h>
+#ifdef debugIRQ
+#warning debugIRQ aktiv
+uint8_t dbgIx;	// index of irq values
+irqValues_h dbgTimer[dbgIxMax];
+#endif
 
 #warning "HW specfic - RA4M1 ---"
 // RA4M1 specific variables
@@ -32,7 +36,13 @@ void ISR_Stepper() {
     // GPT Timer CCMPA, used for stepper motor and softleds, starts every nextCycle us
 	// Quit irq-flag
 	icuRegP->IELSR_b[IRQnStepper].IR = 0;
-
+#ifdef debugIRQ
+	if( dbgIx < dbgIxMax ) {
+		dbgTimer[dbgIx].preTimerCnt = gptRegP->GTCNT;
+		dbgTimer[dbgIx].preTimerCmp = gptRegP->GTCCR[0];
+		dbgTimer[dbgIx].cyclesLastIRQ = cyclesLastIRQ;
+	}
+#endif
     // nextCycle ist set in stepperISR and softledISR
     SET_TP1;
     nextCycle = ISR_IDLETIME  / CYCLETIME ;// min ist one cycle per IDLETIME
@@ -57,6 +67,14 @@ void ISR_Stepper() {
     if ( nextOCR > (uint16_t)TIMER_OVL_TICS ) nextOCR -= TIMER_OVL_TICS;
     gptRegP->GTCCR[0] = nextOCR  ;
     cyclesLastIRQ = nextCycle;
+#ifdef debugIRQ
+	if( dbgIx < dbgIxMax ) {
+		dbgTimer[dbgIx].postTimerCnt = gptRegP->GTCNT;
+		dbgTimer[dbgIx].postTimerCmp = gptRegP->GTCCR[0];
+		dbgTimer[dbgIx].nextCycle = nextCycle;
+		dbgIx++;
+	}
+#endif
     CLR_TP1; // Oszimessung Dauer der ISR-Routine
 }
 ////////////////////////////////////////////////////////////////////////////////////////////

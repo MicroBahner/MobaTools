@@ -2,7 +2,7 @@
 #ifdef ARDUINO_ARCH_STM32F1
 #define bool int
 #include <MobaTools.h>
-//#define debugTP
+#define debugTP
 //#define debugPrint
 #include <utilities/MoToDbg.h>
 

@@ -3,9 +3,23 @@
 // RA4M1 specific defines for Cpp files
 
 #include "FspTimer.h"
-//#include <IRQManager.h>
 #include <bsp_api.h>
+#define debugIRQ	// create variables for IRQ debugging
 
+#ifdef debugIRQ
+// Variables for IRQ debugging zhat can be used in the sketch
+extern uint8_t dbgIx;	// index of irq values
+typedef struct {
+	uint16_t cyclesLastIRQ;
+	uint16_t nextCycle;
+	uint16_t preTimerCnt;
+	uint16_t preTimerCmp;
+	uint16_t postTimerCnt;
+	uint16_t postTimerCmp;
+}irqValues_h ;
+extern irqValues_h dbgTimer[];
+constexpr uint8_t dbgIxMax = 10;	
+#endif
 //#warning RA4M1 specific cpp includes
 extern FspTimer MoTo_timer;
 const byte NVIC_ServoPrio = 14;

@@ -80,7 +80,7 @@ void IRAM_ATTR stepperISR(nextCycle_t cyclesLastIRQ) {
     stepperDataP = stepperRootP;
     // ---------------Stepper motors ---------------------------------------------
     while ( stepperDataP != NULL ) {
-        //CLR_TP1;    // spike for recognizing start of each stepper
+        CLR_TP1;    // spike for recognizing start of each stepper
         #ifdef IS_32BIT
         bool resetPulse = false; // for 32Bit reset pulse und setting new pulse is never done in same IRQ
         if ( stepperDataP->output == A4988_PINS && digitalRead(stepperDataP->pins[0]) ) {
@@ -412,7 +412,7 @@ void IRAM_ATTR stepperISR(nextCycle_t cyclesLastIRQ) {
 
         //CLR_TP1;
         stepperDataP = stepperDataP->nextStepperDataP;
-        //SET_TP1; //CLR_TP2;
+        SET_TP1; //CLR_TP2;
     } // end of stepper-loop
     
     // shift out spiStepperData, if SPI is active

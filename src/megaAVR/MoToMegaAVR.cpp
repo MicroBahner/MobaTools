@@ -1,7 +1,7 @@
 // AVR HW-spcific Functions
 #ifdef ARDUINO_ARCH_MEGAAVR
 #include <MobaTools.h>
-//#define debugTP
+#define debugTP
 //#define debugPrint
 #include <utilities/MoToDbg.h>
 
