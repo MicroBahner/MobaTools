@@ -70,12 +70,10 @@ static inline __attribute__((__always_inline__)) void  _stepIRQ(bool force = fal
 
 /////////////////////////////////////////////////////////////////////////////////////////////////
 #if defined COMPILING_MOTOSERVO_CPP
-void ISR_Servo( void );
-
-
+void ISR_ServoRA4();
 static inline __attribute__((__always_inline__)) void enableServoIsrAS() {
   if ( IRQnServo == FSP_INVALID_VECTOR ) {
-    IRQManager::getInstance().addTimerCompareCaptureB(timerIrqCfg, &ISR_Servo);
+    IRQManager::getInstance().addTimerCompareCaptureB(timerIrqCfg, &ISR_ServoRA4);
     IRQnServo = MoToGPT.ext_cfg.capture_b_irq;   // NVIC IRQ-number overflow ISR
     NVIC_SetPriority(IRQnServo,NVIC_ServoPrio);
     NVIC_EnableIRQ(IRQnServo);
@@ -83,6 +81,10 @@ static inline __attribute__((__always_inline__)) void enableServoIsrAS() {
   }
 }
 
+static inline __attribute__((__always_inline__)) void setServoCmpAS(uint16_t cmpValue) {
+	// Set compare-Register for next servo IRQ
+	gptRegP->GTCCR[1] = cmpValue;
+}	
 #endif // COMPILING_MOTOSERVO_CPP
 
 void ISR_Stepper();
