@@ -5,11 +5,13 @@
 #include "FspTimer.h"
 #include <bsp_api.h>
 #define debugIRQ	// create variables for IRQ debugging
+#define debugPrint
 
 #ifdef debugIRQ
 // Variables for IRQ debugging zhat can be used in the sketch
 extern uint8_t dbgIx;	// index of irq values
 typedef struct {
+	uint32_t timestamp;
 	uint16_t cyclesLastIRQ;
 	uint16_t nextCycle;
 	uint16_t preTimerCnt;
@@ -21,22 +23,23 @@ extern irqValues_h dbgTimer[];
 constexpr uint8_t dbgIxMax = 10;	
 #endif
 //#warning RA4M1 specific cpp includes
-extern FspTimer MoTo_timer;
-const byte NVIC_ServoPrio = 14;
-const byte NVIC_StepperPrio = 15;
-extern IRQn_Type IRQnStepper ;		// NVIC-IRQ number for stepper IRQ ( GPT cmpA )
-extern IRQn_Type IRQnServo ;	 	// NVIC-IRQ number for servo IRQ   ( GPT cmpB )
-extern R_GPT0_Type *gptRegP;                     // Pointer to active timer registers
-extern R_ICU_Type *icuReg;      // Pointer to Interrupt registers
-extern uint8_t IelsrIxOvf;                                  // Index for gpt overflow-Entry
-extern R_ICU_Type *icuRegP;
-extern uint16_t icuEventCmpA;
-extern uint16_t icuEventCmpB;
+constexpr byte NVIC_ServoPrio = 14;
+constexpr byte NVIC_StepperPrio = 15;
 
-constexpr uint8_t evGPT0_CCMPA = 0x057;              // overflow event for gpt0, offset to next gpt = 8
-constexpr uint8_t evGPT0_CCMPB = 0x058;              // overflow event for gpt0, offset to next gpt = 8
-constexpr uint8_t evGPT0_OVF = 0x05D;                // overflow event for gpt0, offset to next gpt = 8
-constexpr uint8_t evGPT_OFSET = 8;
+extern R_GPT0_Type *gptRegP;                     // Pointer to active timer registers
+extern R_ICU_Type *icuRegP;      // Pointer to Interrupt registers
+
+//constexpr uint8_t evGPT_OFSET = 8;
+extern timer_cfg_t timer_cfg;
+extern TimerIrqCfg_t timerIrqCfg;
+extern GPTimer MoToGPT; // create all structures for GPT.
+
+extern IRQn_Type IRQnStepper ;        // NVIC-IRQ number for stepper IRQ ( cmpA )
+extern IRQn_Type IRQnServo ;       // NVIC-IRQ number for servo IRQ    (cmpB )
+
+void ISR_Servo();
+void ISR_Stepper();
+void seizeTimerAS();
 
 extern uint8_t noStepISR_Cnt;   // Counter for nested StepISr-disable
 
@@ -71,14 +74,13 @@ void ISR_Servo( void );
 
 
 static inline __attribute__((__always_inline__)) void enableServoIsrAS() {
-	if ( IRQnServo == 0 ) {
-		// IRQ not yet initialzed
-		MoTo_timer.setup_capture_b_irq(NVIC_ServoPrio, ISR_Servo);
-		// determin ICU-Index for Servo-Interrupt
-		for (byte i = 1; i < 32; i++) {
-			if (icuRegP->IELSR_b[i].IELS == icuEventCmpB) IRQnServo = (IRQn_Type)i;
-		}
-	}
+  if ( IRQnServo == FSP_INVALID_VECTOR ) {
+    IRQManager::getInstance().addTimerCompareCaptureB(timerIrqCfg, &ISR_Servo);
+    IRQnServo = MoToGPT.ext_cfg.capture_b_irq;   // NVIC IRQ-number overflow ISR
+    NVIC_SetPriority(IRQnServo,NVIC_ServoPrio);
+    NVIC_EnableIRQ(IRQnServo);
+
+  }
 }
 
 #endif // COMPILING_MOTOSERVO_CPP
@@ -87,14 +89,14 @@ void ISR_Stepper();
 /////////////////////////////////////////////////////////////////////////////////////////////////
 #if defined COMPILING_MOTOSOFTLED32_CPP
 static inline __attribute__((__always_inline__)) void enableSoftLedIsrAS() {
-	if ( IRQnStepper == 0 ) {
-		// IRQ not yet initialzed
-		MoTo_timer.setup_capture_a_irq(NVIC_StepperPrio, ISR_Stepper);
-		// determin ICU-Index for Stepper-Interrupts
-		for (byte i = 1; i < 32; i++) {
-		if (icuRegP->IELSR_b[i].IELS == icuEventCmpA) IRQnStepper = (IRQn_Type)i;
-		}
-	}
+  if ( IRQnStepper == FSP_INVALID_VECTOR ) {
+    // IRQ not yet initialzed
+    IRQManager::getInstance().addTimerCompareCaptureA(timerIrqCfg, &ISR_Stepper);
+    IRQnStepper = MoToGPT.ext_cfg.capture_a_irq;   // NVIC IRQ-number overflow ISR
+    NVIC_SetPriority(IRQnStepper,NVIC_StepperPrio);
+    NVIC_EnableIRQ(IRQnStepper);
+
+  }
 }
 
 #endif // COMPILING_MOTOSOFTLED_CPP
@@ -103,14 +105,15 @@ static inline __attribute__((__always_inline__)) void enableSoftLedIsrAS() {
 #if defined COMPILING_MOTOSTEPPER_CPP
 
 static inline __attribute__((__always_inline__)) void enableStepperIsrAS() {
-	if ( IRQnStepper == 0 ) {
-		// IRQ not yet initialzed
-		MoTo_timer.setup_capture_a_irq(NVIC_StepperPrio, ISR_Stepper);
-		// determin ICU-Index for Stepper-Interrupts
-		for (byte i = 1; i < 32; i++) {
-		if (icuRegP->IELSR_b[i].IELS == icuEventCmpA) IRQnStepper = (IRQn_Type)i;
-		}
-	}
+	if ( IRQnStepper == FSP_INVALID_VECTOR ) {
+    // IRQ not yet initialzed
+    IRQManager::getInstance().addTimerCompareCaptureA(timerIrqCfg, &ISR_Stepper);
+    IRQnStepper = MoToGPT.ext_cfg.capture_a_irq;   // NVIC IRQ-number overflow ISR
+    printf("IRQnStepper=%d",(uint8_t)IRQnStepper);
+    NVIC_SetPriority(IRQnStepper,NVIC_StepperPrio);
+    NVIC_EnableIRQ(IRQnStepper);
+
+  }
 }
 
 static uint8_t spiInitialized = false;
