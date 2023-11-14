@@ -49,7 +49,7 @@
 	#define intxx_t	int32_t
 	#define uintx8_t uint32_t
 	#define intx8_t	int32_t
-    #define nextCycle_t uint32_t
+    #define nextCycle_t int32_t
 #else
 	#define uintxx_t	uint16_t
 	#define  intxx_t	int16_t
