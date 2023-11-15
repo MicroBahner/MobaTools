@@ -1,13 +1,18 @@
 // RA4M1 HW-spcific Functions
 #ifdef ARDUINO_ARCH_RENESAS_UNO 
 #include <MobaTools.h>
-//#define debugTP
+#define debugTP
 //#define debugPrint
 #include <utilities/MoToDbg.h>
 #ifdef debugIRQ
 #warning debugIRQ aktiv
-uint8_t dbgIx;	// index of irq values
-irqValues_h dbgTimer[dbgIxMax];
+	uint8_t dbgIx;	// index of irq values
+	irqValues_h dbgTimer[dbgIxMax];
+#endif
+#ifdef debugSvIRQ
+	#warning debug Servo IRQ active
+	uint8_t dbSvIx;
+	irqSvVal_t irqSvVal[dbSvIxMax];
 #endif
 
 #warning "HW specfic - RA4M1 ---"
@@ -43,7 +48,9 @@ void ISR_Stepper() {
 		dbgTimer[dbgIx].cyclesLastIRQ = cyclesLastIRQ;
 	}
 #endif
-    // nextCycle ist set in stepperISR and softledISR
+ 
+
+ // nextCycle ist set in stepperISR and softledISR
     SET_TP1;
     nextCycle = ISR_IDLETIME  / CYCLETIME ;// min ist one cycle per IDLETIME
     if ( stepperISR ) stepperISR(cyclesLastIRQ);
@@ -77,6 +84,20 @@ void ISR_Stepper() {
 #endif
     CLR_TP1; // Oszimessung Dauer der ISR-Routine
 }
+ ////////////////////////////////////////////////////////////////////////////////////////////
+ #ifdef debugOvf
+void ISR_Ovf() {
+    // GPT Timer Overflow - only for testing purposes
+	static bool state = false;
+	// Acknoledge irq-flag
+	icuRegP->IELSR_b[timer_cfg.cycle_end_irq].IR = 0;
+	if ( state ) SET_TP4;		// trigger for oscilloscope testing
+	else CLR_TP4;
+	state = !state;
+	//digitalWrite(1, !digitalRead(1) );
+	
+}
+#endif
 ////////////////////////////////////////////////////////////////////////////////////////////
 void ISR_ServoRA4() {
 	// Acknowledge interrupt
@@ -136,7 +157,13 @@ void seizeTimerAS() {
     gptRegP->GTCR_b.CST = 1;
     gptRegP->GTSSR_b.CSTRT = 1;
     gptRegP->GTSTR = MoToGPT.ctrl.channel_mask;
+#ifdef debugOvf
+    IRQManager::getInstance().addTimerOverflow(timerIrqCfg, &ISR_Ovf);
+    //IRQnOvf = timer_cfg.cycle_end_irq;   // NVIC IRQ-number overflow ISR
+    NVIC_SetPriority(timer_cfg.cycle_end_irq,15);
+    NVIC_EnableIRQ(timer_cfg.cycle_end_irq);
 
+#endif
 	MODE_TP1;
 	MODE_TP2;
 	MODE_TP3;

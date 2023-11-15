@@ -4,7 +4,9 @@
 
 #include "FspTimer.h"
 #include <bsp_api.h>
-#define debugIRQ	// create variables for IRQ debugging
+//#define debugIRQ	// create variables for Stepper IRQ debugging
+#define debugSvIRQ	// create variables for Servo IRQ debugging
+#define debugOvf	// Create overflow IRQ for OSC-triggering
 #define debugPrint
 
 #ifdef debugIRQ
@@ -22,6 +24,17 @@ typedef struct {
 extern irqValues_h dbgTimer[];
 constexpr uint8_t dbgIxMax = 10;	
 #endif
+#ifdef debugSvIRQ
+	// debugging des Servo-IRQ
+	extern uint8_t dbSvIx;
+	constexpr uint8_t dbSvIxMax = 49;
+typedef struct {
+	uint32_t timestamp;
+	uint16_t cmpBVal;
+}irqSvVal_t;
+	extern irqSvVal_t irqSvVal[];
+#endif
+
 //#warning RA4M1 specific cpp includes
 constexpr byte NVIC_ServoPrio = 14;
 constexpr byte NVIC_StepperPrio = 15;
@@ -83,7 +96,14 @@ static inline __attribute__((__always_inline__)) void enableServoIsrAS() {
 
 static inline __attribute__((__always_inline__)) void setServoCmpAS(uint16_t cmpValue) {
 	// Set compare-Register for next servo IRQ
-	gptRegP->GTCCR[1] = cmpValue;
+#ifdef debugSvIRQ
+	if ( dbSvIx < dbSvIxMax ) {
+		irqSvVal[dbSvIx].timestamp = micros();
+		irqSvVal[dbSvIx].cmpBVal = cmpValue;
+		dbSvIx++;
+	}
+#endif
+	gptRegP->GTCCR[1] = cmpValue > TIMER_OVL_TICS ? TIMER_OVL_TICS : cmpValue;
 }	
 #endif // COMPILING_MOTOSERVO_CPP
 
