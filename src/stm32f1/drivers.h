@@ -8,6 +8,7 @@
 #define IS_32BIT
 #define IRAM_ATTR       // delete in .cpp files, because it has no meaning for STM32 processors
 #define DRAM_ATTR
+#define MOTOSOFTLED32		// use 32-bit version of SoftLed class
 
 #include <libmaple/timer.h>
 #include <libmaple/spi.h>

@@ -27,6 +27,7 @@ A documentation file in [german](MobaTools-250-de.pdf) and [english](MobaTools-2
 | ------- |  ------------  | -----------
 | 2.6.0 | 2023-xx-xx| several bugfixes and internal enhancements
 | | | UNO R4 and UNO Rev4 Wifi are supported ( Renesas R7FA4M1AB3CFM#AA0 Processor )
+| | | stepper.read can return the angle in fractions ( e.g. 1/10° )
 | | | 
 | 2.5.1 | 2023-10-27| Bugfix with setSpeedSteps(0)
 | | | Fix bug when setting stepper speed to 0 multiple times. The stepper stopped immediately when setting speed to 0 again while the stepper was ramping down 

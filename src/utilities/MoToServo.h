@@ -38,7 +38,7 @@ constexpr uint8_t INC_PER_MICROSECOND = 8;
 constexpr uint8_t  COMPAT_FACT = INC_PER_MICROSECOND /2; // old Increment value was same as Timer Tics ( 2 Tics/µs                           
 // defaults for macros that are not defined in architecture dependend includes
 #ifdef SPEED_RES
-constexpr uint8_t INC_PER_TIC = SPEED_RES; // set to '1' in drivers.h for ESP32 and ESP8266
+constexpr uint8_t INC_PER_TIC = SPEED_RES; // set to '1' in drivers.h for ESP32 and ESP8266 and UNO R4
 #else
 constexpr uint8_t INC_PER_TIC = INC_PER_MICROSECOND / TICS_PER_MICROSECOND;
 #endif
