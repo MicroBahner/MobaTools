@@ -620,14 +620,19 @@ void MoToStepper::writeSteps( long stepPos ) {
     _doSteps(stepPos  - getSFZ(), 1 );
 }
 
-long MoToStepper::read()
-{   // returns actual position as degree
+long MoToStepper::read() {
+	return MoToStepper::read(1);
+}
+
+long MoToStepper::read(byte factor) {
+    // returns actual position as degree
     if ( _stepperData.output == NO_OUTPUT ) return 0; // not attached
 
     long tmp = getSFZ();
     bool negative;
     negative = ( tmp < 0 );
-	tmp = (abs(tmp)/stepsRev*360) + (( (abs(tmp)%stepsRev) *3600L / stepsRev ) +5) / 10;
+	tmp = abs(tmp);
+	tmp = (tmp/stepsRev)*360L*factor + (( (tmp%stepsRev) * (3600L*factor) / stepsRev ) +5) / 10;
     if ( negative ) tmp = -tmp;
     return  tmp;
 }

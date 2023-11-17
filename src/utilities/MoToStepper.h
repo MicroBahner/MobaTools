@@ -195,7 +195,8 @@ class MoToStepper
     uint8_t moving();               // returns the remaining way to the position last set with write() in
                                     // in percentage. '0' means, that the target positio is reached
                                     // 255 means the motor is rotating endlessly
-    long read();                    // actual angle from zeropoint (setZero)
+    long read();                    // actual angle from zeropoint 
+    long read(byte factor);         // actual angle from zeropoint ( in fractions)
     long readSteps();               // actual distance to zeropoint in steps
     uint8_t attached();
     void prDynData();             // print actual Stepperdata

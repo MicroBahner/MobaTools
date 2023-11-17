@@ -80,7 +80,7 @@ void IRAM_ATTR stepperISR(nextCycle_t cyclesLastIRQ) {
     stepperDataP = stepperRootP;
     // ---------------Stepper motors ---------------------------------------------
     while ( stepperDataP != NULL ) {
-        CLR_TP1;    // spike for recognizing start of each stepper
+        //CLR_TP1;    // spike for recognizing start of each stepper
         #ifdef IS_32BIT
         bool resetPulse = false; // for 32Bit reset pulse und setting new pulse is never done in same IRQ
         if ( stepperDataP->output == A4988_PINS && digitalRead(stepperDataP->pins[0]) ) {
@@ -644,6 +644,6 @@ void MoToStepper::prDynData() {             // print actual Stepperdata
     DB_PRINT(" XrampL=%5u\t rampLen=%4u\t stepsInRamp=%4u\t, rampState=%s(%u)",printData.cyctXramplen,printData.stepRampLen,printData.stepsInRamp,rsC[(int)printData.rampState],(int)printData.rampState);
     DB_PRINT("deltaStp=%4d,\t speedFlg=%d cycnt=%4ld, nextCyc=%4d", printData.deltaSteps, printData.speedZero, printData.cycCnt, prNextCycle );
 
-    Serial.println("^^^^^^^^^^^^^^ISR-Data^^^^^^^^^^^^^^^^");
+    DB_PRINT("^^^^^^^^^^^^^^ISR-Data^^^^^^^^^^^^^^^^");
     #endif
 }
