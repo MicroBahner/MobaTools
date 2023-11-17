@@ -15,6 +15,7 @@ Released versions can be installed by means of the library manager in arduino ID
 #### supported processors
 - AVR - ATmega328P ATmega2560, ATmega4809
 - AVR ATtiny, if it has the 16-bit timer 1 and a SPI or USI hardware
+- Renesas RA4M1 ( UNO R4 )
 - STM32F103x processors ( the [core of Roger Clark](https://github.com/rogerclarkmelbourne/Arduino_STM32) must be used )
 - ESP32 ( minimum core version is 1.0.6 )
 - ESP8266 ( with some restrictions, Stepper via SPI does not work )
