@@ -20,7 +20,7 @@ Released versions can be installed by means of the library manager in arduino ID
 - ESP32 ( minimum core version is 1.0.6 )
 - ESP8266 ( with some restrictions, Stepper via SPI does not work )
 
-A documentation file in [german](MobaTools-250-de.pdf) and [english](MobaTools-250-en.pdf) is provided.
+A documentation file in [german](MobaTools-260-de.pdf) and [english](MobaTools-260-en.pdf) is provided.
 
 **Latest changes:**
 
@@ -32,7 +32,7 @@ A documentation file in [german](MobaTools-250-de.pdf) and [english](MobaTools-2
 | | | 
 | 2.5.1 | 2023-10-27| Bugfix with setSpeedSteps(0)
 | | | Fix bug when setting stepper speed to 0 multiple times. The stepper stopped immediately when setting speed to 0 again while the stepper was ramping down 
-| | | Fix some minor with stepper enable - especially whe setting low delay times
+| | | Fix some minor bugs with stepper enable - especially whe setting low delay times
 | 2.5.0 | 2023-09-12| several bugfixes
 | | | ESP32 2.x package is supported ( ESP32S2, ESP32S3, ESP32C3 are not! )
 | | | ATmega4809 is supported ( Nano Every, UNO WiFi Rev2 (

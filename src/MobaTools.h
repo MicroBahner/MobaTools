@@ -24,8 +24,8 @@
   History:
   V2.6.0 12-2023
     - Support UNO R4
-	- MoToStepper.read allows allows reading the angle in fractions
-	
+	- MoToStepper.read allows reading the angle in fractions
+	- internal optimizations
   V2.5.1 10-2023
     - Fix bug when setting stepper speed to 0 multiple times. The stepper stopped immediately when setting
       speed to 0 again while the stepper was ramping down from the first setting to 0.
