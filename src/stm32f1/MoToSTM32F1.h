@@ -42,6 +42,11 @@ static inline __attribute__((__always_inline__)) void enableServoIsrAS() {
     timer_cc_enable(MT_TIMER, SERVO_CHN);
 }
 
+static inline __attribute__((__always_inline__)) void setServoCmpAS(uint16_t cmpValue) {
+	// Set compare-Register for next servo IRQ
+	timer_set_compare(MT_TIMER,  SERVO_CHN, cmpValue);
+}	
+
 #endif // COMPILING_MOTOSERVO_CPP
 
 /////////////////////////////////////////////////////////////////////////////////////////////////

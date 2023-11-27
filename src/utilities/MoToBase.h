@@ -76,9 +76,6 @@ extern nextCycle_t nextCycle;   // to be used in ISR for stepper and softled
 #define NOSTEP      0   // invalid-flag
 */
 
-// for formatted printing to Serial( just like fprintf )
-// you need to define txtbuf with proper length to use this
-#define SerialPrintf( ... ) sprintf( txtbuf,  __VA_ARGS__ ); Serial.print( txtbuf );
 
 // internal defines
 

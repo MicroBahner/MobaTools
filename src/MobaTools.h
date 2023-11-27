@@ -176,7 +176,7 @@
 		#define MoToSS 8		// standard for other boards
 	#endif
 #elif defined ARDUINO_ARCH_RENESAS_UNO ////////////////////////////////////////////////////////
-	#define MIN_STEP_CYCLE  100       // Minimum number of µsec  per Step
+	#define MIN_STEP_CYCLE  80       // Minimum number of µsec  per Step
 #else ///////////////////////////////////////////////////////////////////////////////////
     #error Processor not supported
 #endif //////////////////////////////////////////////////////////////////////////////////
@@ -191,7 +191,7 @@
 #if defined ARDUINO_ARCH_ESP32 || defined ARDUINO_ARCH_ESP8266 
 #define MINPULSEWIDTH   550U     // there is no general limit on ESP
 #define MAXPULSEWIDTH   2600U    // there is no general limit on ESP
-#else // AVR and STM32
+#else // all other ( no ESP )
 #define MINPULSEWIDTH   700U      // don't make it shorter than 700
 #define MAXPULSEWIDTH   2300U     // don't make it longer than 2300
 #endif

@@ -244,11 +244,7 @@ void ISR_Servo( void) {
         }
         //CLR_TP2; CLR_TP3; // Oszimessung Dauer der ISR-Routine ON
     } //end of 'pulse ON'
-    #ifdef __STM32Fx__
-    timer_set_compare(MT_TIMER,  SERVO_CHN, OCRxA);
-	#elif defined __UNOR4__
-	setServoCmpAS(OCRxA);
-    #endif 
+	setServoCmpAS(OCRxA);	// set Servo-compare register
     //CLR_TP1; CLR_TP3; // Oszimessung Dauer der ISR-Routine
     CLR_TP2;
 }

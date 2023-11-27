@@ -38,6 +38,7 @@ static inline __attribute__((__always_inline__)) void enableServoIsrAS() {
     TIMSKx |=  _BV(OCIExA) ; 
 }
 
+#define setServoCmpAS(x)		// ignore this call
 
 #endif // COMPILING_MOTOSERVO_CPP
 
