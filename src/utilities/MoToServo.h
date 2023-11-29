@@ -34,7 +34,11 @@ constexpr uint8_t TICS_PER_4MICROSECOND = 4*TICS_PER_MICROSECOND;
 // 'Speed-tic' is 0,125 µs per 20ms cycle. This gives better resolution in defining the speed.
 // Only when computing the next interrupt time the values are divided by this value again to get
 // the real 'timer tics'
+#ifdef __UNOR4__
+constexpr uint8_t INC_PER_MICROSECOND = 12; // timer uses 3 tic per microsecond
+#else
 constexpr uint8_t INC_PER_MICROSECOND = 8;
+#endif
 constexpr uint8_t  COMPAT_FACT = INC_PER_MICROSECOND /2; // old Increment value was same as Timer Tics ( 2 Tics/µs                           
 // defaults for macros that are not defined in architecture dependend includes
 #ifdef SPEED_RES

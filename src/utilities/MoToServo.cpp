@@ -7,8 +7,8 @@
 */
 #define COMPILING_MOTOSERVO_CPP  // this allows servo-specific defines in includefiles
 
-#define debugTP
-#define debugPrint
+//#define debugTP
+//#define debugPrint
 #include <utilities/MoToDbg.h>
 #include <MobaTools.h>
 
@@ -444,11 +444,12 @@ void MoToServo::write(uint16_t angleArg)
 void MoToServo::setSpeedTime(uint16_t minMaxTime ) {
 	// Set speed as time (in milliseconds) needed when moving from 0° ... 180°
 	//uint16_t maxTics = time2tic ( _maxPw - _minPw );
-	uint16_t maxTics = 8* ( _maxPw - _minPw );	//	tics are counted in 0.125 µs
+	uint16_t maxTics = 8 * ( _maxPw - _minPw );	//	
 	uint16_t speedCycles = minMaxTime / 20;	// Nbr of pulses needed from 0° to 180°
 	if ( speedCycles == 0 ) speedCycles = 1;	// Avoid divide by zero
 	uint16_t speedTics = maxTics / speedCycles;
 	setSpeed( speedTics, HIGHRES );	// no compatibility mode, when new speed method is used
+	DB_PRINT(" IPM=%d, TPM=%d", INC_PER_MICROSECOND, TICS_PER_MICROSECOND );
 }
 	
 	

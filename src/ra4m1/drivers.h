@@ -19,9 +19,11 @@
 #define GET_COUNT (uint32_t)gptRegP->GTCNT
 
 // for Servos:
-#define SPEED_RES 2			// Speed resolution is 2 tic per cycle
+/*#define SPEED_RES 2			// Speed resolution is 2 tic per cycle
 #define time2tic(pulse)  ( (pulse) *  (TICS_PER_MICROSECOND * SPEED_RES) )
 #define tic2time(tics)  ( (tics) / (TICS_PER_MICROSECOND * SPEED_RES) )
+*/
+#define AS_Speed2Inc(speed)  (speed*12/8)  // Speedtic = 1/12 µs ( Timertic* Inc == 0.128 µs
 
 extern bool timerInitialized;
 void seizeTimer1();
