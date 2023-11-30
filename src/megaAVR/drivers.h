@@ -23,7 +23,6 @@
 // CMP1: for stepper and softleds
 // CMP2: possible own ISR for softleds? ( not yet implemented )
 
-//#warning "Nano Every not yet completely supported"
 #define OCRxA   TCA0.SINGLE.CMP0
 #define OCRxB   TCA0.SINGLE.CMP1
 #define GET_COUNT   TCA0.SINGLE.CNT

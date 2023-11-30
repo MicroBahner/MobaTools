@@ -56,9 +56,8 @@ extern portMUX_TYPE stepperMux;
 #define STEPPER_TIMER     3  // Timer 1, Group 1
 extern hw_timer_t * stepTimer;
 void seizeTimer1();
-//void initSPI();             // initSPI is defined in MoToStepperAVR.inc ( it is only used with MoToStepper
 
-// ----------------   defines for servo and softled ( ledc pwm hardware on ESP32 is used ) -----------------------
+// --------------   defines for servo and softled ( ledc pwm hardware on ESP32 is used ) -----------------------
 //if  the following line is commented out, direct register access is used ( interrupts are not disabled during flash access )
 //#define LEDC_USE_SDK          // use SDK calls für Servo & Led Pulses ( interrupts are disbled during flash access )
                                 // !!!!!!! Die SDK-Aufrufe sind NICHT Interruptfest - die SDK-Version darf daher nicht // // !!!!!!! aktiviert werden, da die Interrupts NICHT abgeschaltet werden 
@@ -109,6 +108,9 @@ void setPwmPin( uint8_t pwmNbr ) ;
 int8_t freePwmNbr( uint8_t pwmNbr );
 
 // On ESP32 timer tics and inc are the same. 
+#define INC_PER_TIC  1
+#define COMPAT_FACT  1 // no compatibility mode for ESP32                
+
 #define SERVO_FREQ  50          // 20ms period
 #define SOFTLED_FREQ    100
 #define LEDC_BITS  18          // bitresolution for duty cycle of servos and softleds
@@ -120,7 +122,6 @@ int8_t freePwmNbr( uint8_t pwmNbr );
 #define time2tic(pulse) ( ( (pulse) *  DUTY100) / SERVO_CYCLE )  
 // compute duty to pulsewidth ( in uS )
 #define tic2time(duty)  ( ( (duty) * SERVO_CYCLE) / DUTY100 +1 )
-#define SPEED_RES 1     // no need  for higer resolutin of servospeed
 #define AS_Speed2Inc(speed)  (speed*1280/763)  // tic == Inc == 0.07629 µs
 
 // compute pulsewidth ( in usec ) to duty ) for Softleds

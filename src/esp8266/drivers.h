@@ -13,10 +13,12 @@ void setGpio( unsigned int gpio ) ;
 void clrGpio( unsigned int gpio ) ;
 
 // on ESP8266 tics are 1µs
-/*#define time2tic(pulse) (pulse) * SPEED_RES
-#define tic2time(duty)  (duty) / SPEED_RES
-*/
-
+constexpr uint8_t INC_PER_MICROSECOND = 8;
+constexpr uint8_t INC_PER_TIC = INC_PER_MICROSECOND / TICS_PER_MICROSECOND;
+#define time2tic(pulse)  ( (pulse) *  INC_PER_MICROSECOND )
+#define tic2time(tics)  ( (tics) / INC_PER_MICROSECOND )
+#define AS_Speed2Inc(speed) (speed)
+constexpr uint8_t  COMPAT_FACT = 1; // no compatibility mode for this board
 #define slPwm2tic(pulse) (pulse)
 #define tic2slPwm(duty)  (duty)
 

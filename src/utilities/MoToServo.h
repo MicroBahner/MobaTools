@@ -14,7 +14,7 @@
 */
 
 // defines for servos
-constexpr uint8_t TICS_PER_4MICROSECOND = 4*TICS_PER_MICROSECOND;
+//constexpr uint8_t TICS_PER_4MICROSECOND = 4*TICS_PER_MICROSECOND;
 #define Servo2	MoToServo		// Kompatibilität zu Version 01 und 02
 #define AUTOOFF 1               // 2nd Parameter for servo.attach to switch off pulses in standstill
 #define OVLMARGIN           280     // Overlap margin ( Overlap is MINPULSEWIDTH - OVLMARGIN )
@@ -30,30 +30,23 @@ constexpr uint8_t TICS_PER_4MICROSECOND = 4*TICS_PER_MICROSECOND;
 #define FIRST_PULSE     100 // first pulse starts 200 tics after timer overflow, so we do not compete
                             // with overflow IRQ
 
-// All position values in tics are multiplied by this factor. This means, that one 
-// 'Speed-tic' is 0,125 µs per 20ms cycle. This gives better resolution in defining the speed.
-// Only when computing the next interrupt time the values are divided by this value again to get
-// the real 'timer tics'
-#ifdef __UNOR4__
-constexpr uint8_t INC_PER_MICROSECOND = 12; // timer uses 3 tic per microsecond
-#else
-constexpr uint8_t INC_PER_MICROSECOND = 8;
-#endif
-constexpr uint8_t  COMPAT_FACT = INC_PER_MICROSECOND /2; // old Increment value was same as Timer Tics ( 2 Tics/µs                           
-// defaults for macros that are not defined in architecture dependend includes
-#ifdef SPEED_RES
-constexpr uint8_t INC_PER_TIC = SPEED_RES; // set to '1' in drivers.h for ESP32 and ESP8266 and UNO R4
-#else
-constexpr uint8_t INC_PER_TIC = INC_PER_MICROSECOND / TICS_PER_MICROSECOND;
-#endif
-#ifndef time2tic
-    #define time2tic(pulse)  ( (pulse) *  INC_PER_MICROSECOND )
-    #define tic2time(tics)  ( (tics) / INC_PER_MICROSECOND )
-#endif
-#ifndef AS_Speed2Inc
-#define AS_Speed2Inc(speed) (speed)
-#endif
+/* Regarding servo Speed:
+One 'Speed tic' in setSpeed should be about 0.125 µs. That's not the real timer tic. So in reality the 
+pulse length may not change with every cycle (20ms). But this way speedresolution is independent from real timer tics and boards.
+Pulse length are always stored in inc. Only when creating the real pulse ( in IRQ ) this value is devided by INC_PER_TIC to get the real 'timer tics' ( this is different for ESP )
+ All position values in tics are multiplied by this factor.  Only when computing the next interrupt time 
+ the values are divided by this value again to get the real 'timer tics'
+ The following values are defined in the board-specific .h files:
+ 
+ INC_PER_MICROSECOND  on most boards this is 8 (according to 0.125µs) but it must be selected so that
+ INC_PER_TIC		  ( increments per timer tic ) is an integer value.
+ AS_Speed2Inc(speed)  mostly returns simply speed, but if INC_PER_MICROSECOND is not 8, it is different.
+ time2tic(pulse)	  returns increments (pulsewidth in µs)
+ tic2time(tics)		  returns pulswidth in  µs
+ 
+ These defines are different for ESP8266 and ESP32, because these boards don't use the standard timer IRQ of all other boards ( see board specific .h files ).
 
+*/
 ////////////////////////////////////////////////////////////////////////////////////
 //void ISR_Servo( void *arg );
 

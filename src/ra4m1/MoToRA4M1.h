@@ -5,9 +5,9 @@
 #include "FspTimer.h"
 #include <bsp_api.h>
 //#define debugIRQ	// create variables for Stepper IRQ debugging
-#define debugSvIRQ	// create variables for Servo IRQ debugging
-#define debugOvf	// Create overflow IRQ for OSC-triggering
-#define debugPrint
+//#define debugSvIRQ	// create variables for Servo IRQ debugging
+//#define debugOvf	// Create overflow IRQ for OSC-triggering
+//#define debugPrint
 
 #ifdef debugIRQ
 // Variables for IRQ debugging zhat can be used in the sketch
@@ -83,6 +83,15 @@ static inline __attribute__((__always_inline__)) void  _stepIRQ(bool force = fal
 
 /////////////////////////////////////////////////////////////////////////////////////////////////
 #if defined COMPILING_MOTOSERVO_CPP
+// Values for Servo: -------------------------------------------------------
+constexpr uint8_t INC_PER_MICROSECOND = 12;		// one speed increment is 0.125 µs
+constexpr uint8_t  COMPAT_FACT = 1; // no compatibility mode for this board                      
+constexpr uint8_t INC_PER_TIC = INC_PER_MICROSECOND / TICS_PER_MICROSECOND;
+#define time2tic(pulse)  ( (pulse) *  INC_PER_MICROSECOND )
+#define tic2time(tics)  ( (tics) / INC_PER_MICROSECOND )
+#define AS_Speed2Inc(speed)  (speed*INC_PER_MICROSECOND/8)  // Speedtic = 1/12 µs ( Timertic* Inc == 0.125 µs
+//-----------------------------------------------------------------
+
 void ISR_ServoRA4();
 static inline __attribute__((__always_inline__)) void enableServoIsrAS() {
   if ( IRQnServo == FSP_INVALID_VECTOR ) {
@@ -213,12 +222,12 @@ static inline __attribute__((__always_inline__)) void initSpiAS() {
 	R_SPI_R4->SPCR2 = 0;         // default, no parity
 	// Modes of operation
 	R_SPI_R4->SPCMD_b[0].SPB = 0xF;  // Data length = 16  bit
-	R_SPI_R4->SPCMD_b[0].CPHA = 0;   // sampling auf steigender Flanke
-	R_SPI_R4->SPCMD_b[0].BRDV = 1;   // Vorteiler /2
-	R_SPI_R4->SPCMD_b[0].SSLA = 0;   // SSL0 aktiv
+	R_SPI_R4->SPCMD_b[0].CPHA = 0;   // sampling on rising edge
+	R_SPI_R4->SPCMD_b[0].BRDV = 1;   // prescaler /2
+	R_SPI_R4->SPCMD_b[0].SSLA = 0;   // SSL0 activ
 
 
-	R_SPI_R4->SPCR_b.SPE = 1;  // SPI ensable
+	R_SPI_R4->SPCR_b.SPE = 1;  // SPI enable
 
     spiInitialized = true;  
 }

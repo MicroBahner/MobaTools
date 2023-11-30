@@ -34,6 +34,15 @@ static inline __attribute__((__always_inline__)) void  _stepIRQ(bool force = fal
 
 /////////////////////////////////////////////////////////////////////////////////////////////////
 #if defined COMPILING_MOTOSERVO_CPP
+// Values for Servo: -------------------------------------------------------
+constexpr uint8_t INC_PER_MICROSECOND = 8;		// one speed increment is 0.125 µs
+constexpr uint8_t  COMPAT_FACT = 1; 			// no compatibility mode for stm32F1                       
+constexpr uint8_t INC_PER_TIC = INC_PER_MICROSECOND / TICS_PER_MICROSECOND;
+#define time2tic(pulse)  ( (pulse) *  INC_PER_MICROSECOND )
+#define tic2time(tics)  ( (tics) / INC_PER_MICROSECOND )
+#define AS_Speed2Inc(speed) (speed)
+//-----------------------------------------------------------------
+
 void ISR_Servo( void );
 
 
