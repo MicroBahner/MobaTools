@@ -144,7 +144,7 @@
 	#define MIN_STEP_CYCLE  25   // Minimum number of µsec  per step 
 
 	#elif defined ARDUINO_ARCH_STM32F4 /////////////////////////////////////////////////////
-	#define MIN_STEP_CYCLE  20   // Minimum number of µsec  per step 
+	#define MIN_STEP_CYCLE  25   // Minimum number of µsec  per step 
 
 #elif defined ARDUINO_ARCH_ESP32 ///////////////////////////////////////////////////////
 	#if CONFIG_IDF_TARGET_ESP32S2 || CONFIG_IDF_TARGET_ESP32S3 || CONFIG_IDF_TARGET_ESP32C3

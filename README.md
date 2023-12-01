@@ -26,7 +26,7 @@ A documentation file in [german](MobaTools-260-de.pdf) and [english](MobaTools-2
 
 | Version |  Release Date  | Description
 | ------- |  ------------  | -----------
-| 2.6.0 | 2023-xx-xx| several bugfixes and internal enhancements
+| 2.6.0 | 2023-12-02| several bugfixes and internal enhancements
 | | | UNO R4 and UNO Rev4 Wifi are supported ( Renesas R7FA4M1AB3CFM#AA0 Processor )
 | | | stepper.read can return the angle in fractions ( e.g. 1/10° )
 | | | 
