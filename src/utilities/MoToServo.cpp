@@ -443,8 +443,7 @@ void MoToServo::write(uint16_t angleArg)
 #pragma GCC diagnostic ignored "-Wunused-parameter"
 void MoToServo::setSpeedTime(uint16_t minMaxTime ) {
 	// Set speed as time (in milliseconds) needed when moving from 0° ... 180°
-	//uint16_t maxTics = time2tic ( _maxPw - _minPw );
-	uint16_t maxTics = 8 * ( _maxPw - _minPw );	//	
+	uint16_t maxTics = 8* ( _maxPw - _minPw );	//	tics are counted in 0.125 µs	
 	uint16_t speedCycles = minMaxTime / 20;	// Nbr of pulses needed from 0° to 180°
 	if ( speedCycles == 0 ) speedCycles = 1;	// Avoid divide by zero
 	uint16_t speedTics = maxTics / speedCycles;

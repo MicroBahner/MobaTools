@@ -23,7 +23,7 @@
    
   History:
   V2.6.0 12-2023
-    - Support UNO R4
+    - Support UNO R4 (Minima and WiFi)
 	- MoToStepper.read allows reading the angle in fractions
 	- internal optimizations
   V2.5.1 10-2023

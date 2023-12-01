@@ -14,7 +14,6 @@
 */
 
 // defines for servos
-//constexpr uint8_t TICS_PER_4MICROSECOND = 4*TICS_PER_MICROSECOND;
 #define Servo2	MoToServo		// Kompatibilität zu Version 01 und 02
 #define AUTOOFF 1               // 2nd Parameter for servo.attach to switch off pulses in standstill
 #define OVLMARGIN           280     // Overlap margin ( Overlap is MINPULSEWIDTH - OVLMARGIN )
