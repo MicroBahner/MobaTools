@@ -15,7 +15,7 @@
 	irqSvVal_t irqSvVal[dbSvIxMax];
 #endif
 
-#warning "HW specfic - RA4M1 ---"
+//#warning "HW specfic - RA4M1 ---"
 // RA4M1 specific variables
 // Create timer related structures
 timer_cfg_t timer_cfg;		// base structure for timers

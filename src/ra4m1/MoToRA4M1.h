@@ -36,8 +36,8 @@ typedef struct {
 #endif
 
 //#warning RA4M1 specific cpp includes
-constexpr byte NVIC_ServoPrio = 14;
-constexpr byte NVIC_StepperPrio = 15;
+constexpr byte NVIC_ServoPrio = IRQ_PRIO-1;
+constexpr byte NVIC_StepperPrio = IRQ_PRIO;
 
 extern R_GPT0_Type *gptRegP;                     // Pointer to active timer registers
 extern R_ICU_Type *icuRegP;      // Pointer to Interrupt registers

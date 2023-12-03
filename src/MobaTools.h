@@ -177,6 +177,10 @@
 	#endif
 #elif defined ARDUINO_ARCH_RENESAS_UNO ////////////////////////////////////////////////////////
 	#define MIN_STEP_CYCLE  80       // Minimum number of µsec  per Step
+	#define IRQ_PRIO 11				// NVIC priority. Servo irq is always one prio higher.
+									// Lower priority ( higher value) will lead to problems on R4 WiFi 
+									// with WiFi active
+
 #else ///////////////////////////////////////////////////////////////////////////////////
     #error Processor not supported
 #endif //////////////////////////////////////////////////////////////////////////////////

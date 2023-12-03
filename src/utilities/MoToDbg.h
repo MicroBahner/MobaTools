@@ -159,7 +159,7 @@
         #define CLR_TP4  digitalWrite( TP4, LOW ) 
     
 	#elif defined ARDUINO_ARCH_RENESAS_UNO 
-	    #warning "Debug ra4M1 aktiv" 
+	    //#warning "Debug ra4M1 aktiv" 
         #define TP1 BSP_IO_PORT_00_PIN_14 // (14) A0
         #define TP2 BSP_IO_PORT_00_PIN_00 //* (15) A1
         #define TP3 BSP_IO_PORT_00_PIN_01 /* (16) A2  */
