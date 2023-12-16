@@ -17,9 +17,9 @@
 
 #include "arduino_secrets.h"
 /*/////please enter your sensitive data in the tab/arduino_secrets.h
-* e.g.:
-#define SECRET_SSID "your-ssid"
-#define SECRET_PASS "your-passwd"
+  e.g.:
+  #define SECRET_SSID "your-ssid"
+  #define SECRET_PASS "your-passwd"
 */
 char ssid[] = SECRET_SSID;          // your network SSID (name)
 char pass[] = SECRET_PASS;          // your network WPA  password
@@ -44,7 +44,7 @@ void setup() {
   // initialize stepper
   myStepper.attach( stepPin, dirPin );              // assign step/dir pins
   myStepper.attachEnable( enaPin, 10, LOW );        // attach enable in ( LOW=active )
-  DEBUG_P("setSpeed(%d)",htSpeed );
+  DEBUG_P("setSpeed(%d)", htSpeed );
   myStepper.setSpeedSteps( htSpeed );               // initial value of speed
   myStepper.setRampLen( htRamp );                   // initial ramp length
 
@@ -99,7 +99,7 @@ void loop() {
             bufIx = 0;
           }
         } else if (c != '\r') {     // if you got anything else but a carriage return character,
-                                    // write it into the buffer, but check buffer length!
+          // write it into the buffer, but check buffer length!
           if ( bufIx < (lineBufLen - 1) ) {      // leave space for a terminating \0
             lineBuf[bufIx++] = c;
           }
@@ -126,41 +126,41 @@ void handleStepper( char* GETcom ) {
   char* strGET = strstr( GETcom, "GET" );
   if ( strGET != NULL ) {
     // It's a GET line - evaluate
-    DEBUG_P(GETcom);
+    uint32_t tmpSpeed = 8000, tmpRamp = 100;
+    Serial.println(GETcom);
     strGET = strstr( strGET, "stepper?" );
     if ( strGET != NULL ) {
       strGET += strlen("stepper?");
       strGET = strtok( strGET, " &" );
-      Serial.println("vvvvvvvvvvvvvvvvvvvvvvv");
+      DEBUG_P("vvvvvvvvvvvvvvvvvvvvvvv");
       while ( strGET != NULL ) {
-        DEBUG_P( strGET );
+        // DEBUG_P( strGET );
         // check for keywords - separate keyword from value
         valP = strchr(strGET, (int)'=');
         if ( valP ) valP++;
         for ( keyIx = 0; keyIx < keyIxMax; keyIx++ ) {
           keyP = strstr( strGET, keyWords[keyIx] );
           if ( keyP != NULL ) {
-            uint32_t tmpSpeed=8000, tmpRamp=100;
-            Serial.print(keyP); Serial.print(" Ix="); Serial.println(keyIx);
+            DEBUG_P("Keyword: % s, Ix: % d", keyP, keyIx);
             // found keyword
             switch (keyIx) {
               case SPEED:
                 tmpSpeed = 10 * atoi(valP);
-                DEBUG_P("Speedval=%d", htSpeed);
+                DEBUG_P("Speedval = %d", tmpSpeed);
                 break;
               case RAMP:
                 tmpRamp = atoi(valP);
-                DEBUG_P("Rampval=%d", htRamp);
+                DEBUG_P("Rampval = % d", tmpRamp);
                 break;
               case SETSPEED:
-                htSpeed=tmpSpeed;
+                htSpeed = tmpSpeed;
                 htRamp = myStepper.setSpeedSteps(htSpeed, htRamp);
-                DEBUG_P("actSpeed=%d, actRamp=%d", htSpeed, htRamp);
+                DEBUG_P("set Speed = % d, actRamp = % d", htSpeed, htRamp);
                 break;
               case SETSPEED_RAMP:
-                htSpeed=tmpSpeed;
+                htSpeed = tmpSpeed;
                 htRamp = myStepper.setSpeedSteps(htSpeed);
-                DEBUG_P("actSpeed=%d, actRamp=%d", htSpeed, htRamp);
+                DEBUG_P("setSpeed + ramp = % d, actRamp = % d", htSpeed, htRamp);
                 break;
               case SETRAMP:
                 htRamp = tmpRamp;
@@ -168,23 +168,23 @@ void handleStepper( char* GETcom ) {
                 break;
               case LINKS:
                 myStepper.doSteps(-STEPS_REVOLUTION); // Stepper dreht eine Umdrehung links
-                DEBUG_P("Stepper dreht eine Umdrehung links.");
+                DEBUG_P("One rev. CCW");
                 break;
               case RECHTS:
                 myStepper.doSteps(STEPS_REVOLUTION); // Stepper dreht eine Umdrehung rechts
-                DEBUG_P("Stepper dreht eine Umdrehung rechts.");
+                DEBUG_P("one rev. CW");
                 break;
               case CONTL:
                 myStepper.rotate( -1 ); // Stepper dreht links
-                DEBUG_P("Stepper dreht links.");
+                DEBUG_P("roteste CCW");
                 break;
               case CONTR:
                 myStepper.rotate( 1 ); // Stepper dreht rechts
-                DEBUG_P("Stepper dreht rechts.");
+                DEBUG_P("rotate CW");
                 break;
               case STOP:
                 myStepper.rotate( 0 ); // Stepper stoppt
-                DEBUG_P("Stepper stoppt.");
+                DEBUG_P("Stop the stepper");
                 break;
             }
             break; //leave for loop, there can be only one keyword.
@@ -192,7 +192,7 @@ void handleStepper( char* GETcom ) {
         }
         strGET = strtok( NULL, " &" );
       }
-      Serial.println("^^^^^^^^^^^^^^^^^^^^^^^^^");
+      DEBUG_P("^^^^^^^^^^^^^^^^^^^^^^^^^");
     }
   }
 
@@ -211,7 +211,7 @@ void printWifiStatus() {
 
   // print the received signal strength:
   long rssi = WiFi.RSSI();
-  Serial.print("signal strength (RSSI):");
+  Serial.print("signal strength (RSSI): ");
   Serial.print(rssi);
   Serial.println(" dBm");
   // print where to go in a browser:
