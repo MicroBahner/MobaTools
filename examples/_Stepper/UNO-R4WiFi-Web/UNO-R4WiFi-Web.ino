@@ -5,18 +5,19 @@
   This sketch will print the IP address of your WiFi module (once connected)
   to the Serial Monitor. From there, you can open that address in a web browser
   to control a stepper.
-
+  
+  An extension of the AP_SimpleWebServer example for UNO R4 WIFI
 */
 
-
+// One of the following 2 defines must be active:
 //#define DEBUG_P( x, ... ) {char dbgBuf[80]; snprintf_P( dbgBuf, 80, PSTR( x ), ##__VA_ARGS__ ) ; Serial.println( dbgBuf ); }
-#define DEBUG_P(...)
+#define DEBUG_P(...)  // no debug printing
 
 #include "WiFiS3.h"
 #include <MobaTools.h>  // min version 2.6.1: https://github.com/MicroBahner/MobaTools
 
 #include "arduino_secrets.h"
-/*/////please enter your sensitive data in the tab/arduino_secrets.h
+/*/////please enter your sensitive data in the newly created tab 'arduino_secrets.h'
   e.g.:
   #define SECRET_SSID "your-ssid"
   #define SECRET_PASS "your-passwd"
@@ -32,8 +33,8 @@ const byte enaPin       = 7;
 const int STEPS_REVOLUTION = 800;                         // 1/4 Microstep -> 800 steps/rev
 MoToStepper myStepper( STEPS_REVOLUTION, STEPDIR );       // create stepper instance
 
-long htSpeed = 8000;    // steps/10 sec
-long htRamp = 100;
+uint32_t htSpeed = 8000;    // steps/10 sec
+uint32_t htRamp = 100;      // ramp length in steps
 
 int status = WL_IDLE_STATUS;
 WiFiServer server(80);
@@ -44,7 +45,6 @@ void setup() {
   // initialize stepper
   myStepper.attach( stepPin, dirPin );              // assign step/dir pins
   myStepper.attachEnable( enaPin, 10, LOW );        // attach enable in ( LOW=active )
-  DEBUG_P("setSpeed(%d)", htSpeed );
   myStepper.setSpeedSteps( htSpeed );               // initial value of speed
   myStepper.setRampLen( htRamp );                   // initial ramp length
 
@@ -94,20 +94,22 @@ void loop() {
             client.print( htmlTemp);
             DEBUG_P("---------------Send HTTP-Page --------------------");
             break;
-          } else {    // we got a complete line test if we got a GET line
+          } else {
+            // We got a complete line. Test if we got a GET line and process it if so
             handleStepper(  lineBuf );
             bufIx = 0;
           }
-        } else if (c != '\r') {     // if you got anything else but a carriage return character,
-          // write it into the buffer, but check buffer length!
+
+        } else if (c != '\r') {
+          // If you got anything else but a carriage return character,
+          // write it into the buffer, but pay attention to the buffer length!
           if ( bufIx < (lineBufLen - 1) ) {      // leave space for a terminating \0
             lineBuf[bufIx++] = c;
           }
         }
 
       }
-
-    }
+    } // End 'while connected'
     // close the connection:
     client.stop();
     DEBUG_P("client disconnected");
@@ -125,8 +127,8 @@ void handleStepper( char* GETcom ) {
   //check for GET command from client
   char* strGET = strstr( GETcom, "GET" );
   if ( strGET != NULL ) {
-    // It's a GET line - evaluate
-    uint32_t tmpSpeed = 8000, tmpRamp = 100;
+    // It's a GET line - process it
+    uint32_t tmpSpeed = 8000, tmpRamp = 100;    // Default values for ramp and speed field - will usually been overwritten.
     Serial.println(GETcom);
     strGET = strstr( strGET, "stepper?" );
     if ( strGET != NULL ) {
@@ -167,27 +169,27 @@ void handleStepper( char* GETcom ) {
                 htRamp = myStepper.setRampLen(htRamp);
                 break;
               case LINKS:
-                myStepper.doSteps(-STEPS_REVOLUTION); // Stepper dreht eine Umdrehung links
+                myStepper.doSteps(-STEPS_REVOLUTION); 
                 DEBUG_P("One rev. CCW");
                 break;
               case RECHTS:
-                myStepper.doSteps(STEPS_REVOLUTION); // Stepper dreht eine Umdrehung rechts
+                myStepper.doSteps(STEPS_REVOLUTION); 
                 DEBUG_P("one rev. CW");
                 break;
               case CONTL:
-                myStepper.rotate( -1 ); // Stepper dreht links
-                DEBUG_P("roteste CCW");
+                myStepper.rotate( -1 ); 
+                DEBUG_P("rotate CCW");
                 break;
               case CONTR:
-                myStepper.rotate( 1 ); // Stepper dreht rechts
+                myStepper.rotate( 1 );
                 DEBUG_P("rotate CW");
                 break;
               case STOP:
-                myStepper.rotate( 0 ); // Stepper stoppt
+                myStepper.rotate( 0 );
                 DEBUG_P("Stop the stepper");
                 break;
             }
-            break; //leave for loop, there can be only one keyword.
+            break; // Exit for loop, we found the keyword.
           }
         }
         strGET = strtok( NULL, " &" );
