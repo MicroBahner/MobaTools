@@ -137,7 +137,7 @@
 	#define MIN_STEP_CYCLE  25   // Minimum number of µsec  per step 
 
 #elif defined ARDUINO_ARCH_ESP32 ///////////////////////////////////////////////////////
-	#if CONFIG_IDF_TARGET_ESP32S2 || CONFIG_IDF_TARGET_ESP32S3 || CONFIG_IDF_TARGET_ESP32C3
+	#if CONFIG_IDF_TARGET_ESP32S2 /*|| CONFIG_IDF_TARGET_ESP32S3*/ || CONFIG_IDF_TARGET_ESP32C3
 		#error This ESP32 version is not supported
 	#else
 		#define USE_VSPI                // default is HSPI ( for SPI-Stepper )
@@ -198,6 +198,7 @@
 
 #include <utilities/MoToBase.h>
 #include <utilities/MoToStepper.h>
+#include <utilities/MoToSyncStepper.h>
 #include <utilities/MoToServo.h>
 #include <utilities/MoToSoftled.h>
 #include <utilities/MoToPwm.h>

@@ -7,7 +7,7 @@
 */
 #define COMPILING_MOTOSTEPPER_CPP
 
-#define debugTP
+//#define debugTP
 //#define debugPrint
 #include <utilities/MoToDbg.h>
 #include <MobaTools.h>

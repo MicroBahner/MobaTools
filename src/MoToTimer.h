@@ -3,7 +3,8 @@
 //
 // Class MoToTimer - Timer management for time delays in the loop
 /*
-    MoToTimer myTimer()                 // Create Timerobject
+    MoToTimer myTimer(unsigned long value ) // Create Timerobject with initially setting time
+    MoToTimer myTimer()                 // Create Timerobject without setting time
     void setTime( unsigned long value ) // Start Timer with new time value
     void restart()                      // Restart Timer with last set time value ( setTime )
     bool running()                      // True while timer is running
@@ -106,10 +107,10 @@ class MoToTimer
     unsigned long runTime;
     
   public:
-    MoToTimer() {
+    MoToTimer(unsigned long firstTime = 0) {
         active = 0;
         startTime = 0;
-        runTime = 0;
+        runTime = firstTime;
     }
 
     void setTime(  unsigned long wert ) {

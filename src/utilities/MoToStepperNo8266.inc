@@ -607,7 +607,9 @@ extern nextCycle_t nextCycle;
 //static nextCycle_t cyclesLastIRQ = 1;  // µsec since last IRQ
 
 void MoToStepper::prDynData() {             // print actual Stepperdata
- #ifdef debugPrint
+#undef debugPrint
+#ifdef debugPrint
+    #warning "should not be executed"
     stepperData_t printData;  // vor Ausdruck eine lokale Kopie erstellen
 	intxx_t prNextCycle;
     _noStepIRQ();

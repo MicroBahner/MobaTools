@@ -143,6 +143,7 @@ class MoToButtons {
             _actState = _getHWbuttons();    // read button states by user function
         else
             _actState = _getPinStates();    // read button states by ínternal function
+		
         // edge detection - new detected edges are added to the corresponding bit field
         // edge bits are cleard when read or at the next inverted edge ( pressed-> released or vice versa )
         // leading edge
@@ -177,7 +178,7 @@ class MoToButtons {
             }
             bitClear( _longPress, i );
             bitClear( _shortPress, i );
-            _buttonTime[i] = 0;
+            _buttonTime[i] = 1; // must be greater 0 because of state method ( returns _buttonTime if pressed )
           } else if ( bitRead( releaseEvent, i ) ) {
             // button was released, check if it was presssed long, short or clicked,  
             if (_buttonTime[i] <= _pressTime ) {

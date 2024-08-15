@@ -28,6 +28,7 @@ void IRAM_ATTR ISR_Softled( void *arg ) {
         break;
       case INCLIN:
         changePulse = LINEAR;
+		[[fallthrough]];
       case INCBULB: // no difference in first version 
         SET_TP1;
         if ( ++_ledData->stepI >= _ledData->stepMax ) {
@@ -53,6 +54,7 @@ void IRAM_ATTR ISR_Softled( void *arg ) {
     switch ( _ledData->state ) {
       case DECLIN:
         changePulse = LINEAR;
+		[[fallthrough]];
       case DECBULB:
         if ( _ledData->stepI > 0 ) --_ledData->stepI;
         if ( _ledData->stepI == 0 ) {
