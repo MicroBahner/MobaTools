@@ -29,8 +29,9 @@ void IRAM_ATTR ISR_Stepper(void) {
         CLR_TP1;
 		aktAlarm =  minNextAlarm;
 	}
-    timerAlarmWrite(stepTimer, aktAlarm , false); // no autorelaod
-    timerAlarmEnable(stepTimer);
+    //3.0.3 void timerAlarm(hw_timer_t * timer, uint64_t alarm_value, bool autoreload, uint64_t reload_count);
+    timerAlarm(stepTimer, aktAlarm , false, 0); // no autorelaod, 0=unlimited - zs6buj
+    //timerAlarmEnable(stepTimer);  // auto from esp32 core 3.0
     SET_TP1;
     portEXIT_CRITICAL_ISR(&stepperMux);
     CLR_TP1; // Oszimessung Dauer der ISR-Routine
@@ -46,10 +47,14 @@ void seizeTimerAS() {
 static bool timerInitialized = false;
     // Initiieren des Stepper Timers ------------------------
     if ( !timerInitialized ) {
-        stepTimer = timerBegin(STEPPER_TIMER, DIVIDER, true); // true= countup
-        timerAttachInterrupt(stepTimer, &ISR_Stepper, true);  // true= edge Interrupt
-        timerAlarmWrite(stepTimer, ISR_IDLETIME*TICS_PER_MICROSECOND , false); // false = no autoreload );
-        timerAlarmEnable(stepTimer);
+        // core 3.0.3 hw_timer_t * timerBegin(uint32_t frequency);   // frequency in Hz    
+        //stepTimer = timerBegin(STEPPER_TIMER, DIVIDER, true); // true= countup
+        stepTimer = timerBegin(80000000);  // zs6buj
+        // core 3.0.3void timerAttachInterrupt(hw_timer_t * timer, void (*userFunc)(void));
+        //timerAttachInterrupt(stepTimer, &ISR_Stepper, true);  // true= edge Interrupt
+        timerAttachInterrupt(stepTimer, &ISR_Stepper); // assume edge - zs6buj
+        timerAlarm(stepTimer, ISR_IDLETIME*TICS_PER_MICROSECOND , false, 0); // false = no autoreload );
+        //timerAlarmEnable(stepTimer);  // auto from esp32 core 3.0
         timerInitialized = true;  
         MODE_TP1;   // set debug-pins to Output
         MODE_TP2;
