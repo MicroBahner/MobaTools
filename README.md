@@ -26,7 +26,7 @@ A documentation file in [german](MobaTools-260-de.pdf) and [english](MobaTools-2
 
 | Version |  Release Date  | Description
 | ------- |  ------------  | -----------
-| 2.6.2 | 2024-09-04| support V3.x of ESP32 core ( V2.x is still supported too )
+| 2.6.2 | 2024-xx-xx| support V3.x of ESP32 core ( V2.x is still supported too )
 | | | fixed endless rotating when setting moveTo very quickly. (issue#34 on github) 
 | | | 
 | 2.6.1 | 2023-12-17| bugfix with UNO R4Wifi and steppers (with Wifi active)

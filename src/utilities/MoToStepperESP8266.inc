@@ -125,9 +125,7 @@ void ICACHE_RAM_ATTR ISR_Stepper(stepperData_t *stepperDataP) {
                     //DB_PRINT( "scnt=%ld, sIR=%u\n\r", stepperDataP->stepCnt, stepperDataP->stepsInRamp );
                     //SET_TP2;
                 }
-				// check if we can decrement steps in Ramp
- 				if ( stepperDataP->stepsInRamp > 0 ) --stepperDataP->stepsInRamp;  // issue#34
-                stepperDataP->aCycSteps = stepperDataP->cyctXramplen / ( stepperDataP->stepsInRamp + RAMPOFFSET ) ;// +1 ;
+                stepperDataP->aCycSteps = stepperDataP->cyctXramplen / ( --stepperDataP->stepsInRamp + RAMPOFFSET ) ;// +1 ;
                 CLR_TP2;
                 //break;
             } else {
@@ -161,9 +159,8 @@ void ICACHE_RAM_ATTR ISR_Stepper(stepperData_t *stepperDataP) {
             //CLR_TP2;
             stepperDataP->aCycSteps = stepperDataP->tCycSteps;
             // do we have to start the deceleration
-            if ( stepperDataP->stepCnt <= stepperDataP->stepRampLen+1U && stepperDataP->stepRampLen != 0 ) {
-                // in mode without ramp ( stepRampLen == 0 ) , this can never be true 
-				// V2.6.2 - added explicit check of ramplen to be 0
+            if ( stepperDataP->stepCnt <= stepperDataP->stepRampLen+1U ) {
+                // in mode without ramp ( stepRampLen == 0 ) , this can never be true
                 stepperDataP->rampState = rampStat::RAMPDECEL;
             }
              break;
