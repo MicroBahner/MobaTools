@@ -22,7 +22,7 @@ public:
     MoToSyncStepper();
 
     boolean addStepper(MoToStepper& stepper);  	// Add a stepper to group of synced steppers
-	void setMaxSpeedSteps( long speed );		// fastet speed of the motors
+	void setMaxSpeedSteps( long speed );		// fastet speed of the motors ( in steps/10sec )
     void moveTo(long absolute[]);  				// define the target positions of all steppers
 												// in group and start the move
 												

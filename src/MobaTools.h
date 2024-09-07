@@ -22,6 +22,10 @@
   MobaTools V2.6.1
    
   History:
+  V2.7.0 x-2024
+    - New class for synced move of steppers ( without acceleration )
+	- New example: servos for turnouts
+	- MoToTimer: new ( optional) parameter for setting the initial time
   V2.6.2 9-2024
     - ESP32 core version 3.x is supported ( V2.x is still supported too )
 	- fixed endless rotating when setting moveTo very quickly. (issue#34 on github) 

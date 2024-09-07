@@ -19,6 +19,10 @@ boolean MoToSyncStepper::addStepper(MoToStepper& stepper)
     return true;
 }
 
+void MoToSyncStepper::setMaxSpeedSteps( long speed ) {
+	_maxSpeed = speed;
+}
+
 void MoToSyncStepper::setTargets( long *absTarget ) {
 	// first find the stepper that has to move the longest distance
     _targets = absTarget;
@@ -39,7 +43,7 @@ void MoToSyncStepper::setTargets( long *absTarget ) {
 	}
 }	
 	
-void MoToSyncStepper::MoToSyncStepper::moveTo(long absTarget[])
+void MoToSyncStepper::moveTo(long absTarget[])
 {
     // First set all stepperspeeds
 	setTargets( absTarget );
