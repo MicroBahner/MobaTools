@@ -3,7 +3,7 @@
 /*
   MobaTools.h - a library for model makers - and others too ;-) 
   Author: Franz-Peter Müller, f-pm+gh@mailbox.org
-  Copyright (c) 2023 All rights reserved.
+  Copyright (c) 2024 All rights reserved.
 
   This library is free software; you can redistribute it and/or
   modify it under the terms of the GNU Lesser General Public
