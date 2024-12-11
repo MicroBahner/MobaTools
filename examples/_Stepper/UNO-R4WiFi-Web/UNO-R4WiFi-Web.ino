@@ -36,7 +36,7 @@ MoToStepper myStepper( STEPS_REVOLUTION, STEPDIR );       // create stepper inst
 uint32_t htSpeed = 8000;    // steps/10 sec
 uint32_t htRamp = 100;      // ramp length in steps
 
-int status = WL_IDLE_STATUS;
+//int status = WL_IDLE_STATUS;
 WiFiServer server(80);
 #include "website.h"
 
@@ -59,11 +59,13 @@ void setup() {
   // attempt to connect to WiFi network:
   Serial.print("Attempting to connect to Network named: ");
   Serial.println(ssid);                   // print the network name (SSID);
-  status = WiFi.begin(ssid, pass);
-  while (status != WL_CONNECTED) {
+  WiFi.begin(ssid, pass);
+  Serial.print("Waiting .");
+  while (WiFi.status() != WL_CONNECTED) {
     delay(200);
     Serial.print(".");
   }
+  Serial.println();
   server.begin();                           // start the web server on port 80
   printWifiStatus();                        // you're connected now, so print out the status
 }
