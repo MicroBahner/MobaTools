@@ -60,11 +60,12 @@ void setup() {
   Serial.print("Attempting to connect to Network named: ");
   Serial.println(ssid);                   // print the network name (SSID);
   WiFi.begin(ssid, pass);
-  Serial.print(".");
+  Serial.print("Waiting .");
   while (WiFi.status() != WL_CONNECTED) {
     delay(200);
     Serial.print(".");
   }
+  Serial.println();
   server.begin();                           // start the web server on port 80
   printWifiStatus();                        // you're connected now, so print out the status
 }
