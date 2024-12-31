@@ -30,8 +30,9 @@ A documentation file in [german](MobaTools-270-de.pdf) and [english](MobaTools-2
 | | | Synchronos move of steppers ( without acceleration, experimental )
 | | | new servo example for turnouts ( model railroad)
 | | | 
-| 2.6.3 | 2024-11-26| bugfix in example UNO-R4WiFi-Web. 
-| | | Sketch hangs if the connection to WiFi cannot not be established very fast.
+| 2.6.3 | 2024-12-23| 
+| | | bugfix in example UNO-R4WiFi-Web: Sketch hangs if the connection to WiFi cannot not be established very fast.
+| | | bugfix when using LGT8F328P: Timer 3 must not be used
 | 2.6.2 | 2024-09-05| support V3.x of ESP32 core ( V2.x is still supported too )
 | | | fixed endless rotating when moveTo is called very frequently in quick sequence (issue #34 on github )
 | | | 

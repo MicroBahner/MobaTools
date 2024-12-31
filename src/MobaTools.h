@@ -151,6 +151,10 @@
 		#define MIN_STEP_CYCLE 20       // Minimum number of µsec  per Step
 	#endif
 #elif defined ARDUINO_ARCH_AVR ////////////////////////////////////////////////////////
+	#ifdef  ARDUINO_AVR_LARDU_328E
+		// Timer3 of LGT8Fx is incompatible with MobaTools
+		#define NO_TIMER3
+	#endif
 	//#define NO_TIMER3             // never use Timer 3
 	#define CYCLETIME       200     // Min. irq-periode in us ( default is 200 ), 
 	#define MIN_STEP_CYCLE  2       // Minimum number of cycles per step. 
