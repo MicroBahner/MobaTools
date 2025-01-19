@@ -26,7 +26,7 @@ A documentation file in [german](MobaTools-270-de.pdf) and [english](MobaTools-2
 
 | Version |  Release Date  | Description
 | ------- |  ------------  | -----------
-| 2.7.0 | 2024-xx-xx| several bugfixes, some docu enhancements
+| 2.7.0 | 2025-xx-xx| several bugfixes, some docu enhancements
 | | | Synchronos move of steppers ( without acceleration, experimental )
 | | | new servo example for turnouts ( model railroad)
 | | | 
