@@ -94,9 +94,12 @@ typedef struct stepperData_t {
   rampStat rampState;        	// State of stepper: stopped, cruising, acceleration/deceleration ...
   volatile long stepsFromZero;  // distance from last reference point ( always as steps in HALFSTEP mode )
                                 // in FULLSTEP mode this is twice the real step number
-  uint8_t output  :6 ;             // PORTB(pin8-11), PORTD (pin4-7), SPI0,SPI1,SPI2,SPI3, SINGLE_PINS, A4988_PINS
+  // bit-coded byte:
+  uint8_t output  :5 ;             // PORTB(pin8-11), PORTD (pin4-7), SPI0,SPI1,SPI2,SPI3, SINGLE_PINS, A4988_PINS
   uint8_t delayActiv :1;        // enable delaytime is running
   uint8_t enable:1;             // true: enablePin=HIGH is active, false: enablePin=LOW is active
+  uint8_t enableOff:1;			// true: Enable active, but currently switched off by user
+
   uint8_t enablePin;            // define an enablePin, which is active while the stepper is moving 
 								// 255: enable is not active, 254 no pin defined, bur enable is active for FULLSTEP and HALFSTEP (4pin steppers)
 	#define NO_STEPPER_ENABLE 255

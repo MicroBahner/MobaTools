@@ -25,6 +25,8 @@
 	#include <esp32/drivers.h>
 #elif defined ARDUINO_ARCH_RENESAS_UNO 
 	#include <ra4m1/drivers.h>
+#elif defined ARDUINO_ARCH_RP2040
+	#include <rp2040/drivers.h>
 #else
     #error "Processor not supported"
 #endif
@@ -41,7 +43,7 @@
 #endif
 ////////////////////////////////////////////////// general defines for all plattforms  //////////////////////////////////////////
 // Calling compatible architecture specific functions.
-// These Funktons are defined in architecture specific files, but can be called independend from actual architecture
+// These functions are defined in architecture specific files, but can be called independend from actual architecture
 
 // type definitions ( if they are different for 8bit and 32bit platforms)
 #ifdef IS_32BIT

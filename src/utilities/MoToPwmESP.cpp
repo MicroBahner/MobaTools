@@ -3,7 +3,7 @@
   Author: fpm, fpm@mnet-mail.de
   Copyright (c) 2020 All right reserved.
 
-  Functions for the stepper part of MobaTools
+  PWM-functions for ESP8266
 */
 #include <MobaTools.h>
 #include <utilities/MoToDbg.h>

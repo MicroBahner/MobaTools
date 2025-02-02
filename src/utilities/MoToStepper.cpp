@@ -81,10 +81,11 @@ void MoToStepper::initialize ( long steps360, uint8_t mode ) {
 	#endif
     _stepperData.stepsFromZero = 0;
     _stepperData.rampState = rampStat::INACTIVE;
-    _stepperData.stepRampLen             = 0;               // initialize with no acceleration  
-    _stepperData.delayActiv = false;            // enable delaytime is runnung ( only ESP)
-    _stepperData.output = NO_OUTPUT;          // unknown, not attached yet
-    _stepperData.enablePin = NO_STEPPER_ENABLE;             // without enable (default)
+    _stepperData.stepRampLen             = 0;       // initialize with no acceleration  
+    _stepperData.delayActiv = false;            	// enable delaytime is runnung ( only ESP)
+    _stepperData.output = NO_OUTPUT;          		// unknown, not attached yet
+    _stepperData.enablePin = NO_STEPPER_ENABLE;     // without enable (default)
+	_stepperData.enableOff = false;					// default if enable not active
     _stepperData.nextStepperDataP = NULL;
 	#ifndef ESP8266
     // add at end of chain

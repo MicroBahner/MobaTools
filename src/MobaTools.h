@@ -26,6 +26,7 @@
     - New class for synced move of steppers ( without acceleration )
 	- New example: servos for turnouts
 	- MoToTimer: new ( optional) parameter for setting the initial time
+	- support for rp2040 processor ( raspberry pi pico )
   V2.6.2 9-2024
     - ESP32 core version 3.x is supported ( V2.x is still supported too )
 	- fixed endless rotating when setting moveTo very quickly. (issue#34 on github) 
@@ -181,7 +182,11 @@
 	#define IRQ_PRIO 12				// NVIC priority. Servo irq is always one prio higher.
 									// Lower priority ( higher value) will lead to problems on R4 WiFi 
 									// with WiFi active
-
+#elif defined ARDUINO_ARCH_RP2040  ///////////////////////////////////////////////////////////
+	#define MIN_STEP_CYCLE 20       // Minimum number of µsec  per Step ( may need to be adjusted
+	#define USE_SPI 0				// 0 or 1 ( for SPI-Stepper )
+	#define USE_TIMER 0				// must be 0 for RP2040, maybe 1 for rp2350
+	#define USE_ALARM 3				// 0,1,2,3 allowed
 #else ///////////////////////////////////////////////////////////////////////////////////
     #error Processor not supported
 #endif //////////////////////////////////////////////////////////////////////////////////

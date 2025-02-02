@@ -29,6 +29,7 @@ A documentation file in [german](MobaTools-270-de.pdf) and [english](MobaTools-2
 | 2.7.0 | 2025-xx-xx| several bugfixes, some docu enhancements
 | | | Synchronos move of steppers ( without acceleration, experimental )
 | | | new servo example for turnouts ( model railroad)
+| | | support of RP2040 and RP2350 processor (with core of Earle Philhower: https://github.com/earlephilhower/arduino-pico)
 | | | 
 | 2.6.3 | 2024-12-23| 
 | | | bugfix in example UNO-R4WiFi-Web: Sketch hangs if the connection to WiFi cannot not be established very fast.
