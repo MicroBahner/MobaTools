@@ -231,7 +231,7 @@ void IRAM_ATTR stepperISR(nextCycle_t cyclesLastIRQ) {
                         stepperDataP->rampState = rampStat::RAMPACCEL;
                     } else {
                         stepperDataP->stepsInRamp = 0;      // we cannot be in ramp when stopped
-                        if (stepperDataP->enablePin != NO_STEPPER_ENABLE) {
+                        if (stepperDataP->enableOn) {
                             // enable is active, wait for disabling
                             stepperDataP->aCycSteps = stepperDataP->cycDelay;
 							nextCycle = MIN_STEP_CYCLE/2; // step pulse will be resettet in half of min steptime
@@ -330,7 +330,7 @@ void IRAM_ATTR stepperISR(nextCycle_t cyclesLastIRQ) {
 								//target speed was 0, create no more steps
 								stepperDataP->speedZero = ZEROSPEEDACTIVE;
 								// if enabe is active, start Time until disabling the motor
-								if (stepperDataP->enablePin != NO_STEPPER_ENABLE) {
+								if (stepperDataP->enableOn) {
 									// enable is active, wait for disabling
 									stepperDataP->aCycSteps = stepperDataP->cycDelay;
 									stepperDataP->rampState = rampStat::STOPPING;
@@ -469,7 +469,7 @@ uintxx_t MoToStepper::setSpeedSteps( uintxx_t speed10, intxx_t rampLen ) {
 				} else {
 					// no ramp, simply inhibit creating pulses, disable stepper if needed.
 					_stepperData.speedZero = ZEROSPEEDACTIVE;				
-					if (_stepperData.enablePin != NO_STEPPER_ENABLE ) {
+					if (_stepperData.enableOn ) {
 						_stepperData.aCycSteps = _stepperData.cycDelay;
 						_stepperData.rampState = rampStat::STOPPING;
 					}
@@ -481,7 +481,7 @@ uintxx_t MoToStepper::setSpeedSteps( uintxx_t speed10, intxx_t rampLen ) {
 		}
 		newSpeed10 = MINSPEEDZERO; // minimum speed in ramp before stopping
 	} else {
-		if (_stepperData.enablePin != NO_STEPPER_ENABLE && _stepperData.speedZero == ZEROSPEEDACTIVE ) {
+		if (_stepperData.enableOn && _stepperData.speedZero == ZEROSPEEDACTIVE ) {
 			// We are starting from zero speed and enable is active, wait for enabling
 			_stepperData.aCycSteps = _stepperData.cycDelay;
 			_stepperData.rampState = rampStat::STARTING;

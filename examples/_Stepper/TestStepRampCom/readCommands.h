@@ -167,6 +167,9 @@ void execCmd( eeBefehl_t &cmdBuf ) {
         ramp = myStepper.setRampLen( cmdBuf.comPar1  );
         printf( " akt.Rampe=%u\n\r", ramp );
         break;
+     case enaT: // ===============================  ena         -> enable ein/ausschalten % =================
+        printf( " autoEnable state = %d\n\r", myStepper.autoEnable( cmdBuf.comPar1 ) ); 
+        break;
      case movT: // ===============================  mov         -> print restweg in % =================
         printf( " Remaining: %d%%\n\r", myStepper.moving() );
         break;

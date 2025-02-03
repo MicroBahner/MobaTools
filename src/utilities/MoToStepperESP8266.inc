@@ -220,7 +220,7 @@ uintxx_t MoToStepper::setSpeedSteps( uint32_t speed10, int rampLen ) {
 		}  
 		newSpeed10 = MINSPEEDZERO; // minimum speed in ramp before stopping
 	} else {
-		if (_stepperData.enablePin != NO_STEPPER_ENABLE && _stepperData.speedZero == ZEROSPEEDACTIVE ) {
+		if (_stepperData.enableOn && _stepperData.speedZero == ZEROSPEEDACTIVE ) {
 			// We are starting from zero speed and enable is active, wait for enabling
 			_stepperData.aCycSteps = _stepperData.cycDelay;
 			_stepperData.rampState = rampStat::STARTING;
@@ -332,7 +332,7 @@ uintxx_t MoToStepper::setSpeedSteps( uint32_t speed10, int rampLen ) {
 			_stepperData.rampState = rampStat::CRUISING;
 		}
         // check if enable Pin must be activated
-        if ( _stepperData.enablePin !=NO_STEPPER_ENABLE ) {
+        if ( _stepperData.enableOn ) {
 			DB_PRINT("sss starting, delayActive=%d", _stepperData.delayActiv );
             if ( !_stepperData.delayActiv ) {
                 // enable must be set and delaytime is not yet running

@@ -98,11 +98,12 @@ typedef struct stepperData_t {
   uint8_t output  :5 ;             // PORTB(pin8-11), PORTD (pin4-7), SPI0,SPI1,SPI2,SPI3, SINGLE_PINS, A4988_PINS
   uint8_t delayActiv :1;        // enable delaytime is running
   uint8_t enable:1;             // true: enablePin=HIGH is active, false: enablePin=LOW is active
-  uint8_t enableOff:1;			// true: Enable active, but currently switched off by user
+  uint8_t enableOn:1;			// true: Enable is active, can be switched off/on by user if it is
+								// generally enabled ( see enablePin )
 
   uint8_t enablePin;            // define an enablePin, which is active while the stepper is moving 
 								// 255: enable is not active, 254 no pin defined, bur enable is active for FULLSTEP and HALFSTEP (4pin steppers)
-	#define NO_STEPPER_ENABLE 255
+	#define NO_STEPPER_ENABLE 255 // enableOn is fixed to 'false'
 	#define NO_ENABLEPIN 254
   uint8_t speedZero;			// Flag for speed is set to zero
     #define NORMALSPEED		0	// speed is not set to zero
@@ -175,6 +176,9 @@ class MoToStepper
                                     // returns 0 on failure
     void attachEnable( uint8_t enableP, uint16_t delay, bool active ); // define an enable pin and the delay (ms) between enable and starting/stopping the motor. 
                                                                           // 'active' defines if the output is HIGH or LOW to activate the motirdriver.
+	uint8_t autoEnable(bool state);	// enable/disable switching off the stepper ( only if attachEnable was called )
+									// returns active state ( always false, if attachEnable  was not called )
+	uint8_t autoEnable ();				// returns active state
     void detach();                  // detach from output, motor will not move anymore
     void write(long angle);         // specify the angle in degrees, mybe pos or neg. angle is
                                     // measured from last 'setZero' point

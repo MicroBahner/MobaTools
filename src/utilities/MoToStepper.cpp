@@ -85,7 +85,7 @@ void MoToStepper::initialize ( long steps360, uint8_t mode ) {
     _stepperData.delayActiv = false;            	// enable delaytime is runnung ( only ESP)
     _stepperData.output = NO_OUTPUT;          		// unknown, not attached yet
     _stepperData.enablePin = NO_STEPPER_ENABLE;     // without enable (default)
-	_stepperData.enableOff = false;					// default if enable not active
+	_stepperData.enableOn = false;					// default if enable not active
     _stepperData.nextStepperDataP = NULL;
 	#ifndef ESP8266
     // add at end of chain
@@ -266,11 +266,13 @@ void MoToStepper::detach() {   // no more moving, detach from output
 				detachInterrupt( _stepperData.enablePin);
 			}
             _stepperData.enablePin = NO_STEPPER_ENABLE;
+			_stepperData.enableOn = false;
         }
     #else
     if ( _stepperData.enablePin != NO_STEPPER_ENABLE ) {
         if ( _stepperData.enablePin != NO_ENABLEPIN ) pinMode( _stepperData.enablePin, INPUT );
         _stepperData.enablePin = NO_STEPPER_ENABLE;
+		_stepperData.enableOn = false;
     }
 	#endif
 }
@@ -288,9 +290,10 @@ void MoToStepper::attachEnable( uint8_t enablePin, uint16_t delay, bool active )
     // define an enable pin. enable is active as long as the motor moves.
     _stepperData.enablePin = enablePin;
     _stepperData.enable = active;       // defines whether activ is HIGH or LOW
+	_stepperData.enableOn = true;		// can be switched off by user via enable() call
     if ( _stepperData.enablePin != NO_ENABLEPIN ) {
 		pinMode( enablePin, OUTPUT );
-		digitalWrite( enablePin, !active );
+		digitalWrite( enablePin, !active ); // switch stepper off
 		DB_PRINT("Enable, pin=%d, state=%d", enablePin, !active );
 		#ifdef ESP8266
 		// initialize ISR-Table and attach interrupt to dir-Pin
@@ -314,6 +317,36 @@ void MoToStepper::attachEnable( uint8_t enablePin, uint16_t delay, bool active )
 	}
     #endif
 }
+
+uint8_t MoToStepper::autoEnable( bool state ) {
+	// activate or deactive stepper enable (if it is enabled generally by attachEnable )
+	if ( _stepperData.enablePin != NO_STEPPER_ENABLE ) {
+		// it is generally enabled, so set state accordingly
+		_stepperData.enableOn = state;
+		if ( _stepperData.enableOn ) {
+			// autoEnable is active, so switch motor off if it is not running
+			if ( !_chkRunning() ) {
+				// motor is not running, switch off
+				digitalWrite( _stepperData.enablePin, !_stepperData.enable ); // switch stepper off
+			}
+			
+		} else {
+			// no autoEnable, switch motor on
+			digitalWrite( _stepperData.enablePin, _stepperData.enable ); // switch stepper on
+		}
+	} else {
+		// disable ( should already be in disable state )
+		_stepperData.enableOn = false;
+	}
+	return _stepperData.enableOn;
+}
+
+uint8_t MoToStepper::autoEnable( ) {
+	// without parameter returns the active state
+	return _stepperData.enableOn;
+}
+
+
 
 int MoToStepper::setSpeed( int rpm10 ) {
     // Set speed in rpm*10. Step time is computed internally based on CYCLETIME and
@@ -477,7 +510,7 @@ void MoToStepper::_doSteps( long stepValue, bool absPos ) {
 					#ifndef IS_32BIT
                     _stepperData.aCycRemain     = 0;  
 					#endif
-                   if ( _stepperData.enablePin != NO_STEPPER_ENABLE ) {
+                   if ( _stepperData.enableOn ) {
                         // start delaytime ( Stepper is enabled in ISR )
                         _stepperData.rampState      = rampStat::STARTING;
                     } else {
@@ -520,7 +553,7 @@ void MoToStepper::_doSteps( long stepValue, bool absPos ) {
 				#ifndef IS_32BIT
 				_stepperData.aCycRemain     = 0; 
 				#endif
-				if ( _stepperData.enablePin != NO_STEPPER_ENABLE ) {
+				if ( _stepperData.enableOn ) {
                         // start delaytime ( Stepper is enabled in ISR )
 					_stepperData.rampState      = rampStat::STARTING;
 				} else {
@@ -537,9 +570,10 @@ void MoToStepper::_doSteps( long stepValue, bool absPos ) {
     #ifdef ESP8266
     if ( startMove ) {
         // check if enable Pin must be activated
-        if ( _stepperData.enablePin !=NO_STEPPER_ENABLE ) {
+        if ( _stepperData.enableOn ) {
             if ( !_stepperData.delayActiv ) {
                 // enable must be set and delaytime is not yet running
+				// ToDo: check for enablePin ( maybe without pin if FULLSTEP/HALFSTEP )
                 digitalWrite( _stepperData.enablePin, _stepperData.enable );
                 // create a singlepulse on dir-output to measure delaytime
                 //delayMicroseconds( 10 );
