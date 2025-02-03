@@ -19,8 +19,8 @@ boolean MoToSyncStepper::addStepper(MoToStepper& stepper)
     return true;
 }
 
-void MoToSyncStepper::setMaxSpeedSteps( long speed ) {
-	_maxSpeed = speed;
+void MoToSyncStepper::setMaxSpeedSteps( uintxx_t speed10 ) {
+	_maxSpeed = speed10;
 }
 
 void MoToSyncStepper::setTargets( long *absTarget ) {

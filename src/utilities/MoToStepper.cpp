@@ -318,7 +318,7 @@ void MoToStepper::attachEnable( uint8_t enablePin, uint16_t delay, bool active )
     #endif
 }
 
-uint8_t MoToStepper::autoEnable( bool state ) {
+bool MoToStepper::autoEnable( bool state ) {
 	// activate or deactive stepper enable (if it is enabled generally by attachEnable )
 	if ( _stepperData.enablePin != NO_STEPPER_ENABLE ) {
 		// it is generally enabled, so set state accordingly
@@ -341,7 +341,7 @@ uint8_t MoToStepper::autoEnable( bool state ) {
 	return _stepperData.enableOn;
 }
 
-uint8_t MoToStepper::autoEnable( ) {
+bool MoToStepper::autoEnable( ) {
 	// without parameter returns the active state
 	return _stepperData.enableOn;
 }

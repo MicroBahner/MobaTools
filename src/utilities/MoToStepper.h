@@ -176,9 +176,9 @@ class MoToStepper
                                     // returns 0 on failure
     void attachEnable( uint8_t enableP, uint16_t delay, bool active ); // define an enable pin and the delay (ms) between enable and starting/stopping the motor. 
                                                                           // 'active' defines if the output is HIGH or LOW to activate the motirdriver.
-	uint8_t autoEnable(bool state);	// enable/disable switching off the stepper ( only if attachEnable was called )
+	bool autoEnable(bool state);	// enable/disable switching off the stepper ( only if attachEnable was called )
 									// returns active state ( always false, if attachEnable  was not called )
-	uint8_t autoEnable ();				// returns active state
+	bool autoEnable ();				// returns active state
     void detach();                  // detach from output, motor will not move anymore
     void write(long angle);         // specify the angle in degrees, mybe pos or neg. angle is
                                     // measured from last 'setZero' point
