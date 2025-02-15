@@ -123,10 +123,10 @@ typedef union { // used output channels as bit and uint8_t
       struct {
         uint8_t pin8_11 :1;
         uint8_t pin4_7  :1;
-        uint8_t spi1    :1;
-        uint8_t spi2    :1;
-        uint8_t spi3    :1;
-        uint8_t spi4    :1;
+        uint8_t spi_1    :1;
+        uint8_t spi_2    :1;
+        uint8_t spi_3    :1;
+        uint8_t spi_4    :1;
       };
       uint8_t outputs;
     

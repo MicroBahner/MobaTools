@@ -182,13 +182,12 @@
 	#define IRQ_PRIO 12				// NVIC priority. Servo irq is always one prio higher.
 									// Lower priority ( higher value) will lead to problems on R4 WiFi 
 									// with WiFi active
-/* RP2040 postponed until next release ( >2.7 )
-#elif defined ARDUINO_ARCH_RP2040  ///////////////////////////////////////////////////////////
-	#define MIN_STEP_CYCLE 20       // Minimum number of µsec  per Step ( may need to be adjusted
-	#define USE_SPI 0				// 0 or 1 ( for SPI-Stepper )
-	#define USE_TIMER 0				// must be 0 for RP2040, maybe 1 for rp2350
-	#define USE_ALARM 3				// 0,1,2,3 allowed
-*/
+#elif defined ARDUINO_ARCH_RP2040 && !defined ARDUINO_ARCH_MBED  ///////////////////////////////////////////////////////////
+	#define MIN_STEP_CYCLE 5       // increment for nextCycle if too short
+	//#define USE_SPI1				// if SPI 1 for SPI-Stepper should be used ( not possible on nano RP2040 )
+	#define STP_TIMR_NBR 0          // can be set to 1 on RP2350 ( Pico 2 )
+	#define USE_SPI1                // will be ignored on Nano RP2040connect
+	#define SPI_CLOCK 2000000L
 #else ///////////////////////////////////////////////////////////////////////////////////
     #error Processor not supported
 #endif //////////////////////////////////////////////////////////////////////////////////

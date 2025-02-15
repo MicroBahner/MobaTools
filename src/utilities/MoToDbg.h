@@ -179,7 +179,26 @@
         #define SET_TP4   R_IOPORT_PinWrite(NULL, TP4, BSP_IO_LEVEL_HIGH)
         #define CLR_TP4  R_IOPORT_PinWrite(NULL, TP4, BSP_IO_LEVEL_LOW) 
 	
-    #else // processor not known
+    #elif defined RP2040
+		#warning "RP2040 TO aktiv"
+        #define TP1 10
+        #define TP2 11
+        #define TP3 12
+        #define TP4 
+        #define MODE_TP1 pinMode( TP1,OUTPUT ) 
+        #define SET_TP1  gpio_set_mask( 1<<TP1 )
+        #define CLR_TP1  gpio_clr_mask( 1<<TP1 )
+        #define MODE_TP2 pinMode(TP2,OUTPUT )  
+        #define SET_TP2  gpio_set_mask( 1<<TP2 )
+        #define CLR_TP2  gpio_clr_mask( 1<<TP2 )
+        #define MODE_TP3  pinMode(TP3,OUTPUT )  
+        #define SET_TP3   gpio_set_mask( 1<<TP3 )
+        #define CLR_TP3  gpio_clr_mask( 1<<TP3 )
+        #define MODE_TP4
+        #define SET_TP4
+        #define CLR_TP4
+ 
+	#else // processor not known
         #define MODE_TP1
         #define SET_TP1
         #define CLR_TP1

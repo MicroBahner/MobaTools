@@ -3,8 +3,8 @@
  */
 #include <MobaTools.h>
 // Stepper connections - Please adapt to your own needs.
-const byte stepPin = D6;
-const byte dirPin = D5;
+const byte stepPin = 6;
+const byte dirPin = 5;
 
 const int stepsPerRev = 200;    // Steps per revolution - may need to be adjusted
 
