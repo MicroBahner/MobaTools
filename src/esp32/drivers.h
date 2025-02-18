@@ -14,6 +14,7 @@ extern "C" {
 //vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv  ESP32  vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
 #define IS_32BIT
 #define IS_ESP  32
+#define HAS_PWM_HW
 
 // ----------------   stepper related defines   ---------------------------------
 // use of SPI interface

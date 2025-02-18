@@ -7,8 +7,8 @@
 */
 #define COMPILING_MOTOSERVO_CPP  // this allows servo-specific defines in includefiles
 
-//#define debugTP
-//#define debugPrint
+#define debugTP
+#define debugPrint
 #include <utilities/MoToDbg.h>
 #include <MobaTools.h>
 
@@ -54,9 +54,47 @@ void IRAM_ATTR ISR_Servo( void *arg ) {
     portEXIT_CRITICAL_ISR(&servoMux);
     CLR_TP2;
 }
-#endif //IS_ESP
 
-#ifndef IS_ESP //---------------------- Timer-interrupt for non ESP -----------------------------
+#elif defined RP2040 //---------------- for RP2040/RP2350 processor ----------------------------
+  #warning "Servo for RP2040"
+  static servoData_t* lastServoDataP = NULL; //start of ServoData-chain
+  static bool speedV08 = false;    // Compatibility-Flag for speed method
+  void __not_in_flash_func(servoISR)(void) {
+  SET_TP1;
+  // IRQ fired when a PWM counter wraps
+  static uint16_t chanLevel;
+  servoData_t *sPtr = lastServoDataP;
+  int thisSlice;
+  while ( sPtr != NULL ) {
+    // Cycle through all servos
+    if ( pwm_get_irq_status_mask() & 1 << (sPtr->pwmNbr >> 1) ) {
+      CLR_TP1;
+      thisSlice = sPtr->pwmNbr >> 1;
+      // got one for this slice
+      if ( sPtr->ist != sPtr->soll ) {
+        // servo is not at target position
+        if ( sPtr->ist > sPtr->soll ) {
+          sPtr->ist -= sPtr->inc;
+          if ( sPtr->ist < sPtr->soll ) sPtr->ist = sPtr->soll; // if it was overshoot;
+        } else {
+          sPtr->ist += sPtr->inc;
+          if ( sPtr->ist > sPtr->soll ) sPtr->ist = sPtr->soll; // if it was overshoot;
+        }
+        // set new duty
+        pwm_set_chan_level(sPtr->pwmNbr >> 1, sPtr->pwmNbr & 1, tic2time(sPtr->ist));
+      }
+      SET_TP1;
+    }
+    // try next ( there maybe 2 servos(channels) for this IRQ
+    sPtr = sPtr->prevServoDataP;
+  }
+  pwm_clear_irq (thisSlice);
+  CLR_TP1;
+}
+
+
+
+#else //---------------------- Timer-interrupt for non ESP / non RP2040 -----------------------------
 static servoData_t* lastServoDataP = NULL; //start of ServoData-chain
 static servoData_t* pulseP = NULL;         // pulse Ptr in IRQ
 static servoData_t* activePulseP = NULL;   // Ptr to pulse to stop
@@ -249,7 +287,7 @@ void ISR_Servo( void) {
     CLR_TP2;
 }
 
-#endif // not ESP
+#endif // not ESP or RP2040
 // ------------ end of Interruptroutines ------------------------------
 ///////////////////////////////////////////////////////////////////////////////////
 // --------- Class MoToServo ---------------------------------
@@ -332,7 +370,7 @@ uint8_t MoToServo::attach( int pinArg, uint16_t pmin, uint16_t pmax, bool autoOf
         gpioTab[gpio2ISRx(_servoData.pin)].MoToISR = (void (*)(void*))ISR_Servo;
         gpioTab[gpio2ISRx(_servoData.pin)].IsrData = &_servoData;
         attachInterrupt( _servoData.pin, gpioTab[gpio2ISRx(_servoData.pin)].gpioISR, FALLING );
-    #elif defined ESP32
+    #elif defined HAS_PWM_HW // ( ESP32 and RP2040/RP3250 so far )
         // pwmNbr will be negative if there are no free pwm channels
         _servoData.pwmNbr =  servoPwmSetup( &_servoData );
         DB_PRINT("pwmNbr=%d, Pin=%d", _servoData.pwmNbr, _servoData.pin );
@@ -367,7 +405,7 @@ void MoToServo::detach()
         clrGpio(tPin);
         detachInterrupt( tPin );
     #endif
-    #ifdef ESP32
+    #ifdef HAS_PWM_HW
         servoDetach( &_servoData );
     #endif
     pinMode( tPin, INPUT );

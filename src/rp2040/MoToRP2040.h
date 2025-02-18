@@ -5,12 +5,13 @@
 //#warning RP2040 specific cpp includes
 bool seizeTimerAS();
 
-void ISR_Servo( void *arg );
+void servoISR( );
 
 // defined in MoToRP2040.cpp:
 extern uint8_t noStepISR_Cnt;   // Counter for nested StepISR-disable
 extern uint8_t stepperIRQNum;  // dynamically assigned when timer is initialized
 extern timer_hw_t *stepperTimer; // Only for test-prints in .ino
+extern uint8_t spiInitialized;
 extern spi_inst_t *stepperSPI;
 void initSpiAS();
 
@@ -38,92 +39,67 @@ inline __attribute__((__always_inline__)) void  _stepIRQ(bool force = true) {
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 #if defined COMPILING_MOTOSERVO_CPP
+constexpr uint8_t INC_PER_MICROSECOND = 8;		// one speed increment is 0.125 µs
+constexpr uint8_t  COMPAT_FACT = 1; 			// no compatibility mode for RP2040                     
+constexpr uint8_t INC_PER_TIC = INC_PER_MICROSECOND / 1; //PWM counter is initialized to 1µs per tic
+#define time2tic(pulse)  ( (pulse) *  INC_PER_MICROSECOND )
+#define tic2time(tics)  ( (tics) / INC_PER_MICROSECOND )
+#define AS_Speed2Inc(speed) (speed)
 
-//returns the channelnumber ( 0...15 ) of the leds channel to be used, or -1 if no channel is availabele
+//returns slice and channel number for the given pin. Returns -1 if not possible to get one
+// sets slice and PWM accordingly
 static inline __attribute__((__always_inline__)) int8_t servoPwmSetup( servoData_t *servoDataP ) {
-  //DB_PRINT("Search fre ledc channel");
-  int8_t pwmNbr = initPwmChannel( servoDataP->pin, SERVO_TIMER );
-  pinMode( servoDataP->pin, OUTPUT );
-  attachInterruptArg( servoDataP->pin, ISR_Servo, (void*)servoDataP, FALLING );
-  DB_PRINT( "PwmNbr:%d, Pin:%d, Group=%d, Channel=%d, Timer=%d", pwmNbr, pwmUse[pwmNbr].pin, pwmUse[pwmNbr].group, pwmUse[pwmNbr].channel, pwmUse[pwmNbr].timer );
-  return pwmNbr;
+	gpio_set_function(servoDataP->pin, GPIO_FUNC_PWM);
+
+	// Find out which PWM slice is connected to GPIO
+	uint slice_num = pwm_gpio_to_slice_num(servoDataP->pin);
+	uint chanNum = pwm_gpio_to_channel(servoDataP->pin);
+	DB_PRINT("slice_num=%d, chanNum=%d, gpio=%d\n", slice_num, chanNum, servoDataP->pin );
+	servoDataP->pwmNbr = (slice_num << 1) + chanNum;
+
+	pwm_set_clkdiv(slice_num, F_CPU / 1000000L );
+	pwm_set_irq_enabled (slice_num, true);
+	// Set period
+	pwm_set_wrap(slice_num, 20000);
+	// Set initial duty
+	pwm_set_chan_level(slice_num, chanNum, 0); // don't create impulses yet
+	// Set the PWM running
+	pwm_set_enabled(slice_num, true);
+
+	// Note we could also use pwm_set_gpio_level(gpio, x) which looks up the
+	// correct slice and channel for a given GPIO.
+	DB_PRINT("ServoNbr%d, Slice=%d, Chan=%d, Gpio=%d\n", servoDataP->servoIx, servoDataP->pwmNbr >> 1, servoDataP->pwmNbr & 1, servoDataP->pin);
+	irq_set_exclusive_handler (PWM_IRQ_WRAP, servoISR);
+	irq_set_enabled (PWM_IRQ_WRAP, true);
+	return servoDataP->pwmNbr;
 }
 
 static inline __attribute__((__always_inline__)) void startServoPulse( servoData_t *servoDataP, uint32_t pulseWidth ) {
-  setPwmPin( servoDataP->pwmNbr );
-  setPwmDuty( servoDataP->pwmNbr, pulseWidth );
-  attachInterruptArg( servoDataP->pin, ISR_Servo, servoDataP, FALLING );
 }
 
 static inline __attribute__((__always_inline__)) void servoWrite( servoData_t *servoDataP, uint32_t pulseWidth ) {
   // the same funktion exists for ESP8266 ( with another internal call )
-  setPwmDuty( servoDataP->pwmNbr, pulseWidth );
 
 }
 
 static inline __attribute__((__always_inline__)) void servoPulseOff( servoData_t *servoDataP ) {
   //DB_PRINT("Stop Puls, ledcNr=%d", servoDataP->pwmNbr );
-  setPwmDuty( servoDataP->pwmNbr, 0 );
 }
 
 static inline __attribute__((__always_inline__)) void servoDetach( servoData_t *servoDataP ) {
-  detachInterrupt( servoDataP->pin );
-  freePwmNbr( servoDataP->pwmNbr );
 }
 #endif
+
+
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-#ifdef COMPILING_MOTOSOFTLEDESP_CPP
+#ifdef COMPILING_MOTOSOFTLED32_CPP
 //returns the channelnumber ( 0...15 ) of the leds channel to be used, or -1 if no channel is availabele
-static inline __attribute__((__always_inline__)) int8_t softLedPwmSetupAS( servoData_t *softledDataP )  {
-  int8_t pwmNbr = initPwmChannel( softledDataP->pin, LED_TIMER );
-  pinMode( softledDataP->pin, OUTPUT );
-  attachInterruptArg( softledDataP->pin, ISR_Servo, (void*)softledDataP, FALLING );
-  return pwmNbr;
+static inline __attribute__((__always_inline__)) void enableSoftLedIsrAS() {
+    // ToDo: timer_cc_enable(MT_TIMER, STEP_CHN);
 }
 
-static inline __attribute__((__always_inline__)) uint8_t attachSoftledAS( ledData_t *ledDataP ) {
-  int8_t pwmNbr = initPwmChannel( ledDataP->pin, LED_TIMER );
-  if ( pwmNbr >= 0 ) {
-    // freien LEDC-Slot gefunden, Pin und Interrupt einrichten
-    setPwmPin(  pwmNbr );
-    attachInterruptArg( ledDataP->pin, ISR_Softled, (void*)ledDataP, FALLING );
-  }
-  return pwmNbr;
 
-}
-
-static inline __attribute__((__always_inline__)) void startLedPulseAS( uint8_t pwmNbr, uint8_t invFlg, uint32_t pulseLen ) {
-  // start or change the pwmpulses on the led pin.
-  // with invFlg set pulseLen is lowtime, else hightime
-  // compute pulselen from µs to tics
-  pulseLen = slPwm2tic(pulseLen);
-  if ( invFlg ) {
-    setPwmDuty(pwmNbr, DUTY100 - pulseLen);
-  } else {
-    setPwmDuty(pwmNbr, pulseLen);
-  }
-
-}
-
-static inline __attribute__((__always_inline__)) void softLedOffAS(  uint8_t pwmNbr, uint8_t invFlg ) {
-  setPwmDuty(pwmNbr, invFlg ? DUTY100 : 0);
-  //digitalWrite( pin , invFlg );
-}
-
-static inline __attribute__((__always_inline__)) void softLedOnAS(  uint8_t pwmNbr, uint8_t invFlg ) {
-  setPwmDuty(pwmNbr, invFlg ? 0 : DUTY100);
-  //digitalWrite( pin , invFlg );
-}
-
-static inline __attribute__((__always_inline__)) void softLedOn2AS(  uint8_t pwmNbr, uint8_t invFlg ) {
-  // keine Aktion beim ESP32 notwendig
-}
-
-static inline __attribute__((__always_inline__)) void attachInterruptAS(  ledData_t *ledDataP ) {
-  attachInterruptArg( ledDataP->pin, ISR_Softled, (void*)ledDataP, FALLING );
-}
-
-#endif  // Ende COMPILING_MOTOSOFTLEDESP_CPP
+#endif  // Ende COMPILING_MOTOSOFTLED32_CPP
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 #if 1 // Im Test hier immer aktiv defined COMPILING_MOTOSTEPPER_CPP
 static inline __attribute__((__always_inline__)) void enableStepperIsrAS() {

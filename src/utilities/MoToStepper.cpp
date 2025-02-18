@@ -8,7 +8,7 @@
 #define COMPILING_MOTOSTEPPER_CPP
 
 //#define debugTP
-//#define debugPrint
+#define debugPrint
 #include <utilities/MoToDbg.h>
 #include <MobaTools.h>
 #define TODO	// ignore 
@@ -144,6 +144,10 @@ uint8_t MoToStepper::attach(byte outArg) {
 #endif
     
 uint8_t MoToStepper::attach( byte outArg, byte pins[] ) {
+    MODE_TP1;       // activate debug-pins
+    MODE_TP2;
+    MODE_TP3;
+    MODE_TP4;
     // outArg must be one of PIN8_11 ... SPI_4 or SINGLE_PINS, A4988_PINS
 	// V2.6: PIN8_11/PIN4_7 not allowed anymore ( wasn't described in Doku since V0.8
     if ( stepMode == NOSTEP ) { DB_PRINT("Attach: invalid Object ( Ix = %d)", _stepperIx ); return 0; }// Invalid object

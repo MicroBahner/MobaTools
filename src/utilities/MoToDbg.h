@@ -3,11 +3,11 @@
 // die folgenden defines werden im aufrufenden cpp-File gesetzt.
 // so können die debugs klassenspezifisch eingeschaltet werden
 //#define debugTP
-//#define debugPrint
+#define debugPrint
 
 // über diese undefs kann das Debugging global abgeschaltet werden
-#undef debugTP
-#undef debugPrint
+//#undef debugTP
+//#undef debugPrint
 
 #ifdef debugTP 
     #if defined(__AVR_ATmega1280__) || defined(__AVR_ATmega2560__)
@@ -180,10 +180,10 @@
         #define CLR_TP4  R_IOPORT_PinWrite(NULL, TP4, BSP_IO_LEVEL_LOW) 
 	
     #elif defined RP2040
-		#warning "RP2040 TO aktiv"
+		#warning "RP2040 TP aktiv"
         #define TP1 10
         #define TP2 11
-        #define TP3 12
+        #define TP3 13
         #define TP4 
         #define MODE_TP1 pinMode( TP1,OUTPUT ) 
         #define SET_TP1  gpio_set_mask( 1<<TP1 )

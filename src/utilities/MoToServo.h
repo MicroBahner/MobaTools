@@ -66,6 +66,7 @@ struct servoData_t {
   #endif
   uint8_t pin     ;     // pin
   int8_t pwmNbr;        // pwm channel on ESP32 , -1 means not attached on all platforms
+						// on RP2040 its slice_nmbr+channel ( channel 0/1 in LSB )
 } ;
 
 ////////////////////////////////////////////////////////////////////////////////////////
