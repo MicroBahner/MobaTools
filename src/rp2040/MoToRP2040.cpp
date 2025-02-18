@@ -1,11 +1,8 @@
 // RP2040 HW-spcific Functions
 #ifdef ARDUINO_ARCH_RP2040
-//#define debugTP
+#define debugTP
 #define debugPrint
 #include <MobaTools.h> // Hier nur Test der RP2040 Aufrufe
-//#include "testGlobals.h" // global notwendige Definitionen ( sonst aus MobaTools.h )
-#define debugTP
-//#define debugPrint
 //#include <utilities/MoToDbg.h>
 #undef stepperISR // When calling stepperISR, the attribute '__not_in_flash_func' is not allowed
 #undef softledISR // When calling softledISR, the attribute '__not_in_flash_func' is not allowed
@@ -21,7 +18,7 @@ uint8_t spiInitialized = false;
 
 // bool spiInitialized = false;
 void stepperISR(nextCycle_t cyclesLastIRQ)  __attribute__ ((weak));
-void softledISR(nextCycle_t cyclesLastIRQ)  __attribute__ ((weak));
+void softledISR(uint32_t cyclesLastIRQ)  __attribute__ ((weak));
 nextCycle_t nextCycle;
 static nextCycle_t cyclesLastIRQ = 1;  // cycles since last IRQ
 static absolute_time_t lastAlarm, aktAlarm;
@@ -67,6 +64,7 @@ bool seizeTimerAS() {
 	MODE_TP3;
 	MODE_TP4;
     DB_PRINT("&stepperISR=0x%08X", (uint32_t)stepperISR );
+    DB_PRINT("&softLedISR=0x%08X", (uint32_t)softledISR );
     stepperTimer = timer_get_instance (STP_TIMR_NBR);
     SET_TP2;
     stepperAlarm = timer_hardware_alarm_claim_unused (stepperTimer,true); // core will panic if none is available

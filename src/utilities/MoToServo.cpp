@@ -7,8 +7,8 @@
 */
 #define COMPILING_MOTOSERVO_CPP  // this allows servo-specific defines in includefiles
 
-#define debugTP
-#define debugPrint
+//#define debugTP
+//#define debugPrint
 #include <utilities/MoToDbg.h>
 #include <MobaTools.h>
 
@@ -72,6 +72,7 @@ void IRAM_ATTR ISR_Servo( void *arg ) {
       thisSlice = sPtr->pwmNbr >> 1;
       // got one for this slice
       if ( sPtr->ist != sPtr->soll ) {
+        sPtr->offcnt = 50;
         // servo is not at target position
         if ( sPtr->ist > sPtr->soll ) {
           sPtr->ist -= sPtr->inc;
@@ -82,7 +83,14 @@ void IRAM_ATTR ISR_Servo( void *arg ) {
         }
         // set new duty
         pwm_set_chan_level(sPtr->pwmNbr >> 1, sPtr->pwmNbr & 1, tic2time(sPtr->ist));
-      }
+      } else if ( !sPtr->noAutoff ) { // no change in pulse length, look for autooff
+        if ( --sPtr->offcnt == 0 ) {
+            //SET_TP3;
+            pwm_set_chan_level(sPtr->pwmNbr >> 1, sPtr->pwmNbr & 1, 0);
+            //CLR_TP3;
+        }
+    }
+
       SET_TP1;
     }
     // try next ( there maybe 2 servos(channels) for this IRQ
