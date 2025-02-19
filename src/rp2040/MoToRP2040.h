@@ -10,7 +10,7 @@ void servoISR( );
 // defined in MoToRP2040.cpp:
 extern uint8_t noStepISR_Cnt;   // Counter for nested StepISR-disable
 extern uint8_t stepperIRQNum;  // dynamically assigned when timer is initialized
-extern timer_hw_t *stepperTimer; // Only for test-prints in .ino
+extern timer_hw_t *motoRPtimer; // Only for test-prints in .ino
 extern uint8_t spiInitialized;
 extern spi_inst_t *stepperSPI;
 void initSpiAS();

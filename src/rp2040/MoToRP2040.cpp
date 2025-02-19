@@ -11,7 +11,7 @@
 // The RP-Timer always tics with 1µs, so TICS_PER_MICROSECND is always 1
 
 uint8_t stepperAlarm;   // dynamically assigned when timer is initialized
-timer_hw_t *stepperTimer; // Must be timer 0 on RP2040, maybe timer 1 on RP2350 (pi Pico 2 )
+timer_hw_t *motoRPtimer; // Must be timer 0 on RP2040, maybe timer 1 on RP2350 (pi Pico 2 )
 uint8_t stepperIRQNum;  // dynamically assigned when timer is initialized
 uint8_t noStepISR_Cnt = 0;   // Counter for nested StepISr-disable
 uint8_t spiInitialized = false;
@@ -25,7 +25,7 @@ static absolute_time_t lastAlarm, aktAlarm;
 //void ISR_Stepper(uint alarmNum) {
 void __not_in_flash_func(ISR_Stepper)() {
   // Clear the alarm irq
-  hw_clear_bits(&stepperTimer->intr, 1u << stepperAlarm);
+  hw_clear_bits(&motoRPtimer->intr, 1u << stepperAlarm);
   // Timer running up, used for stepper motor. No reload of timer
   SET_TP1;
   nextCycle = ISR_IDLETIME ;// max time between IRQ's is IDLETIME
@@ -45,7 +45,7 @@ void __not_in_flash_func(ISR_Stepper)() {
     CLR_TP1;
     aktAlarm =  lastAlarm + MIN_STEP_CYCLE;
   }*/
-  while (timer_hardware_alarm_set_target (stepperTimer,stepperAlarm, aktAlarm )) { 
+  while (timer_hardware_alarm_set_target (motoRPtimer,stepperAlarm, aktAlarm )) { 
     // Target is already in the past, move target ahead
     //CLR_TP1;
     aktAlarm += MIN_STEP_CYCLE;
@@ -65,23 +65,23 @@ bool seizeTimerAS() {
 	MODE_TP4;
     DB_PRINT("&stepperISR=0x%08X", (uint32_t)stepperISR );
     DB_PRINT("&softLedISR=0x%08X", (uint32_t)softledISR );
-    stepperTimer = timer_get_instance (STP_TIMR_NBR);
+    motoRPtimer = timer_get_instance (STP_TIMR_NBR);
     SET_TP2;
-    stepperAlarm = timer_hardware_alarm_claim_unused (stepperTimer,true); // core will panic if none is available
+    stepperAlarm = timer_hardware_alarm_claim_unused (motoRPtimer,true); // core will panic if none is available
     DB_PRINT("Alarm=%d", stepperAlarm); 
-    stepperIRQNum = timer_hardware_alarm_get_irq_num (stepperTimer, stepperAlarm); // Needed if prority must be changed or Irq dis-/en-abled
-    DB_PRINT("Alm=%d, Timer=%d, IRQNum=%d", stepperAlarm, timer_get_index(stepperTimer), stepperIRQNum ); Serial.flush();
-    hw_set_bits(&stepperTimer->inte, 1u << stepperAlarm); // enable Alarm irq in timer-HW
+    stepperIRQNum = timer_hardware_alarm_get_irq_num (motoRPtimer, stepperAlarm); // Needed if prority must be changed or Irq dis-/en-abled
+    DB_PRINT("Alm=%d, Timer=%d, IRQNum=%d", stepperAlarm, timer_get_index(motoRPtimer), stepperIRQNum ); Serial.flush();
+    hw_set_bits(&motoRPtimer->inte, 1u << stepperAlarm); // enable Alarm irq in timer-HW
     irq_set_exclusive_handler(stepperIRQNum, ISR_Stepper); // set IRQ handler
     irq_set_priority(stepperIRQNum, 10);    // default is 128 ( lower value = higher priority )
     irq_set_enabled (stepperIRQNum, true);  // enable Alarm IRQ in NVIC
     /*/ NUR FÜR TEST: Alarm-Überlauf Timer kurz vor Überlauf stellen.
-    stepperTimer->timelw = 4290000000L;
-    stepperTimer->timehw = 0;
+    motoRPtimer->timelw = 4290000000L;
+    motoRPtimer->timehw = 0;
     */
-    lastAlarm = timer_time_us_64(stepperTimer);
-    aktAlarm = timer_time_us_64(stepperTimer) + 500;//ISR_IDLETIME;
-    timer_hardware_alarm_set_target (stepperTimer,stepperAlarm, aktAlarm); 
+    lastAlarm = timer_time_us_64(motoRPtimer);
+    aktAlarm = timer_time_us_64(motoRPtimer) + 500;//ISR_IDLETIME;
+    timer_hardware_alarm_set_target (motoRPtimer,stepperAlarm, aktAlarm); 
     DB_PRINT("set first target for alarm"); 
     timerInitialized = true;
     DB_PRINT("Timer initialisiert");

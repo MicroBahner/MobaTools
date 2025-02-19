@@ -44,6 +44,8 @@ extern uint8_t stepperAlarm;
 // constexpr uint8_t stepperIRQ_NUM = TIMER_ALARM_IRQ_NUM(stepTIMER, stepALARM);
 extern uint8_t stepperIRQNum; // NVIC-IRQ-number of stepper IRQ
 
+// Fast digitalWrite
+#define digitalWrite(pin,state) {if( state ) gpio_set_mask( 1<<pin ); else gpio_clr_mask( 1<<pin ); }
 
 
 //extern bool timerInitialized;

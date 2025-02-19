@@ -3,11 +3,11 @@
 // die folgenden defines werden im aufrufenden cpp-File gesetzt.
 // so können die debugs klassenspezifisch eingeschaltet werden
 //#define debugTP
-#define debugPrint
+//#define debugPrint
 
 // über diese undefs kann das Debugging global abgeschaltet werden
-//#undef debugTP
-//#undef debugPrint
+#undef debugTP
+#undef debugPrint
 
 #ifdef debugTP 
     #if defined(__AVR_ATmega1280__) || defined(__AVR_ATmega2560__)
