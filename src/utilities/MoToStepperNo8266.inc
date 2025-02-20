@@ -208,7 +208,7 @@ void IRAM_ATTR stepperISR(nextCycle_t cyclesLastIRQ) {
                     #ifdef FAST_PORTWRT
                     *stepperDataP->portPins[0].Adr |= stepperDataP->portPins[0].Mask;
                     #else
-                    digitalWrite( stepperDataP->pins[0], HIGH );
+					digitalWrite( stepperDataP->pins[0], HIGH );
                     //SET_TP4;
                     #endif
                     break;

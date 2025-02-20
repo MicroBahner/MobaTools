@@ -45,7 +45,9 @@ extern uint8_t stepperAlarm;
 extern uint8_t stepperIRQNum; // NVIC-IRQ-number of stepper IRQ
 
 // Fast digitalWrite
-#define digitalWrite(pin,state) {if( state ) gpio_set_mask( 1<<pin ); else gpio_clr_mask( 1<<pin ); }
+// cannot be used, because in stepper IRQ the delay between changing dir pin and the next step is too short 
+// for stepper driver when using fast digitalWrite.
+//#define digitalWrite(pin,state) {if( state ) gpio_set_mask( 1<<pin ); else gpio_clr_mask( 1<<pin ); }
 
 
 //extern bool timerInitialized;

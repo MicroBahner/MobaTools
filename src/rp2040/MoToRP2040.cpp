@@ -148,7 +148,7 @@ void initSpiAS() {
     gpio_set_function(MOTO_SPI_SCK_PIN, GPIO_FUNC_SPI);
     gpio_set_function(MOTO_SPI_TX_PIN, GPIO_FUNC_SPI);
     gpio_set_function(MOTO_SPI_CSN_PIN, GPIO_FUNC_SPI);
-
+	DB_PRINT("SPI-ini, clkPin=%d, MosiPin=%d, SSPin=%d", MOTO_SPI_SCK_PIN, MOTO_SPI_TX_PIN, MOTO_SPI_CSN_PIN );
     spiInitialized = true;  
 }
 

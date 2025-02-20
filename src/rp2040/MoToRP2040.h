@@ -101,7 +101,7 @@ static inline __attribute__((__always_inline__)) void enableSoftLedIsrAS() {
 
 #endif  // Ende COMPILING_MOTOSOFTLED32_CPP
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-#if 1 // Im Test hier immer aktiv defined COMPILING_MOTOSTEPPER_CPP
+#if defined COMPILING_MOTOSTEPPER_CPP
 static inline __attribute__((__always_inline__)) void enableStepperIsrAS() {
   // dummy
 }
