@@ -183,7 +183,7 @@
 									// Lower priority ( higher value) will lead to problems on R4 WiFi 
 									// with WiFi active
 #elif defined ARDUINO_ARCH_RP2040 && !defined ARDUINO_ARCH_MBED  ///////////////////////////////////////////////////////////
-	#define MIN_STEP_CYCLE 5       // increment for nextCycle if too short
+	#define MIN_STEP_CYCLE 20       // increment for nextCycle if too short
 	//#define USE_SPI1				// if SPI 1 for SPI-Stepper should be used ( not possible on nano RP2040 )
 	#define STP_TIMR_NBR 0          // can be set to 1 on RP2350 ( Pico 2 )
 	#define SPI_CLOCK 2000000L
