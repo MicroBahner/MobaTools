@@ -11,11 +11,6 @@
 
 #pragma once
 
-#define debugPrint
-#include <Arduino.h>
-#include <MobaTools.h>
-#include <utilities\MoToDbg.h>
-
 class MoToSyncStepper
 {
 public:

@@ -132,7 +132,7 @@ void softledISR(uint32_t cyclesLastIRQ) { // uint32 for 32-Bit processors
                 }
                 //CLR_TP4;
             }
-            CLR_TP3;
+            //CLR_TP3;
         }
         //CLR_TP3;
      } // end of softleds 

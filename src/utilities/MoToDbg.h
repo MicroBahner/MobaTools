@@ -179,7 +179,7 @@
         #define SET_TP4   R_IOPORT_PinWrite(NULL, TP4, BSP_IO_LEVEL_HIGH)
         #define CLR_TP4  R_IOPORT_PinWrite(NULL, TP4, BSP_IO_LEVEL_LOW) 
 	
-    #elif defined RP2040
+    #elif defined ARDUINO_ARCH_RP2040
 		#warning "RP2040 TP aktiv"
         #define TP1 20
         #define TP2 21
@@ -199,6 +199,7 @@
         #define CLR_TP4  gpio_clr_mask( 1<<TP4 )
  
 	#else // processor not known
+		#warning "no testpins - processor unknown"
         #define MODE_TP1
         #define SET_TP1
         #define CLR_TP1
@@ -215,6 +216,7 @@
 
     
 #else
+	#warning "no testpins activated"
     #define MODE_TP1 
     #define SET_TP1 
     #define CLR_TP1 

@@ -4,7 +4,9 @@
 // 
 // This software is part of the MobaTools library
 
-#include "MoToSyncStepper.h"
+//#define debugPrint
+#include <Arduino.h>
+#include <MobaTools.h>
 
 MoToSyncStepper::MoToSyncStepper()
     : _num_steppers(0), _maxSpeed(10000)
