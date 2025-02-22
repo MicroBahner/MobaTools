@@ -74,15 +74,12 @@ void IRAM_ATTR stepperISR(nextCycle_t cyclesLastIRQ) {
     uint8_t spiChanged, changedPins, bitNr;
     //SET_TP1;SET_TP4; // Oszimessung Dauer der ISR-Routine
     spiChanged = false;
-	int stepIx = 0;	// Stepper Index in while-Schleife
     #ifdef __AVR_MEGA__
     nestedInterrupts(); // allow nested interrupts, because this IRQ may take long
     #endif
     stepperDataP = stepperRootP;
     // ---------------Stepper motors ---------------------------------------------
     while ( stepperDataP != NULL ) {
-		stepIx++;	// 1=zuletzt eingerichteter Stepper
-        /*if ( stepIx == 1 )*/ CLR_TP1;    // = Pendelstepper
         #ifdef IS_32BIT
         bool resetPulse = false; // for 32Bit reset pulse und setting new pulse is never done in same IRQ
         if ( stepperDataP->output == A4988_PINS && digitalRead(stepperDataP->pins[0]) ) {
@@ -106,7 +103,7 @@ void IRAM_ATTR stepperISR(nextCycle_t cyclesLastIRQ) {
             // only active motors with speed > 0
             if ( stepperDataP->aCycSteps ) stepperDataP->cycCnt+=cyclesLastIRQ;
             #ifdef IS_32BIT
-            if ( stepperDataP->cycCnt >= ( stepperDataP->aCycSteps - 10 ) && !resetPulse ) {
+            if ( stepperDataP->cycCnt >= ( stepperDataP->aCycStep ) && !resetPulse ) {
                 //SET_TP2;
                 stepperDataP->cycCnt = stepperDataP->cycCnt - stepperDataP->aCycSteps ;
                 // 'Aufholen' zu langsamer Interrupts begrenzen
@@ -115,11 +112,6 @@ void IRAM_ATTR stepperISR(nextCycle_t cyclesLastIRQ) {
                     //SET_TP4; 
                     stepperDataP->cycCnt = stepperDataP->aCycSteps; 
                 }
-				#ifdef debugTP
-				if ( stepIx == 1 && stepperDataP->cycCnt < 0 ) {
-					SET_TP2;
-				}
-				#endif
                 //CLR_TP4;
             #else
             if ( stepperDataP->cycCnt >= ( stepperDataP->aCycSteps ) ) {

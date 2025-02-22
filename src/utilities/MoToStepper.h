@@ -84,7 +84,7 @@ typedef struct stepperData_t {
 	uint16_t aCycRemain;          // accumulate tCycRemain when cruising
     #endif
 	uintxx_t cyctXramplen;        // precompiled  tCycSteps*(rampLen+RAMPOFFSET)
-    volatile intxx_t cycCnt;     // counting cycles until a step is due
+    volatile uintxx_t cycCnt;     // counting cycles until a step is due
 	uintxx_t cycDelay;            // delay time enable -> stepping
   #endif
   uintxx_t  stepRampLen;        // Length of ramp in steps
