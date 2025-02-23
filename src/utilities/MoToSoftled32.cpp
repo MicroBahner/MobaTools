@@ -7,12 +7,10 @@
 */
 #define COMPILING_MOTOSOFTLED32_CPP
 
-#include <MobaTools.h>
-#ifdef MOTOSOFTLED32 // version for 32bit controllers ( except ESP8266/32 )
-
 //#define debugPrint
 //#define debugTP
-#include <utilities/MoToDbg.h>
+#include <MobaTools.h>
+#ifdef MOTOSOFTLED32 // version for 32bit controllers ( except ESP8266/32 )
 
 // Global Data for all instances and classes  --------------------------------
 
@@ -116,7 +114,7 @@ void softledISR(uint32_t cyclesLastIRQ) { // uint32 for 32-Bit processors
                 //CLR_TP1;
             } // end of led loop
         } else { // is switchofftime within PWM cycle
-            SET_TP3;
+            //SET_TP3;
             for ( ledDataP=ledRootP; ledDataP!=NULL; ledDataP = ledDataP->nextLedDataP ) {
                 //SET_TP4;
                 if ( ledDataP->actPulse ) {

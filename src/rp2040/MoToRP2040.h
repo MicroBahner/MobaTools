@@ -30,7 +30,7 @@ inline __attribute__((__always_inline__)) void  _stepIRQ(bool force = true) {
   if ( noStepISR_Cnt > 0 ) noStepISR_Cnt -= 1; // don't decrease if already 0 ( if enabling IRQ is called too often )
   if ( noStepISR_Cnt == 0 ) {
 #if defined COMPILING_MOTOSTEPPER_CPP
-    CLR_TP3;
+    //CLR_TP3;
 #endif
     irq_set_enabled (stepperIRQNum, true);
   }
@@ -54,7 +54,7 @@ static inline __attribute__((__always_inline__)) int8_t servoPwmSetup( servoData
 	// Find out which PWM slice is connected to GPIO
 	uint slice_num = pwm_gpio_to_slice_num(servoDataP->pin);
 	uint chanNum = pwm_gpio_to_channel(servoDataP->pin);
-	DB_PRINT("slice_num=%d, chanNum=%d, gpio=%d\n", slice_num, chanNum, servoDataP->pin );
+	//DB_PRINT("slice_num=%d, chanNum=%d, gpio=%d\n", slice_num, chanNum, servoDataP->pin );
 	servoDataP->pwmNbr = (slice_num << 1) + chanNum;
 
 	pwm_set_clkdiv(slice_num, F_CPU / 1000000L );
@@ -68,7 +68,7 @@ static inline __attribute__((__always_inline__)) int8_t servoPwmSetup( servoData
 
 	// Note we could also use pwm_set_gpio_level(gpio, x) which looks up the
 	// correct slice and channel for a given GPIO.
-	DB_PRINT("ServoNbr%d, Slice=%d, Chan=%d, Gpio=%d\n", servoDataP->servoIx, servoDataP->pwmNbr >> 1, servoDataP->pwmNbr & 1, servoDataP->pin);
+	//DB_PRINT("ServoNbr%d, Slice=%d, Chan=%d, Gpio=%d\n", servoDataP->servoIx, servoDataP->pwmNbr >> 1, servoDataP->pwmNbr & 1, servoDataP->pin);
 	irq_set_exclusive_handler (PWM_IRQ_WRAP, servoISR);
 	irq_set_enabled (PWM_IRQ_WRAP, true);
 	return servoDataP->pwmNbr;

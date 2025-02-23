@@ -9,12 +9,14 @@
 
 #define debugTP
 //#define debugPrint
-#include <utilities/MoToDbg.h>
 #include <MobaTools.h>
 #define TODO	// ignore 
 // Global Data for all instances and classes  --------------------------------
 #ifdef debugPrint
      const char *rsC[] = { "INACTIVE", "STOPPED", "STOPPING", "STARTING", "CRUISING", "LASTSTEP", "RAMPACCEL", "RAMPDECEL", "SPEEDDECEL" };    
+#endif
+#ifndef MAX_JITTER
+#define MAX_JITTER = 0	// default ( behaves as in V2.6  )
 #endif
 
 
@@ -509,7 +511,7 @@ void MoToStepper::_doSteps( long stepValue, bool absPos ) {
                     //digitalWrite( _stepperData.pins[1], patternIxInc<0 );      // setze dir-output
                     startMove = 1;
                 #else
-                    _stepperData.cycCnt         = 0;            // start with the next IRQ
+                    _stepperData.cycCnt         = MAX_JITTER;            // start with the next IRQ
                     _stepperData.aCycSteps      = MIN_START_CYCLES;
 					#ifndef IS_32BIT
                     _stepperData.aCycRemain     = 0;  
@@ -552,7 +554,7 @@ void MoToStepper::_doSteps( long stepValue, bool absPos ) {
 				_stepperData.aCycSteps       = _stepperData.tCycSteps;
 				startMove = 1;
             #else
-				_stepperData.cycCnt         = 0;            // start with the next IRQ
+				_stepperData.cycCnt         = MAX_JITTER;            // start with the next IRQ
 				_stepperData.aCycSteps      = MIN_START_CYCLES;
 				#ifndef IS_32BIT
 				_stepperData.aCycRemain     = 0; 
