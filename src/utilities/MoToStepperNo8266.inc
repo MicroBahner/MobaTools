@@ -103,7 +103,7 @@ void IRAM_ATTR stepperISR(nextCycle_t cyclesLastIRQ) {
             // only active motors with speed > 0
             if ( stepperDataP->aCycSteps ) stepperDataP->cycCnt+=cyclesLastIRQ;
             #ifdef IS_32BIT
-            if ( stepperDataP->cycCnt >= ( stepperDataP->aCycStep ) && !resetPulse ) {
+            if ( stepperDataP->cycCnt >= ( stepperDataP->aCycSteps ) && !resetPulse ) {
                 //SET_TP2;
                 stepperDataP->cycCnt = stepperDataP->cycCnt - stepperDataP->aCycSteps ;
                 // 'Aufholen' zu langsamer Interrupts begrenzen

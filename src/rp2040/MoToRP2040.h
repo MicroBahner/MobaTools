@@ -21,7 +21,7 @@ inline __attribute__((__always_inline__)) void _noStepIRQ() {
   noStepISR_Cnt++;
 #if defined COMPILING_MOTOSTEPPER_CPP
   //Serial.println(noStepISR_Cnt);
-  SET_TP3;
+  //SET_TP3;
 #endif
 }
 inline __attribute__((__always_inline__)) void  _stepIRQ(bool force = true) {

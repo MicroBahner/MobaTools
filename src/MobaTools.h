@@ -218,6 +218,8 @@
 #include <utilities/MoToSoftled.h>
 #include <utilities/MoToPwm.h>
 
+#include <utilities/MoToDbg.h>
+
 #ifdef ARCHITECT_INCLUDE
 #include ARCHITECT_INCLUDE
 #endif
@@ -226,7 +228,6 @@
 #include <MoToButtons.h>
 #include <MoToTimer.h>
 
-#include <utilities/MoToDbg.h>
 
 #endif
 
