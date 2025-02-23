@@ -19,14 +19,14 @@
   License along with this library; if not, write to the Free Software
   Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
-  MobaTools V2.6.1
+  MobaTools V2.7.0
    
   History:
   V2.7.0 x-2024
     - New class for synced move of steppers ( without acceleration )
 	- New example: servos for turnouts
 	- MoToTimer: new ( optional) parameter for setting the initial time
-	- support for rp2040 processor ( raspberry pi pico )
+	- support for rp2040/rp2350 processor ( raspberry pi pico )
   V2.6.2 9-2024
     - ESP32 core version 3.x is supported ( V2.x is still supported too )
 	- fixed endless rotating when setting moveTo very quickly. (issue#34 on github) 
@@ -198,9 +198,9 @@
 #define RAMPOFFSET      16      // startvalue of rampcounter
 
 // servo related defines
-#if defined ARDUINO_ARCH_ESP32 || defined ARDUINO_ARCH_ESP8266 
-#define MINPULSEWIDTH   550U     // there is no general limit on ESP
-#define MAXPULSEWIDTH   2600U    // there is no general limit on ESP
+#if defined ARDUINO_ARCH_ESP32 || defined ARDUINO_ARCH_ESP8266 || defined ARDUINO_ARCH_RP2040
+#define MINPULSEWIDTH   550U     // there is no general limit on ESP / RP2040
+#define MAXPULSEWIDTH   2600U    // there is no general limit on ESP / RP2040
 #else // all other ( no ESP )
 #define MINPULSEWIDTH   700U      // don't make it shorter than 700
 #define MAXPULSEWIDTH   2300U     // don't make it longer than 2300

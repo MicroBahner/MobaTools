@@ -6,8 +6,8 @@
 //#define debugPrint
 
 // über diese undefs kann das Debugging global abgeschaltet werden
-//#undef debugTP
-//#undef debugPrint
+#undef debugTP
+#undef debugPrint
 
 #ifdef debugTP 
     #if defined(__AVR_ATmega1280__) || defined(__AVR_ATmega2560__)
@@ -199,7 +199,7 @@
         #define CLR_TP4  gpio_clr_mask( 1<<TP4 )
  
 	#else // processor not known
-		#warning "no testpins - processor unknown"
+		//#warning "no testpins - processor unknown"
         #define MODE_TP1
         #define SET_TP1
         #define CLR_TP1
@@ -216,7 +216,7 @@
 
     
 #else
-	#warning "no testpins activated"
+	//#warning "no testpins activated"
     #define MODE_TP1 
     #define SET_TP1 
     #define CLR_TP1 

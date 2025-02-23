@@ -16,6 +16,7 @@ Released versions can be installed by means of the library manager in arduino ID
 - AVR - ATmega328P ATmega2560, ATmega4809
 - AVR ATtiny, if it has the 16-bit timer 1 and a SPI or USI hardware
 - Renesas RA4M1 ( UNO R4 )
+- RP2040 / RP2350 processors ( the [core of Earle Philhower](https://github.com/earlephilhower/arduino-pico) must be used )
 - STM32F103x processors ( the [core of Roger Clark](https://github.com/rogerclarkmelbourne/Arduino_STM32) must be used )
 - ESP32 ( core versions 2.x and 3.x )
 - ESP8266 ( with some restrictions, Stepper via SPI does not work )
@@ -27,10 +28,10 @@ A documentation file in [german](MobaTools-270-de.pdf) and [english](MobaTools-2
 | Version |  Release Date  | Description
 | ------- |  ------------  | -----------
 | 2.7.0 | 2025-xx-xx| several bugfixes, some docu enhancements
+| | | Support of RP2040 / RP2350
 | | | Synchronos move of steppers ( without acceleration, experimental )
 | | | New servo example for turnouts ( model railroad)
 | | | The enable function for steppers can be dynamically switched on/off
-| | | Some minor enhancements and bugfixes
 | | | 
 | 2.6.3 | 2024-12-23| 
 | | | bugfix in example UNO-R4WiFi-Web: Sketch hangs if the connection to WiFi cannot not be established very fast.
