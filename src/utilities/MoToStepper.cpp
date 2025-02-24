@@ -16,7 +16,7 @@
      const char *rsC[] = { "INACTIVE", "STOPPED", "STOPPING", "STARTING", "CRUISING", "LASTSTEP", "RAMPACCEL", "RAMPDECEL", "SPEEDDECEL" };    
 #endif
 #ifndef MAX_JITTER
-#define MAX_JITTER = 0	// default ( behaves as in V2.6  )
+#define MAX_JITTER 0	// default ( behaves as in V2.6  )
 #endif
 
 
@@ -384,14 +384,22 @@ int32_t MoToStepper::getSpeedSteps( ) {
 	// return actual speed in steps/ 10sec 
     if ( _stepperData.output == NO_OUTPUT ) return 0; // not attached
 	int8_t direction;
+	rampStat rState;	// rampstate indicates whether stepper is moving
+	uint8_t sZeroFlg;	// indicates if stepper doesn't move because speed was set to 0
     #ifdef IS_32BIT
 	    // there is no remainder on 32bit systems annd aCycSteps is in µs
         int32_t actSpeedSteps = 0;
         noInterrupts();
+		rState = _stepperData.rampState;
+		sZeroFlg = _stepperData.speedZero;
         actSpeedSteps = _stepperData.aCycSteps;
 		direction = _stepperData.patternIxInc<0?-1:1;
         interrupts();
-        if ( actSpeedSteps > 0 ) actSpeedSteps = 10000000 / actSpeedSteps;
+		if ( rState < rampStat::CRUISING || sZeroFlg == ZEROSPEEDACTIVE || actSpeedSteps == 0 ) {
+			actSpeedSteps = 0;
+		} else {
+			actSpeedSteps = 10000000 / actSpeedSteps;
+		}
     #else
         uint16_t actSpeedSteps = 0;
         // get actual values from ISR

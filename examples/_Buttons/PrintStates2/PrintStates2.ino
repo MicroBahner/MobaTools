@@ -1,7 +1,7 @@
 // Show Events of buttons in serial monitor
 #define MAX8BUTTONS
 #include <MobaTools.h>
-// define pin numbers
+// define pin numbers (buttons must switch to Gnd)
 const byte buttonPin [] = { A0, A1, A2, A3 };
 const byte buttonCnt = sizeof(buttonPin);
 char txtBuf[50];
@@ -59,10 +59,6 @@ void setup()
   Serial.begin(115200);
   while(!Serial);       // only for Leonardo/Micro ( mega32u4 based boards 
   
-  for (int i = 0; i < buttonCnt; i++)  {    
-    // buttons must switch to Gnc
-    pinMode(buttonPin[i], INPUT_PULLUP); 
-  }
   Serial.println("Starting loop");
   sprintf( txtBuf, "max. managable buttons: %d", sizeof(button_t)*8 );
   Serial.println( txtBuf );

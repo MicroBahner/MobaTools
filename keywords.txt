@@ -13,6 +13,7 @@ MoToTimer	KEYWORD1
 MoToTimebase	KEYWORD1    
 MoToSoftLed	KEYWORD1   
 MoToStepper	KEYWORD1
+MoToSyncStepper	KEYWORD1
 MoToPwm	KEYWORD1
  
 #######################################
@@ -74,6 +75,7 @@ stop	KEYWORD2
 attach	KEYWORD2
 attachEnable	KEYWORD2
 detach	KEYWORD2
+autoEnable	KEYWORD2
 write	KEYWORD2
 writeSteps	KEYWORD2
 setZero	KEYWORD2
@@ -88,6 +90,20 @@ read	KEYWORD2
 readSteps	KEYWORD2
 getSpeedSteps	KEYWORD2
 attached	KEYWORD2
+# AccelStepper compatible
+moveTo	KEYWORD2
+move	KEYWORD2
+setMaxSpeed	KEYWORD2
+distanceToGo	KEYWORD2
+currentPosition	KEYWORD2
+
+#Methods for Class MoToSyncStepper
+addStepper	KEYWORD2
+setMaxSpeedSteps	KEYWORD2
+moveTo	KEYWORD2
+setTargets	KEYWORD2
+startSyncMove	KEYWORD2
+moving	KEYWORD2
 
 #Methods for Class MoToButtons
 processButtons	KEYWORD2
