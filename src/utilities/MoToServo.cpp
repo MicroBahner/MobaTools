@@ -82,14 +82,16 @@ void IRAM_ATTR ISR_Servo( void *arg ) {
         }
         // set new duty
         pwm_set_chan_level(sPtr->pwmNbr >> 1, sPtr->pwmNbr & 1, tic2time(sPtr->ist));
-      } else if ( !sPtr->noAutoff ) { // no change in pulse length, look for autooff
-        if ( --sPtr->offcnt == 0 ) {
-            //SET_TP3;
-            pwm_set_chan_level(sPtr->pwmNbr >> 1, sPtr->pwmNbr & 1, 0);
-            //CLR_TP3;
-        }
-    }
-
+      } else { // no change in pulse length, look for autooff
+		if ( sPtr->offcnt == 0 ) { 
+		  // is autooff and off time has elapsed
+          pwm_set_chan_level(sPtr->pwmNbr >> 1, sPtr->pwmNbr & 1, 0);
+		} else {
+			// still create the pulse
+			if ( !sPtr->noAutoff ) --sPtr->offcnt;
+            pwm_set_chan_level(sPtr->pwmNbr >> 1, sPtr->pwmNbr & 1, tic2time(sPtr->ist));
+		}
+      } 
       SET_TP1;
     }
     // try next ( there maybe 2 servos(channels) for this IRQ
@@ -345,7 +347,7 @@ uint8_t MoToServo::attach(int pinArg, uint16_t pmin, uint16_t pmax ) {
 uint8_t MoToServo::attach( int pinArg, uint16_t pmin, uint16_t pmax, bool autoOff ) {
     // return false if already attached or too many servos
     DB_PRINT("Servoattach: pwmNbr=%d, servoIx=%d, Pin=%d", _servoData.pwmNbr, _servoData.servoIx, pinArg );
-    if ( _servoData.pwmNbr >= 0 /*!= NOT_ATTACHED */ ||  _servoData.servoIx >= MAX_SERVOS ) return 0;
+    if ( _servoData.pwmNbr >= 0  ||  _servoData.servoIx >= MAX_SERVOS ) return 0;
     #ifdef ESP8266 // check pinnumber
         if ( pinArg <0 || pinArg >15 || gpioUsed(pinArg ) ) return 0;
         setGpio(pinArg);    // mark pin as used
@@ -382,7 +384,7 @@ uint8_t MoToServo::attach( int pinArg, uint16_t pmin, uint16_t pmax, bool autoOf
         _servoData.pwmNbr =  servoPwmSetup( &_servoData );
         DB_PRINT("pwmNbr=%d, Pin=%d", _servoData.pwmNbr, _servoData.pin );
         
-    #else
+    #else // create servo pulses in timer ISR
         seizeTimerAS();
         // initialize servochain pointer and ISR if not done already
         noInterrupts();
