@@ -4,7 +4,7 @@
 #define ESP32_DRIVER_H
 
 #if CONFIG_IDF_TARGET_ESP32S2 || CONFIG_IDF_TARGET_ESP32S3 || CONFIG_IDF_TARGET_ESP32C3
-	#error This ESP32 version is not supported
+	#error This ESP32 processor is not supported
 #endif
 #include "esp32-hal-timer.h"
 #include "esp32-hal-spi.h"

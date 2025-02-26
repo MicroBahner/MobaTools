@@ -55,15 +55,14 @@ void IRAM_ATTR ISR_Servo( void *arg ) {
 }
 
 #elif defined RP2040 //---------------- for RP2040/RP2350 processor ----------------------------
-  #warning "Servo for RP2040"
+  //#warning "Servo for RP2040"
   static servoData_t* lastServoDataP = NULL; //start of ServoData-chain
   static bool speedV08 = false;    // Compatibility-Flag for speed method
   void __not_in_flash_func(servoISR)(void) {
   SET_TP1;
   // IRQ fired when a PWM counter wraps
-  static uint16_t chanLevel;
   servoData_t *sPtr = lastServoDataP;
-  int thisSlice;
+  int thisSlice = 0;
   while ( sPtr != NULL ) {
     // Cycle through all servos
     if ( pwm_get_irq_status_mask() & 1 << (sPtr->pwmNbr >> 1) ) {

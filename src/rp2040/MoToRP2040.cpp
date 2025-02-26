@@ -7,7 +7,7 @@
 
 #undef stepperISR // When calling stepperISR, the attribute '__not_in_flash_func' is not allowed
 #undef softledISR // When calling softledISR, the attribute '__not_in_flash_func' is not allowed
-#warning "HW specfic - RP2040 ---"
+//#warning "HW specfic - RP2040 ---"
 
 // The RP-Timer always tics with 1µs, so TICS_PER_MICROSECND is always 1
 
@@ -137,7 +137,7 @@ void initSpiAS() {
     //spi_unreset(spi);
     unreset_block_num_wait_blocking(stepperSPI == spi0 ? RESET_SPI0 : RESET_SPI1);
 
-    uint baud = spi_set_baudrate(stepperSPI, spiBaudrate);
+    spi_set_baudrate(stepperSPI, spiBaudrate);
     spi_set_format(stepperSPI, 16, SPI_CPOL_0, SPI_CPHA_0, SPI_MSB_FIRST);
     // Always enable DREQ signals -- harmless if DMA is not listening
     hw_set_bits(&spi_get_hw(stepperSPI)->dmacr, SPI_SSPDMACR_TXDMAE_BITS | SPI_SSPDMACR_RXDMAE_BITS);

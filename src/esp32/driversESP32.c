@@ -18,7 +18,7 @@
 // version with sdk calls
 #include <driver/ledc.h>
 
-#warning "HW specfic drivers.c (using sdk) - ESP32  --"
+//#warning "HW specfic drivers.c (using sdk) - ESP32  --"
 #error "SDK-version must not be used"
 
 // variant with using the sdk to configure ledc hardware
