@@ -2,7 +2,7 @@
 #define MOTORP2040_H
 // RP2040 specific defines for Cpp files
 
-//#warning RP2040 specific cpp includes
+//#pragma message RP2040 specific cpp includes
 bool seizeTimerAS();
 
 void servoISR( );

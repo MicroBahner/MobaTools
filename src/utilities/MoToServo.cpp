@@ -55,7 +55,7 @@ void IRAM_ATTR ISR_Servo( void *arg ) {
 }
 
 #elif defined RP2040 //---------------- for RP2040/RP2350 processor ----------------------------
-  //#warning "Servo for RP2040"
+  //#pragma message "Servo for RP2040"
   static servoData_t* lastServoDataP = NULL; //start of ServoData-chain
   static bool speedV08 = false;    // Compatibility-Flag for speed method
   void __not_in_flash_func(servoISR)(void) {

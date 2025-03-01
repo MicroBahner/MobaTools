@@ -54,13 +54,13 @@ static bool timerInitialized = false;
     // Initiieren des Stepper Timers ------------------------
     if ( !timerInitialized ) {
 		#if (ESP_ARDUINO_VERSION_MAJOR == 2)
-			#warning "Info: using esp core 2.x.x"
+			#pragma message "Info: using esp core 2.x.x"
         stepTimer = timerBegin(STEPPER_TIMER, DIVIDER, true); // true= countup
         timerAttachInterrupt(stepTimer, &ISR_Stepper, true);  // true= edge Interrupt
         timerAlarmWrite(stepTimer, ISR_IDLETIME*TICS_PER_MICROSECOND , false); // false = no autoreload );
         timerAlarmEnable(stepTimer);
 		#elif (ESP_ARDUINO_VERSION_MAJOR == 3)
-			#warning "Info: using esp core 3.x.x"
+			#pragma message "Info: using esp core 3.x.x"
         // core 3.0.3 hw_timer_t * timerBegin(uint32_t frequency);   // frequency in Hz    
 		stepTimer = timerBegin(2000000);  // frequency
         // core 3.0.3void timerAttachInterrupt(hw_timer_t * timer, void (*userFunc)(void));
