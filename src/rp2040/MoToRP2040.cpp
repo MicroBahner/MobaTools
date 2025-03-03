@@ -49,7 +49,7 @@ void __not_in_flash_func(ISR_Stepper)() {
   while (timer_hardware_alarm_set_target (motoRPtimer,stepperAlarm, aktAlarm )) { 
     // Target is already in the past, move target ahead
     //CLR_TP1;
-    aktAlarm += MIN_STEP_CYCLE;
+    aktAlarm += (MIN_STEP_CYCLE/2);
   }                                                          
   //SET_TP1;
   CLR_TP1; // Oszimessung Dauer der ISR-Routine

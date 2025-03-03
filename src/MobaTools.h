@@ -22,7 +22,7 @@
   MobaTools V2.7.0
    
   History:
-  V2.7.0 x-2024
+  V2.7.0 3-2024
     - New class for synced move of steppers ( without acceleration )
 	- New example: servos for turnouts
 	- MoToTimer: new ( optional) parameter for setting the initial time
@@ -128,6 +128,9 @@
 
     
 // default CYCLETIME is processordependent, change only if you know what you are doing ).
+// If it is not defined here it is 1 ( µs ). 
+// CYCLETIME and MIN_STEP_CYCLE define the maximum step rate for steppers ( which also depends on the overall load )
+
 #ifdef  ARDUINO_ARCH_ESP8266 ///////////////////////////////////////////////////////////
 	#define CYCLETIME       60      // Min. irq-periode in us ( ESP-default is 60 )
 									// = high time of Steppulse
@@ -228,6 +231,12 @@
 #include <MoToButtons.h>
 #include <MoToTimer.h>
 
+#if 0
+#define XSTR(x) STR(x)
+#define STR(x) #x   // encloses x in ".."
+#define GCC_Version XSTR(__cplusplus)
+#pragma message "using GCC-Version: " GCC_Version
+#endif
 
 #endif
 

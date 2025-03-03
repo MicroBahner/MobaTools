@@ -101,7 +101,8 @@ void IRAM_ATTR stepperISR(nextCycle_t cyclesLastIRQ) {
 		
         if ( stepperDataP->rampState >= rampStat::CRUISING &&  stepperDataP->speedZero != ZEROSPEEDACTIVE ) {
             // only active motors with speed > 0
-            if ( stepperDataP->aCycSteps ) stepperDataP->cycCnt+=cyclesLastIRQ;
+            //if ( stepperDataP->aCycSteps ) stepperDataP->cycCnt+=cyclesLastIRQ;
+            if ( stepperDataP->aCycSteps ) stepperDataP->cycCnt=stepperDataP->cycCnt+cyclesLastIRQ;
             #ifdef IS_32BIT
             if ( stepperDataP->cycCnt >= ( stepperDataP->aCycSteps ) && !resetPulse ) {
                 //SET_TP2;
@@ -121,7 +122,8 @@ void IRAM_ATTR stepperISR(nextCycle_t cyclesLastIRQ) {
                 //SET_TP2;
                 // Do one step
                 // update position for absolute positioning
-                stepperDataP->stepsFromZero += stepperDataP->patternIxInc;
+                //stepperDataP->stepsFromZero += stepperDataP->patternIxInc;
+                stepperDataP->stepsFromZero = stepperDataP->stepsFromZero +stepperDataP->patternIxInc;
                 
                 // sign of patternIxInc defines direction
                 int8_t _patIx;
@@ -217,7 +219,9 @@ void IRAM_ATTR stepperISR(nextCycle_t cyclesLastIRQ) {
                 #endif
                 //CLR_TP2;
                 // ------------------ check if last step -----------------------------------
-                if ( --stepperDataP->stepCnt == 0 ) {
+                //if ( --stepperDataP->stepCnt == 0 ) {
+				stepperDataP->stepCnt = stepperDataP->stepCnt	-1;
+                if ( stepperDataP->stepCnt == 0 ) {
                     // this was the last step.
                     if (stepperDataP->stepCnt2 > 0 ) { // check if we have to start a movement backwards
                         // yes, change Direction and go stpCnt2 Steps
@@ -395,7 +399,8 @@ void IRAM_ATTR stepperISR(nextCycle_t cyclesLastIRQ) {
         } 
 		else if ( stepperDataP->rampState == rampStat::STOPPING  ) {
 			// Check if time between last step and disabling the motor has elapsed
-            stepperDataP->cycCnt+=cyclesLastIRQ;
+            //stepperDataP->cycCnt+=cyclesLastIRQ;
+            stepperDataP->cycCnt=stepperDataP->cycCnt+cyclesLastIRQ;
             if ( stepperDataP->cycCnt >= stepperDataP->aCycSteps+MAX_JITTER ) {
                 stepperDataP->cycCnt = MAX_JITTER;
 				if ( stepperDataP->enablePin == NO_ENABLEPIN ) {
