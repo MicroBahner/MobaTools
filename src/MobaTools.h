@@ -24,9 +24,11 @@
   History:
   V2.7.0 3-2024
     - New class for synced move of steppers ( without acceleration )
+	- Example for synced move
 	- New example: servos for turnouts
 	- MoToTimer: new ( optional) parameter for setting the initial time
-	- support for rp2040/rp2350 processor ( raspberry pi pico )
+	- Support for rp2040/rp2350 processor ( raspberry pi pico )
+	- The enable function for steppers can be dynamically switched on/offseveral bugfixes
   V2.6.2 9-2024
     - ESP32 core version 3.x is supported ( V2.x is still supported too )
 	- fixed endless rotating when setting moveTo very quickly. (issue#34 on github) 

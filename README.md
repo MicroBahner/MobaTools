@@ -27,7 +27,7 @@ A documentation file in [german](MobaTools-270-de.pdf) and [english](MobaTools-2
 
 | Version |  Release Date  | Description
 | ------- |  ------------  | -----------
-| 2.7.0 | 2025-03-xx| several bugfixes, some docu enhancements
+| 2.7.0 | 2025-03-05| several bugfixes, some docu enhancements
 | | | Support of RP2040 / RP2350
 | | | Synchronos move of steppers ( without acceleration, experimental )
 | | | New servo example for turnouts ( model railroad)
