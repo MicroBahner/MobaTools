@@ -903,6 +903,7 @@ void MoToStepper::stop() {
         // its moving, stopping with next pulse
         stepsToMove = 0;
         _stepperData.stepCnt = 1;
+        _stepperData.stepCnt2 = 0;  // cancel a pending reversal ( set by doSteps/write with a change of direction )
         //DB_PRINT("Stopping!");
     }
     _stepIRQ();
