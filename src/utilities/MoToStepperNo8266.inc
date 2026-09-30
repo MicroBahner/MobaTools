@@ -372,7 +372,7 @@ void IRAM_ATTR stepperISR(nextCycle_t cyclesLastIRQ) {
 				}
                 //CLR_TP3;
 				//if ( locSyncDataP != NULL && locSyncDataP->ratioToMaster == 0 ) {
-				if ( stepperDataP->syncMode == syncStat::MASTER ) {
+				if ( stepperDataP->syncMode == syncStat::MASTER && locSyncDataP != NULL ) {
 					// we are in a synced move and it's the master
 					// loop through all steppers of the synced move and check if a step is due
 					stepperSyncData_t *slavePtr = locSyncDataP->nextSyncData;
@@ -411,6 +411,12 @@ void IRAM_ATTR stepperISR(nextCycle_t cyclesLastIRQ) {
 							//CLR_TP3;
 						}
 						slavePtr = slavePtr->nextSyncData; // Check next stepper until we reach our own ptr
+					}
+					if ( stepperDataP->stepCnt == 0 ) {
+						// this was the last step of the master, so the synced move is finished for the master.
+						// This must be done here ( after the slave loop ), because the loop above may still need
+						// to create a last slave step. If no slave needed one, syncMode was never reset before.
+						stepperDataP->syncMode = syncStat::NOSYNC;
 					}
 					//CLR_TP2; 	//digitalWrite(A1, LOW);
 				}
