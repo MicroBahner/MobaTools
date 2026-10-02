@@ -1,4 +1,7 @@
   History of MobaTools releases:
+  V3.1.2 10-2026
+  - Bugfix in MotoStepper.stop() if there were steps to do in reverse direction.
+  - Bugfix in MoToSyncStepper: under some circumstances the sync mode was not reset when the master reached its target
   V3.1.1 08-2026
   - The time specified when instantiating a MoToTimer object did not start.
   V3.1 04-2026

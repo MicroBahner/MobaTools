@@ -19,9 +19,12 @@
   License along with this library; if not, write to the Free Software
   Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
-  MobaTools V3.0.0
+  MobaTools V3.1.2
    
   History:
+  V3.1.2 10-2026
+  - Bugfix in MotoStepper.stop() if there were steps to do in reverse direction.
+  - Bugfix in MoToSyncStepper: under some circumstances the sync mode was not reset when the master reached its target
   V3.1.1 08-2026
   - The time specified when instantiating a MoToTimer object did not start.
   V3.1 04-2026
@@ -35,26 +38,7 @@
   - support of ATtiny2 ( limited, only tested with ATtiny3224)
   - stepper pins can be inverted
   - some minor enhancements and new functions
-  V2.7.1 x-2025( not released)
-	- RP204 processers: priority of timer IRQ can be set in MobaTools.h
-  V2.7.0 3-2025
-    - New class for synced move of steppers ( without acceleration )
-	- Example for synced move
-	- New example: servos for turnouts
-	- MoToTimer: new ( optional) parameter for setting the initial time
-	- Support for rp2040/rp2350 processor ( raspberry pi pico )
-	- The enable function for steppers can be dynamically switched on/offseveral bugfixes
-  V2.6.2 9-2024
-    - ESP32 core version 3.x is supported ( V2.x is still supported too )
-	- fixed endless rotating when setting moveTo very quickly. (issue#34 on github) 
-  V2.6.1 12-2023
-    - bugfix with UNO R4Wifi and steppers (with Wifi active)
-    - 2 more examples ( button matrix and UNO R4 Wifi and stepper )
-  V2.6.0 12-2023
-    - Support UNO R4 (Minima and WiFi)
-	- MoToStepper.read allows reading the angle in fractions
-	- internal optimizations
-  For older history see MobaToolsRelNotes.txt
+  For older history (V2 and V1) see MobaToolsRelNotes.txt
    
 */
 // defines that may be changed by the user

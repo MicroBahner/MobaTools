@@ -386,7 +386,7 @@ void IRAM_ATTR stepperISR(nextCycle_t cyclesLastIRQ) {
 							// slave has not reached its end position
 							if (  stepperDataP->stepCnt == 0 ) {
 								// Last step of master -> last chance to create a slave-step, no matter what ratioCnt is
-								stepperDataP->syncMode = syncStat::NOSYNC; // last action of master
+								//stepperDataP->syncMode = syncStat::NOSYNC; // last action of master 1.10.26 this is done after the while loop
 								// aCycSteps is not a valid steptime anymore, so use last steptime
 								slaveStep = (locSyncDataP->lastMasterSteps * slavePtr->ratioCnt) / RATIOBASE +cyclesLastIRQ;
 								// there should be no more than 1 slave step needed
