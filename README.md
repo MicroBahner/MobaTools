@@ -68,7 +68,7 @@ Contains Methods to create pwm and tone outputs.
 | Version |  Release Date  | Description
 | ------- |  ------------  | -----------
 | 3.1.2 | 2026-10-03| 
-| | | Bugfix MoToStepper (stop() and synced move ) - Thanks to lahirunirmalx
+| | | Bugfix MoToStepper (stop() and synced move ) - Thanks to [lahirunirmalx]( https://github.com/lahirunirmalx )
 | 3.1.1 | 2026-08-15| 
 | | | Bugfix MoToTimer
 | 3.1.0 | 2026-04-11| 
