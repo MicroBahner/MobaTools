@@ -94,6 +94,7 @@ void MoToStepper::initialize ( long steps360, uint8_t mode ) {
     stepMode = mode;
     // initialize data for interrupts
     _stepperData.stepCnt = 0;         // don't move
+    _stepperData.stepCnt2 = 0;         // don't move
     _stepperData.patternIx = 0;
     _stepperData.patternIxInc = mode;         // positive direction
 	_stepperData.aCycSteps = 0; // means no step
