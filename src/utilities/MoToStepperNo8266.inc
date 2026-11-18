@@ -702,6 +702,7 @@ void MoToStepper::prDynData() {             // print actual Stepperdata
     stepperData_t printData;  // vor Ausdruck eine lokale Kopie erstellen
 	intxx_t prNextCycle;
     _noStepIRQ();
+	printData.syncMode  = _stepperData.syncMode;
     printData.stepCnt   = _stepperData.stepCnt;             // nmbr of steps to take
     printData.stepCnt2  = _stepperData.stepCnt2;            // nmbr of steps to take after automatic reverse
 	printData.tCycSteps =   _stepperData.tCycSteps;         // nbr of IRQ cycles per step ( target value of motorspeed  )
@@ -725,7 +726,7 @@ void MoToStepper::prDynData() {             // print actual Stepperdata
     uint32_t time = micros();
     uint16_t usec = time%1000; time /=1000;
     uint16_t msec = time%1000; time /= 1000;
-    DB_PRINT("Time:%5lu:%03u,%03u\t stepCnt=%5lu\t stepCnt2=%5lu\t sFZ=%5ld", time, msec,usec,printData.stepCnt, printData.stepCnt2, printData.stepsFromZero );
+    DB_PRINT("Time:%5lu:%03u,%03u\t stepCnt=%5lu\t stepCnt2=%5lu\t sFZ=%5ld\t synMd=%d", time, msec,usec,printData.stepCnt, printData.stepCnt2, printData.stepsFromZero, printData.syncMode );
 	
     #ifdef IS_32BIT
     DB_PRINT("tCySteps=%5u\t # aCySteps=%5u\t ", (unsigned int)printData.tCycSteps,(unsigned int)printData.aCycSteps);

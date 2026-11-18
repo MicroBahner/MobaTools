@@ -101,6 +101,7 @@ void MoToStepper::initialize ( long steps360, uint8_t mode ) {
 	_stepperData.tCycSteps = 0; 
 	#ifndef IS_32BIT
 	    _stepperData.tCycRemain = 0;                // work with remainder when cruising ( only 8-bit processors )
+	    _stepperData.aCycRemain = 0; 
 	#endif
     _stepperData.stepsFromZero = 0;
     _stepperData.rampState = rampStat::INACTIVE;

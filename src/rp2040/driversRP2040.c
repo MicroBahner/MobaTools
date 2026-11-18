@@ -1,4 +1,4 @@
-// ESP32 HW-spcific Functions
+// Pi Pico / Pico2 HW-spcific Functions
 #ifdef ARDUINO_ARCH_RP2040
 // Logging
 #include <Arduino.h>

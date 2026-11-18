@@ -107,7 +107,7 @@ typedef struct stepperData_t {
   struct stepperData_t *nextStepperDataP;    // chain pointer
   stepperSyncData_t *syncDataP=NULL;		// pointer to syncdata of this stepper. The pointer is only set while a synced move is active.
 											// all other synced steppers follow in a circular pointerchain
-  syncStat syncMode;				// NONE, MASTER, SLAVE, CANCELED
+  syncStat syncMode = syncStat::NOSYNC;				// NOSYNC, MASTER, SLAVE, CANCELED
   volatile uint32_t stepCnt;    // nmbr of steps to take
   uint32_t stepCnt2;            // nmbr of steps to take after automatic reverse
   volatile int8_t patternIx;    // Pattern-Index of actual Step (0-7)
@@ -123,7 +123,7 @@ typedef struct stepperData_t {
   #else
 	// on the other platforms the time values count in cycles.
     // On 32-bit processors cyclelength is 1 µsec, and there is no remainder
-	// On 8-bit AVR sycle length is defined in MobaTools.h ( = min time between IRQ's )
+	// On 8-bit AVR cycle length is defined in MobaTools.h ( = min time between IRQ's )
 	cycles_t tCycSteps;           // nbr of cycles per step ( target value of motorspeed  )
 	volatile cycles_t aCycSteps;  // nbr of cycles per step ( actual motorspeed  )
     #ifndef IS_32BIT

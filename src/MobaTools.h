@@ -19,9 +19,12 @@
   License along with this library; if not, write to the Free Software
   Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
-  MobaTools V3.1.2
+  MobaTools V3.1.3
    
   History:
+  V3.1.3 11-2026
+  - bugfix in MoToStepper constructor. There were some uninitialized variables.
+    This is essential, if the instance is created dynamically with 'new'.
   V3.1.2 10-2026
   - Bugfix in MotoStepper.stop() if there were steps to do in reverse direction.
   - Bugfix in MoToSyncStepper: under some circumstances the sync mode was not reset when the master reached its target

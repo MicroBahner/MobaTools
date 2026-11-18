@@ -67,6 +67,8 @@ Contains Methods to create pwm and tone outputs.
 
 | Version |  Release Date  | Description
 | ------- |  ------------  | -----------
+| 3.1.3 | 2026-11-18| 
+| | | Bugfix MoToStepper construktor: some varables weren't initialized, which is a problem if you create the instance with 'new' - Thanks to [jsucur](https://github.com/jsucur)
 | 3.1.2 | 2026-10-03| 
 | | | Bugfix MoToStepper (stop() and synced move ) - Thanks to [lahirunirmalx]( https://github.com/lahirunirmalx )
 | 3.1.1 | 2026-08-15| 
